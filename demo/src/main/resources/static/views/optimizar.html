@@ -1,0 +1,343 @@
+<div id="viewOptimizar">
+    
+    <!-- PASO 1: FORMULARIO DE NUEVA OPTIMIZACIÓN (Imagen 1) -->
+    <div id="optSubForm">
+        <div class="content-header" style="margin-bottom: 24px;">
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">NUEVA OPTIMIZACIÓN DE RUTA</h1>
+            <p style="font-size: 13.5px; color: #475569;">Ingrese los datos para encontras la mejor ruta</p>
+        </div>
+
+        <div class="form-opt-card">
+            <form id="formOptimizacion" onsubmit="startOptimizationProcess(event)">
+                <div class="form-opt-grid">
+                    
+                    <!-- Columna Izquierda -->
+                    <div>
+                        <div style="margin-bottom: 20px;">
+                            <label class="form-opt-label">Origen</label>
+                            <select id="optOrigen" class="form-opt-select" required>
+                                <option value="A">Almacén Principal (A)</option>
+                                <option value="B">Planta Siderúrgica Pisco (B)</option>
+                                <option value="C">Centro Logístico Lurín (C)</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label class="form-opt-label">Material</label>
+                            <select id="optMaterial" class="form-opt-select" required>
+                                <option value="bobinas">Bobinas de acero</option>
+                                <option value="barras">Barras de construcción</option>
+                                <option value="alambron">Alambrón</option>
+                                <option value="planchas">Planchas laminadas</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-opt-label">Prioridad</label>
+                            <select id="optPrioridad" class="form-opt-select" required>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha -->
+                    <div>
+                        <div style="margin-bottom: 20px;">
+                            <label class="form-opt-label">Destino</label>
+                            <select id="optDestino" class="form-opt-select" required>
+                                <option value="F">Planta de produccion (F)</option>
+                                <option value="E">Centro de Distribución Arequipa (E)</option>
+                                <option value="D">Distribuidora Norte Chiclayo (D)</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label class="form-opt-label">Tipo de transporte</label>
+                            <select id="optTransporte" class="form-opt-select" required>
+                                <option value="camion">Camion</option>
+                                <option value="trailer">Trailer</option>
+                                <option value="furgon">Furgón</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-opt-label">Objetivo de optimizacion</label>
+                            <div class="radio-opt-group">
+                                <label class="radio-opt-label">
+                                    <input type="radio" name="optObjetivo" value="tiempo">
+                                    Menor tiempo
+                                </label>
+                                <label class="radio-opt-label">
+                                    <input type="radio" name="optObjetivo" value="costo">
+                                    Menor costo
+                                </label>
+                                <label class="radio-opt-label" style="font-weight: 600;">
+                                    <input type="radio" name="optObjetivo" value="equilibrio" checked>
+                                    Equilibrio tiempo/ costo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Fila Inferior: Restricciones y Botón Analizar -->
+                <div class="opt-bottom-actions">
+                    <div>
+                        <label class="form-opt-label">Restricciones(opcional)</label>
+                        <div class="opt-restrictions-group">
+                            <label class="opt-check-label">
+                                <input type="checkbox" id="restTrafico">
+                                Evitar trafico pesado
+                            </label>
+                            <label class="opt-check-label">
+                                <input type="checkbox" id="restMantenimiento">
+                                Evitar zonas de mantenimiento
+                            </label>
+                            <label class="opt-check-label">
+                                <input type="checkbox" id="restPesoCheck" checked>
+                                <span>Peso maximo (ton)</span>
+                                <input type="number" id="restPesoVal" value="25" style="width: 58px; height: 32px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13.5px; text-align: center; margin-left: 20px;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-analizar-rutas">
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Analizar Rutas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PASO 2: ANALIZANDO RUTAS (Imagen 2) -->
+    <div id="optSubLoading" style="display:none;">
+        <div class="content-header" style="margin-bottom: 24px;">
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">ANALIZANDO RUTAS</h1>
+            <p style="font-size: 13.5px; color: #475569;">El sistema esta evaluando las mejores alternativas</p>
+        </div>
+
+        <div class="form-opt-card" style="padding: 28px 36px;">
+            <!-- Grafo animado SVG -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
+                <svg viewBox="0 0 740 230" style="width: 100%; height: auto; display: block;">
+                    <defs>
+                        <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.25"/>
+                        </filter>
+                    </defs>
+                    <!-- Conexiones tenues alternativas -->
+                    <path d="M 80 140 Q 160 80 240 70" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
+                    <path d="M 240 70 Q 390 50 540 100" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
+                    <path d="M 540 100 Q 600 120 660 160" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
+                    <path d="M 240 70 Q 310 115 380 160" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4,4" />
+                    <path d="M 380 160 Q 460 130 540 100" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4,4" />
+
+                    <!-- Ruta Activa Verde (A -> C -> E -> F) -->
+                    <path d="M 80 140 Q 230 180 380 160" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
+                    <path d="M 380 160 Q 450 185 520 205" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
+                    <path d="M 520 205 Q 590 185 660 160" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
+
+                    <!-- Nodos -->
+                    <!-- A (Azul) -->
+                    <circle cx="80" cy="140" r="18" fill="#2563eb" filter="url(#nodeShadow)" />
+                    <text x="80" y="146" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">A</text>
+
+                    <!-- B (Gris) -->
+                    <circle cx="240" cy="70" r="18" fill="#94a3b8" filter="url(#nodeShadow)" />
+                    <text x="240" y="76" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">B</text>
+
+                    <!-- C (Verde) -->
+                    <circle cx="380" cy="160" r="18" fill="#16a34a" filter="url(#nodeShadow)" />
+                    <text x="380" y="166" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">C</text>
+
+                    <!-- D (Gris) -->
+                    <circle cx="540" cy="100" r="18" fill="#94a3b8" filter="url(#nodeShadow)" />
+                    <text x="540" y="106" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">D</text>
+
+                    <!-- E (Morado) -->
+                    <circle cx="520" cy="205" r="18" fill="#9333ea" filter="url(#nodeShadow)" />
+                    <text x="520" y="211" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">E</text>
+
+                    <!-- F (Rojo) -->
+                    <circle cx="660" cy="160" r="18" fill="#ef4444" filter="url(#nodeShadow)" />
+                    <text x="660" y="166" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">F</text>
+
+                    <!-- Camión animado -->
+                    <g class="truck-animated">
+                        <rect x="-35" y="-18" width="48" height="24" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+                        <path d="M 13 -6 L 24 -6 L 30 6 L 13 6 Z" fill="#94a3b8" stroke="#475569" stroke-width="1.5" />
+                        <circle cx="-16" cy="8" r="5" fill="#1e293b" />
+                        <circle cx="-16" cy="8" r="2" fill="#e2e8f0" />
+                        <circle cx="18" cy="8" r="5" fill="#1e293b" />
+                        <circle cx="18" cy="8" r="2" fill="#e2e8f0" />
+                        <rect x="15" y="-3" width="7" height="6" fill="#e0f2fe" />
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Sección de progreso -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Evaluando alternativas</span>
+                    <span id="optProgressLabel" style="font-size: 13.5px; font-weight: 700; color: #2563eb;">75%</span>
+                </div>
+
+                <div class="progress-container">
+                    <div id="optProgressBar" class="progress-bar-fill" style="width: 75%;"></div>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <div class="checklist-item">
+                        <span style="color:#16a34a; font-size:16px;">☑</span>
+                        <span>Calculando distancias</span>
+                    </div>
+                    <div class="checklist-item">
+                        <span style="color:#16a34a; font-size:16px;">☑</span>
+                        <span>Evaluando tiempos</span>
+                    </div>
+                    <div class="checklist-item">
+                        <span style="color:#16a34a; font-size:16px;">☑</span>
+                        <span>Calculando costos</span>
+                    </div>
+                    <div class="checklist-item" id="itemReglasExpertas">
+                        <span id="iconReglasExpertas" class="spinner-rule" style="color:#2563eb; font-size:16px;">🔄</span>
+                        <span id="textReglasExpertas" style="color: #2563eb; font-weight: 600;">Aplicando reglas expertas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASO 3: RUTA ÓPTIMA ENCONTRADA (Imagen 3) -->
+    <div id="optSubResult" style="display:none;">
+        <div class="content-header" style="margin-bottom: 24px;">
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RUTA OPTIMA ENCONTRADA</h1>
+            <p style="font-size: 13.5px; color: #475569;">El sistema ha encontrado la mejor alternativa</p>
+        </div>
+
+        <!-- Fila Superior de 2 Tarjetas -->
+        <div class="result-top-grid">
+            
+            <!-- Tarjeta Izquierda: Ruta Recomendada -->
+            <div class="result-card">
+                <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada</h3>
+                <div style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">
+                    A &nbsp;→&nbsp; C &nbsp;→&nbsp; E &nbsp;→&nbsp; F
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div class="route-step-node">
+                        <span class="node-circle-badge" style="background:#2563eb;">A</span>
+                        <span style="font-weight: 600;">Almacén Principal</span>
+                    </div>
+                    <div class="step-arrow-down">↓</div>
+
+                    <div class="route-step-node">
+                        <span class="node-circle-badge" style="background:#16a34a;">C</span>
+                        <span style="font-weight: 600;">Zona de Carga</span>
+                    </div>
+                    <div class="step-arrow-down">↓</div>
+
+                    <div class="route-step-node">
+                        <span class="node-circle-badge" style="background:#9333ea;">E</span>
+                        <span style="font-weight: 600;">Centro de Distribución</span>
+                    </div>
+                    <div class="step-arrow-down">↓</div>
+
+                    <div class="route-step-node">
+                        <span class="node-circle-badge" style="background:#ef4444;">F</span>
+                        <span style="font-weight: 600;">Planta de Producción</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta Derecha: Resumen de la ruta -->
+            <div class="result-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta</h3>
+                    
+                    <div class="metric-row">
+                        <span style="font-size: 18px;">🕒</span>
+                        <span style="font-weight: 700; text-transform: uppercase; font-size: 13px;">TIEMPO ESTIMADO</span>
+                        <span style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span style="font-size: 18px;">🗺️</span>
+                        <span style="font-weight: 500; font-size: 13.5px;">Distancia total</span>
+                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span style="font-size: 18px; color:#16a34a; font-weight:800;">$</span>
+                        <span style="font-weight: 500; font-size: 13.5px;">Costo estimado</span>
+                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span>
+                    </div>
+                </div>
+
+                <div class="recommended-badge-box">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"></polygon>
+                    </svg>
+                    RECOMENDADA
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Tarjeta Inferior: ¿Por qué esta ruta? -->
+        <div class="why-card">
+            <div>
+                <h2 style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 6px;">¿Por qué esta ruta?</h2>
+                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el sistema experto porque:</p>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
+                        <span style="color: #16a34a; font-weight: 800;">✓</span>
+                        <span>Presenta el menor tiempo de traslado</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
+                        <span style="color: #16a34a; font-weight: 800;">✓</span>
+                        <span>Tiene un costo aceptable dentro del presupuesto</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
+                        <span style="color: #16a34a; font-weight: 800;">✓</span>
+                        <span>Evita zonas con trafico y mantenimiento</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
+                        <span style="color: #16a34a; font-weight: 800;">✓</span>
+                        <span>Cumple con la prioridad seleccionada</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico decorativo de destello y botones -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
+                <svg width="70" height="70" viewBox="0 0 100 100" fill="none" stroke="#64748b" stroke-width="3">
+                    <line x1="50" y1="10" x2="50" y2="25"></line>
+                    <line x1="50" y1="75" x2="50" y2="90"></line>
+                    <line x1="10" y1="50" x2="25" y2="50"></line>
+                    <line x1="75" y1="50" x2="90" y2="50"></line>
+                    <line x1="22" y1="22" x2="32" y2="32"></line>
+                    <line x1="68" y1="68" x2="78" y2="78"></line>
+                    <line x1="22" y1="78" x2="32" y2="68"></line>
+                    <line x1="68" y1="32" x2="78" y2="22"></line>
+                </svg>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <button type="button" onclick="resetOptimizationWizard()" style="padding: 8px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">↺ Nueva</button>
+                    <button type="button" onclick="showView('reportes')" style="padding: 8px 14px; background: #0047ff; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">Ver Reportes</button>
+                    <button type="button" id="btnAsignarRuta" onclick="openAssignRouteModal()" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
+                        <span>🚚</span> Asignar a Transportista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

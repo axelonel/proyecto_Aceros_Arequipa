@@ -1,0 +1,19 @@
+<div id="viewMisRutas">
+    <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 id="rutasHeaderTitle" style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RUTAS ASIGNADAS</h1>
+            <p id="rutasHeaderSubtitle" style="font-size: 13.5px; color: #475569;">Monitoreo, trazabilidad y control de despachos asignados a transportistas</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="filter-tab active" onclick="filterDispatches('TODAS', this)">Todas</button>
+            <button class="filter-tab" onclick="filterDispatches('ASIGNADA', this)">Por Iniciar</button>
+            <button class="filter-tab" onclick="filterDispatches('EN_TRANSITO', this)">En Tránsito</button>
+            <button class="filter-tab" onclick="filterDispatches('COMPLETADA', this)">Completadas</button>
+        </div>
+    </div>
+
+    <!-- Lista de Tarjetas de Rutas Asignadas -->
+    <div id="misRutasList" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Se genera dinámicamente desde dashboard.js -->
+    </div>
+</div>

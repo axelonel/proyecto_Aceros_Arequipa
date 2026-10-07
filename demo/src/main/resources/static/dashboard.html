@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Experto de Rutas - Panel Principal</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dashboard-body">
+
+    <div class="dashboard-container">
+        <!-- SIDEBAR LATERAL AZUL -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    SISTEMA EXPERTO<br>DE RUTAS
+                </div>
+                <!-- Perfil del usuario activo -->
+                <div class="user-session-badge" id="userSessionBadge" style="margin-top: 12px; padding: 8px 12px; background: rgba(255,255,255,0.08); border-radius: 6px; font-size: 12px; color: #e2e8f0; display: flex; align-items: center; gap: 8px;">
+                    <span id="userBadgeIcon" style="font-size: 16px;">👑</span>
+                    <div style="overflow: hidden; text-align: left;">
+                        <strong id="userBadgeName" style="display:block; white-space: nowrap; text-overflow: ellipsis; font-size: 12.5px; color: #fff;">Usuario</strong>
+                        <span id="userBadgeRole" style="font-size: 10.5px; color: #93c5fd; text-transform: uppercase; font-weight: 600;">ADMIN</span>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li>
+                    <a class="nav-item active" id="menuInicio" onclick="showView('inicio')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </span>
+                        Inicio
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuMisRutas" onclick="showView('mis-rutas')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                        </span>
+                        <span id="menuMisRutasText">Rutas Asignadas</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuRutas" onclick="showView('rutas')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 3v12"></path>
+                                <circle cx="18" cy="6" r="3"></circle>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <path d="M18 9a9 9 0 0 1-9 9"></path>
+                            </svg>
+                        </span>
+                        Rutas
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuOptimizar" onclick="showView('optimizar')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path>
+                            </svg>
+                        </span>
+                        Optimizar Ruta
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuHistorial" onclick="showView('historial')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </span>
+                        Historial
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuReportes" onclick="showView('reportes')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M22 12h-6l-2 3h-4l-2-3H2"></path>
+                                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                            </svg>
+                        </span>
+                        Reportes
+                    </a>
+                </li>
+
+                <div class="nav-divider" id="menuDividerConfig"></div>
+
+                <li>
+                    <a class="nav-item" id="menuUsuarios" onclick="showView('usuarios')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </span>
+                        Configuración (Cuentas)
+                    </a>
+                </li>
+                <li>
+                    <a href="index.html" class="nav-item logout">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </span>
+                        Cerrar sesión
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- ÁREA CENTRAL DE CONTENIDO DINÁMICO -->
+        <main class="main-content" id="mainContent">
+            <!-- Las vistas se cargan dinámicamente desde /views/*.html -->
+        </main>
+    </div>
+
+    <!-- MODAL: ASIGNAR RUTA A TRANSPORTISTA (SUPERVISOR / ADMIN) -->
+    <div class="edit-modal-overlay" id="assignRouteModal">
+        <div class="edit-modal-box" style="max-width: 520px;">
+            <div class="edit-modal-header" style="background: #1e3a8a;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <span>📋</span> Asignar Ruta a Conductor
+                </h3>
+                <button onclick="closeAssignRouteModal()" style="background:transparent; border:none; color:#ffffff; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <form id="assignRouteForm" onsubmit="confirmAssignRoute(event)">
+                    <!-- Detalle de la ruta -->
+                    <div style="background: #f1f5f9; padding: 12px 14px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #cbd5e1;">
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Itinerario Calculado</div>
+                        <div style="font-size: 16px; font-weight: 800; color: #15803d; margin: 4px 0;" id="assignItinerarioTxt">A → C → E → F (Lima → Pisco)</div>
+                        <div style="font-size: 12px; color: #475569;" id="assignMetricasTxt">32 min | 18.5 km | Costo est. S/ 85.00</div>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 14px;">
+                        <label>Transportista / Conductor *</label>
+                        <select id="assignConductorSelect" required>
+                            <!-- Llenado dinámicamente con usuarios con rol CONDUCTOR -->
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                        <div class="form-field">
+                            <label>Vehículo de Flota *</label>
+                            <select id="assignVehiculoSelect" required>
+                                <option value="Tráiler Plataforma (V-102)">Tráiler Plataforma (V-102)</option>
+                                <option value="Camión Pesado (V-105)">Camión Pesado (V-105)</option>
+                                <option value="Furgón Cerrado (V-108)">Furgón Cerrado (V-108)</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Placa Vehicular</label>
+                            <input type="text" id="assignPlacaInput" value="AYZ-892" required>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div class="form-field">
+                            <label>Material / Carga</label>
+                            <input type="text" id="assignMaterialInput" value="Bobinas de acero (24 Tn)" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Prioridad de Despacho</label>
+                            <select id="assignPrioridadSelect">
+                                <option value="Alta">🔴 Alta</option>
+                                <option value="Media" selected>🟡 Media</option>
+                                <option value="Baja">🟢 Baja</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="closeAssignRouteModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="background:#16a34a; border-color:#16a34a;">Confirmar Asignación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de la aplicación -->
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

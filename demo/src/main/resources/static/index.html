@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Experto de Optimización de Rutas</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div class="window-frame">
+        <!-- Barra de título de la ventana -->
+        <div class="window-titlebar">
+            <span class="window-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+                Sistema Experto de Optimizacion de Rutas
+            </span>
+            <div class="window-controls">
+                <span class="window-btn" title="Minimizar">&#8212;</span>
+                <span class="window-btn" title="Maximizar">&#9634;</span>
+                <span class="window-btn close" title="Cerrar">&#10005;</span>
+            </div>
+        </div>
+
+        <!-- Contenedor Dividido -->
+        <div class="app-body">
+            <!-- Panel Lateral Izquierdo -->
+            <div class="panel-left">
+                <div class="logo-badge">
+                    <svg viewBox="0 0 100 100">
+                        <path d="M52 35 L68 35 L76 46 L76 65 L52 65 Z" fill="#ffffff" />
+                        <path d="M55 39 L66 39 L72 47 L55 47 Z" fill="#153258" />
+                        <rect x="22" y="30" width="28" height="35" rx="2" fill="#ffffff" />
+                        <rect x="26" y="36" width="20" height="15" rx="1.5" fill="#2563eb" />
+                        <line x1="28" y1="41" x2="42" y2="41" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+                        <line x1="28" y1="46" x2="38" y2="46" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round" />
+                        <circle cx="34" cy="67" r="7" fill="#ffffff" />
+                        <circle cx="34" cy="67" r="3.5" fill="#153258" />
+                        <circle cx="66" cy="67" r="7" fill="#ffffff" />
+                        <circle cx="66" cy="67" r="3.5" fill="#153258" />
+                    </svg>
+                </div>
+                <h1>Sistema Experto<br>de Optimización<br>de Rutas</h1>
+                <p>Sistema de apoyo para la reducción de tiempos y costos en el transporte</p>
+            </div>
+
+            <!-- Panel de Login Derecho -->
+            <div class="panel-right">
+                <!-- Ilustración Vectorial de Ruta y Camión -->
+                <div class="route-illustration">
+                    <svg viewBox="0 0 300 150">
+                        <path d="M 68 45 Q 120 15, 175 55 T 235 48" fill="none" stroke="#64748b" stroke-width="2.2" stroke-dasharray="5,5" />
+                        <g transform="translate(68, 45)">
+                            <path d="M 0 0 C -6 -6, -9 -14, 0 -22 C 9 -14, 6 -6, 0 0 Z" fill="#2563eb" />
+                            <circle cx="0" cy="-14" r="3.5" fill="#ffffff" />
+                        </g>
+                        <g transform="translate(235, 48)">
+                            <path d="M 0 0 C -8 -8, -12 -18, 0 -28 C 12 -18, 8 -8, 0 0 Z" fill="#ef4444" />
+                            <circle cx="0" cy="-18" r="4.5" fill="#ffffff" />
+                        </g>
+                        <g transform="translate(75, 48)">
+                            <ellipse cx="60" cy="66" rx="55" ry="8" fill="rgba(0,0,0,0.12)" />
+                            <path d="M 12 18 L 68 12 L 68 56 L 12 56 Z" fill="#d1d5db" stroke="#9ca3af" stroke-width="1.2" />
+                            <path d="M 12 18 L 30 15 L 30 56 L 12 56 Z" fill="#e5e7eb" />
+                            <path d="M 68 25 L 88 28 L 94 40 L 94 56 L 68 56 Z" fill="#cbd5e1" stroke="#9ca3af" stroke-width="1.2" />
+                            <path d="M 72 29 L 85 31 L 89 40 L 72 40 Z" fill="#1e293b" />
+                            <rect x="86" y="44" width="7" height="8" rx="1" fill="#475569" />
+                            <circle cx="28" cy="58" r="7" fill="#1e293b" />
+                            <circle cx="28" cy="58" r="3" fill="#94a3b8" />
+                            <circle cx="76" cy="58" r="7" fill="#1e293b" />
+                            <circle cx="76" cy="58" r="3" fill="#94a3b8" />
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- SELECTOR DE ROL -->
+                <div class="role-selector-container">
+                    <span class="role-label">Tipo de Acceso</span>
+                    <div class="role-tabs">
+                        <button type="button" class="role-tab active" id="tabAdmin" onclick="selectRole('admin')">
+                            <span class="role-icon">👑</span>
+                            <span>Administrador</span>
+                        </button>
+                        <button type="button" class="role-tab" id="tabSupervisor" onclick="selectRole('supervisor')">
+                            <span class="role-icon">📋</span>
+                            <span>Supervisor</span>
+                        </button>
+                        <button type="button" class="role-tab" id="tabTransportista" onclick="selectRole('transportista')">
+                            <span class="role-icon">🚚</span>
+                            <span>Transportista</span>
+                        </button>
+                    </div>
+                    <div class="role-badge-info" id="roleBadge">
+                        👑 Administrador: Creación de cuentas y asignación de roles
+                    </div>
+                </div>
+
+                <!-- Formulario -->
+                <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                    <!-- Campo Usuario -->
+                    <div class="input-group">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
+                        <input type="text" id="username" placeholder="Usuario / Correo de Administrador" required value="admin@acerosarequipa.com">
+                    </div>
+
+                    <!-- Campo Contraseña -->
+                    <div class="input-group">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        <input type="password" id="password" placeholder="Contraseña" required value="••••••••">
+                    </div>
+
+                    <!-- Botón Enviar -->
+                    <button type="submit" class="btn-submit" id="btnSubmit">INICIAR SESIÓN (ADMIN)</button>
+                    
+                    <div class="status-message" id="statusMessage"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PANEL DEL ADMINISTRADOR (CREACIÓN Y ASIGNACIÓN DE ROLES) -->
+    <div class="admin-modal-overlay" id="adminModal">
+        <div class="admin-modal-card">
+            <div class="admin-header">
+                <h2>
+                    <span>👑</span>
+                    Panel de Administración: Cuentas y Asignación de Roles
+                </h2>
+                <button class="admin-close-btn" onclick="closeAdminModal()" title="Cerrar">&times;</button>
+            </div>
+
+            <div class="admin-content">
+                <div class="admin-grid">
+                    
+                    <!-- Formulario de Creación de Usuarios -->
+                    <div class="admin-card">
+                        <h3>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                            Registrar Nueva Cuenta
+                        </h3>
+                        <form onsubmit="handleCreateUser(event)">
+                            <div class="form-field">
+                                <label>Nombres y Apellidos</label>
+                                <input type="text" id="newNombres" placeholder="Ej. Carlos Mendoza" required>
+                            </div>
+                            <div class="form-field">
+                                <label>Correo Electrónico (Login)</label>
+                                <input type="email" id="newEmail" placeholder="usuario@acerosarequipa.com" required>
+                            </div>
+                            <div class="form-field">
+                                <label>Contraseña Inicial</label>
+                                <input type="password" id="newPass" placeholder="••••••••" required>
+                            </div>
+                            <div class="form-field">
+                                <label>Rol a Asignar</label>
+                                <select id="newRol" required>
+                                    <option value="SUPERVISOR">📋 Supervisor (Rutas y Flotas)</option>
+                                    <option value="CONDUCTOR">🚚 Transportista (Conductor)</option>
+                                    <option value="ADMINISTRADOR">👑 Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>Código de Empleado / DNI</label>
+                                <input type="text" id="newCod" placeholder="EMP-2026-01">
+                            </div>
+                            <button type="submit" class="btn-admin-action">Guardar y Asignar Rol</button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Cuentas Activas y Roles -->
+                    <div class="admin-card">
+                        <h3>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Cuentas Registradas (<span id="userCount">3</span>)
+                        </h3>
+                        
+                        <div id="userList">
+                            <div class="user-item">
+                                <div>
+                                    <strong>Admin Principal</strong><br>
+                                    <span style="color:#64748b; font-size:11px;">admin@acerosarequipa.com</span>
+                                </div>
+                                <span class="user-badge-role badge-admin">Administrador</span>
+                            </div>
+
+                            <div class="user-item">
+                                <div>
+                                    <strong>Roberto Gómez</strong><br>
+                                    <span style="color:#64748b; font-size:11px;">rgomez@acerosarequipa.com</span>
+                                </div>
+                                <span class="user-badge-role badge-supervisor">Supervisor</span>
+                            </div>
+
+                            <div class="user-item">
+                                <div>
+                                    <strong>Manuel Quispe</strong><br>
+                                    <span style="color:#64748b; font-size:11px;">mquispe@acerosarequipa.com</span>
+                                </div>
+                                <span class="user-badge-role badge-conductor">Transportista</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRole = 'admin';
+
+        const roleConfig = {
+            admin: {
+                title: '👑 Administrador: Creación de cuentas y asignación de roles',
+                btnText: 'INICIAR SESIÓN (ADMIN)',
+                userPlaceholder: 'Usuario / Correo de Administrador',
+                defaultUser: 'admin@acerosarequipa.com'
+            },
+            supervisor: {
+                title: '📋 Supervisor: Gestión de flota y optimización de rutas',
+                btnText: 'INICIAR SESIÓN (SUPERVISOR)',
+                userPlaceholder: 'Usuario / Correo del Supervisor',
+                defaultUser: 'supervisor@acerosarequipa.com'
+            },
+            transportista: {
+                title: '🚚 Transportista: Consulta de rutas y confirmación de entregas',
+                btnText: 'INICIAR SESIÓN (CONDUCTOR)',
+                userPlaceholder: 'DNI / Código de Transportista',
+                defaultUser: '45892134'
+            }
+        };
+
+        function selectRole(role) {
+            currentRole = role;
+
+            document.getElementById('tabAdmin').classList.toggle('active', role === 'admin');
+            document.getElementById('tabSupervisor').classList.toggle('active', role === 'supervisor');
+            document.getElementById('tabTransportista').classList.toggle('active', role === 'transportista');
+
+            const conf = roleConfig[role];
+            document.getElementById('roleBadge').textContent = conf.title;
+            document.getElementById('btnSubmit').textContent = conf.btnText;
+            document.getElementById('username').placeholder = conf.userPlaceholder;
+            document.getElementById('username').value = conf.defaultUser;
+            document.getElementById('statusMessage').textContent = '';
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const status = document.getElementById('statusMessage');
+            const usernameInput = document.getElementById('username').value.trim();
+
+            status.style.color = '#2563eb';
+            status.textContent = 'Verificando credenciales de ' + currentRole.toUpperCase() + '...';
+
+            let rolCode = 'ADMINISTRADOR';
+            let nombreUser = 'Admin Principal';
+            let idUsuario = 1;
+
+            if (currentRole === 'supervisor') {
+                rolCode = 'SUPERVISOR';
+                nombreUser = 'Roberto Gómez';
+                idUsuario = 2;
+            } else if (currentRole === 'transportista') {
+                rolCode = 'CONDUCTOR';
+                nombreUser = 'Manuel Quispe';
+                idUsuario = 3;
+            }
+
+            const currentUser = {
+                idUsuario: idUsuario,
+                nombres: nombreUser,
+                email: usernameInput,
+                rol: rolCode
+            };
+
+            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+            setTimeout(() => {
+                status.style.color = '#16a34a';
+                status.textContent = '¡Acceso concedido! Redirigiendo al Panel Principal...';
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 500);
+            }, 450);
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.remove('active');
+        }
+
+        function handleCreateUser(e) {
+            e.preventDefault();
+            const nombres = document.getElementById('newNombres').value.trim();
+            const email = document.getElementById('newEmail').value.trim();
+            const rol = document.getElementById('newRol').value;
+
+            const badgeClass = rol === 'ADMINISTRADOR' ? 'badge-admin' : (rol === 'SUPERVISOR' ? 'badge-supervisor' : 'badge-conductor');
+            const rolLabel = rol === 'ADMINISTRADOR' ? 'Administrador' : (rol === 'SUPERVISOR' ? 'Supervisor' : 'Transportista');
+
+            const item = document.createElement('div');
+            item.className = 'user-item';
+            item.innerHTML = `
+                <div>
+                    <strong>${nombres}</strong><br>
+                    <span style="color:#64748b; font-size:11px;">${email}</span>
+                </div>
+                <span class="user-badge-role ${badgeClass}">${rolLabel}</span>
+            `;
+
+            document.getElementById('userList').prepend(item);
+            
+            const countEl = document.getElementById('userCount');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+
+            alert(`✅ Cuenta creada con éxito para ${nombres} con rol de ${rolLabel}.`);
+            e.target.reset();
+        }
+    </script>
+</body>
+</html>

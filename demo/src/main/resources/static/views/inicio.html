@@ -1,0 +1,94 @@
+<div id="viewInicio">
+    <div class="content-header" style="margin-bottom: 24px;">
+        <h1>PANEL PRINCIPAL</h1>
+        <p>Resumen general del sistema</p>
+    </div>
+
+    <!-- 3 TARJETAS KPI -->
+    <div class="kpi-row">
+        <!-- Rutas analizadas -->
+        <div class="kpi-card blue">
+            <div class="kpi-title">Rutas analizadas</div>
+            <div class="kpi-value" id="kpiRutas">125</div>
+            <div class="kpi-subtitle">total de análisis</div>
+        </div>
+
+        <!-- Ahorro estimado -->
+        <div class="kpi-card green">
+            <div class="kpi-title">Ahorro estimado</div>
+            <div class="kpi-value" id="kpiAhorro">S./ 4250</div>
+            <div class="kpi-subtitle">Este mes</div>
+        </div>
+
+        <!-- Tiempo reducido -->
+        <div class="kpi-card yellow">
+            <div class="kpi-title">Tiempo reducido</div>
+            <div class="kpi-value" id="kpiTiempo">18%</div>
+            <div class="kpi-subtitle">Promedio</div>
+        </div>
+    </div>
+
+    <!-- FILA INFERIOR: GRÁFICO + ÚLTIMAS OPTIMIZACIONES -->
+    <div class="bottom-row" style="margin-top: 24px;">
+        <!-- Gráfico de rendimiento -->
+        <div class="card-container">
+            <div class="card-header-row">
+                <div class="card-title">Resumen de rendimiento</div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot blue"></span>
+                        <span>Tiempo (min)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot green"></span>
+                        <span>Costo (S/)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Canvas -->
+            <div class="chart-wrapper">
+                <canvas id="performanceChart" width="550" height="230"></canvas>
+            </div>
+        </div>
+
+        <!-- Últimas Optimizaciones -->
+        <div class="card-container optimizations-card">
+            <div class="card-title" style="color: #374151;">Ultimas Optimizaciones</div>
+            
+            <div class="opt-list">
+                <div class="opt-item">
+                    <div class="opt-info">
+                        <span class="opt-route">Ruta A-B-D</span>
+                        <span class="opt-time">Hoy, 09:15AM</span>
+                    </div>
+                    <span class="opt-badge">OPTIMO</span>
+                </div>
+
+                <div class="opt-item">
+                    <div class="opt-info">
+                        <span class="opt-route">Ruta C-E-F</span>
+                        <span class="opt-time">Hoy, 08:45AM</span>
+                    </div>
+                    <span class="opt-badge">OPTIMO</span>
+                </div>
+
+                <div class="opt-item">
+                    <div class="opt-info">
+                        <span class="opt-route">Ruta A-C -F</span>
+                        <span class="opt-time">Ayer, 05:30 PM</span>
+                    </div>
+                    <span class="opt-badge">OPTIMO</span>
+                </div>
+
+                <div class="opt-item">
+                    <div class="opt-info">
+                        <span class="opt-route">Ruta B-D-E</span>
+                        <span class="opt-time">Ayer, 04:20 PM</span>
+                    </div>
+                    <span class="opt-badge">OPTIMO</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
