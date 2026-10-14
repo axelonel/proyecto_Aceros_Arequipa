@@ -8,8 +8,6 @@ import java.time.LocalDateTime;
 @Table(name = "usuarios")
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
 public class Usuario {
 
@@ -51,4 +49,24 @@ public class Usuario {
 
     @Column(name = "fecha_actualizacion", insertable = false, updatable = false)
     private LocalDateTime fechaActualizacion;
+
+    public Usuario() {
+    }
+
+    public Usuario(Long idUsuario, String nombres, String apellidos, String email, String passwordHash,
+                   String telefono, String codEmpleado, String rol, Long idAdminSupervisor, Boolean activo,
+                   LocalDateTime fechaCreacion, LocalDateTime fechaActualizacion) {
+        this.idUsuario = idUsuario;
+        this.nombres = nombres;
+        this.apellidos = apellidos;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.telefono = telefono;
+        this.codEmpleado = codEmpleado;
+        this.rol = rol;
+        this.idAdminSupervisor = idAdminSupervisor;
+        this.activo = activo != null ? activo : true;
+        this.fechaCreacion = fechaCreacion;
+        this.fechaActualizacion = fechaActualizacion;
+    }
 }
