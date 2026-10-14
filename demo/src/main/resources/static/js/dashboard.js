@@ -153,37 +153,43 @@ function applyRolePermissions() {
         }
     }
 
+    const toggleMenu = (el, show) => {
+        if (!el) return;
+        const target = el.closest ? (el.closest('li') || el) : el;
+        target.style.display = show ? '' : 'none';
+    };
+
     if (user.rol === 'ADMINISTRADOR') {
         // Administrador: Acceso total a todo
-        if (menuOptimizar) menuOptimizar.style.display = 'block';
-        if (menuHistorial) menuHistorial.style.display = 'block';
-        if (menuReportes)  menuReportes.style.display  = 'block';
-        if (menuUsuarios)  menuUsuarios.style.display  = 'block';
-        if (menuDivider)   menuDivider.style.display   = 'block';
-        if (menuMisRutas)  menuMisRutas.style.display  = 'block';
-        if (menuRutas)     menuRutas.style.display     = 'block';
+        toggleMenu(menuOptimizar, true);
+        toggleMenu(menuHistorial, true);
+        toggleMenu(menuReportes, true);
+        toggleMenu(menuUsuarios, true);
+        if (menuDivider) menuDivider.style.display = '';
+        toggleMenu(menuMisRutas, true);
+        toggleMenu(menuRutas, true);
     } 
     else if (user.rol === 'SUPERVISOR') {
         // Supervisor: Puede optimizar, asignar, ver historial y reportes.
         // NO PUEDE crear ni añadir cuentas de usuario (solo el Administrador).
-        if (menuOptimizar) menuOptimizar.style.display = 'block';
-        if (menuHistorial) menuHistorial.style.display = 'block';
-        if (menuReportes)  menuReportes.style.display  = 'block';
-        if (menuUsuarios)  menuUsuarios.style.display  = 'none';
-        if (menuDivider)   menuDivider.style.display   = 'none';
-        if (menuMisRutas)  menuMisRutas.style.display  = 'block';
-        if (menuRutas)     menuRutas.style.display     = 'block';
+        toggleMenu(menuOptimizar, true);
+        toggleMenu(menuHistorial, true);
+        toggleMenu(menuReportes, true);
+        toggleMenu(menuUsuarios, false);
+        if (menuDivider) menuDivider.style.display = 'none';
+        toggleMenu(menuMisRutas, true);
+        toggleMenu(menuRutas, true);
     } 
     else if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
         // Transportista: NO puede optimizar rutas, NO ve historial general, NO ve reportes, NO ve cuentas.
         // Solo ve Inicio, Red de puntos y Mis Rutas Asignadas.
-        if (menuOptimizar) menuOptimizar.style.display = 'none';
-        if (menuHistorial) menuHistorial.style.display = 'none';
-        if (menuReportes)  menuReportes.style.display  = 'none';
-        if (menuUsuarios)  menuUsuarios.style.display  = 'none';
-        if (menuDivider)   menuDivider.style.display   = 'none';
-        if (menuMisRutas)  menuMisRutas.style.display  = 'block';
-        if (menuRutas)     menuRutas.style.display     = 'block';
+        toggleMenu(menuOptimizar, false);
+        toggleMenu(menuHistorial, false);
+        toggleMenu(menuReportes, false);
+        toggleMenu(menuUsuarios, false);
+        if (menuDivider) menuDivider.style.display = 'none';
+        toggleMenu(menuMisRutas, true);
+        toggleMenu(menuRutas, true);
     }
 }
 
@@ -507,34 +513,6 @@ const FALLBACK_VIEWS = {
                     <thead><tr><th>ID</th><th>Nombre Completo</th><th>Correo / Usuario</th><th>Rol Asignado</th><th>Código / Teléfono</th><th>Estado</th><th style="text-align: right;">Acciones</th></tr></thead>
                     <tbody id="usersTbody"></tbody>
                 </table>
-            </div>
-            <div class="edit-modal-overlay" id="userModal">
-                <div class="edit-modal-box">
-                    <div class="edit-modal-header">
-                        <h3 id="modalTitle" style="font-size: 15px; font-weight: 700;">Registrar Nueva Cuenta</h3>
-                        <button onclick="closeUserModal()" style="background:transparent; border:none; color:#ffffff; font-size:18px; cursor:pointer;">&times;</button>
-                    </div>
-                    <div class="edit-modal-body">
-                        <form id="userForm" onsubmit="saveUser(event)">
-                            <input type="hidden" id="formUserId">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                                <div class="form-field"><label>Nombres *</label><input type="text" id="formNombres" required placeholder="Ej. Carlos" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\\\\s]{2,50}" title="Ingrese un nombre válido"></div>
-                                <div class="form-field"><label>Apellidos *</label><input type="text" id="formApellidos" required placeholder="Ej. Mendoza" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\\\\s]{2,50}" title="Ingrese un apellido válido"></div>
-                            </div>
-                            <div class="form-field" style="margin-bottom: 12px;"><label>Correo Electrónico (Login) *</label><input type="email" id="formEmail" required placeholder="usuario@acerosarequipa.com"></div>
-                            <div class="form-field" style="margin-bottom: 12px;"><label>Contraseña *</label><input type="password" id="formPassword" placeholder="••••••••"></div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                                <div class="form-field"><label>Rol Asignado *</label><select id="formRol" required><option value="ADMINISTRADOR">👑 Administrador</option><option value="SUPERVISOR">📋 Supervisor (Flotas y Rutas)</option><option value="CONDUCTOR">🚚 Transportista (Conductor)</option></select></div>
-                                <div class="form-field"><label>Teléfono</label><input type="text" id="formTelefono" placeholder="987654321"></div>
-                            </div>
-                            <div class="form-field" style="margin-bottom: 16px;"><label>Código de Empleado</label><input type="text" id="formCodEmpleado" placeholder="EMP-2026-01"></div>
-                            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                                <button type="button" onclick="closeUserModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
-                                <button type="submit" class="btn-primary">Guardar en Base de Datos</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </div>
         </div>
     `

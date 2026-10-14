@@ -76,6 +76,7 @@ public class UsuarioController {
             if (dto.getRol() != null && !dto.getRol().isBlank()) {
                 usuario.setRol(dto.getRol().toUpperCase());
             }
+            if (dto.getCodEmpleado() != null) usuario.setCodEmpleado(dto.getCodEmpleado());
             if (dto.getActivo() != null) usuario.setActivo(dto.getActivo());
             if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
                 usuario.setPasswordHash(dto.getPassword());
