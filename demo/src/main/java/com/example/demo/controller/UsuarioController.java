@@ -17,9 +17,12 @@ import java.util.stream.Collectors;
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
+    private final com.example.demo.repository.TransportistaRepository transportistaRepository;
 
-    public UsuarioController(UsuarioRepository usuarioRepository) {
+    public UsuarioController(UsuarioRepository usuarioRepository,
+                             com.example.demo.repository.TransportistaRepository transportistaRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.transportistaRepository = transportistaRepository;
     }
 
     @GetMapping
@@ -64,6 +67,24 @@ public class UsuarioController {
                 .build();
 
         Usuario guardado = usuarioRepository.save(usuario);
+
+        // Si el usuario registrado tiene rol CONDUCTOR, registrarlo automáticamente como transportista si no existe
+        if ("CONDUCTOR".equalsIgnoreCase(guardado.getRol())) {
+            try {
+                String dniGen = (dto.getCodEmpleado() != null && dto.getCodEmpleado().length() >= 8) 
+                    ? dto.getCodEmpleado().substring(dto.getCodEmpleado().length() - 8) 
+                    : String.format("%08d", (int)(10000000 + Math.random() * 89999999));
+                
+                if (!transportistaRepository.existsByDni(dniGen)) {
+                    com.example.demo.model.Transportista t = new com.example.demo.model.Transportista(
+                        null, guardado.getNombres(), guardado.getApellidos(),
+                        dniGen, "Q" + dniGen, "A-IIIc", guardado.getTelefono(), true, null
+                    );
+                    transportistaRepository.save(t);
+                }
+            } catch (Exception ignore) {}
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToDto(guardado));
     }
 

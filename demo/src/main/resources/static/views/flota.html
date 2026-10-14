@@ -1,0 +1,50 @@
+<div id="viewFlota" class="users-section" style="display:block;">
+    <div class="section-header-bar">
+        <div>
+            <h2 style="font-size: 20px; font-weight: 700; color:#0f172a;">Control de Flotas y Parque Vehicular</h2>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span id="flotaDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
+                <span style="font-size: 12.5px; color:#64748b;">Gestión de unidades de transporte pesado y capacidades de carga</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-primary" onclick="openNewFlotaModal()" style="background:#0284c7; border-color:#0284c7;">
+                + Nueva Flota
+            </button>
+            <button class="btn-primary" onclick="openNewVehiculoModal()">
+                + Nuevo Vehículo
+            </button>
+        </div>
+    </div>
+
+    <!-- RESUMEN DE FLOTAS -->
+    <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Flotas Registradas</h3>
+        <div id="flotasCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+            <!-- Cargado dinámicamente -->
+        </div>
+    </div>
+
+    <!-- TABLA DE VEHÍCULOS -->
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Unidades de Transporte (Vehículos y Capacidad en Toneladas)</h3>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Placa</th>
+                        <th>Tipo de Unidad</th>
+                        <th>Marca y Modelo</th>
+                        <th>Capacidad Máx. (Tn)</th>
+                        <th>Volumen (m³)</th>
+                        <th>Estado Operativo</th>
+                    </tr>
+                </thead>
+                <tbody id="vehiculosTbody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

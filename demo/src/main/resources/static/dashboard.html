@@ -101,6 +101,32 @@
                 <div class="nav-divider" id="menuDividerConfig"></div>
 
                 <li>
+                    <a class="nav-item" id="menuFlota" onclick="showView('flota')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                        </span>
+                        Flotas & Unidades
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-item" id="menuClientes" onclick="showView('clientes')">
+                        <span class="nav-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </span>
+                        Clientes & Pedidos
+                    </a>
+                </li>
+                <li>
                     <a class="nav-item" id="menuUsuarios" onclick="showView('usuarios')">
                         <span class="nav-icon">
                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -251,6 +277,204 @@
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button type="button" onclick="closeUserModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
                         <button type="submit" class="btn-primary">Guardar en Base de Datos</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR VEHÍCULO (Placa, Marca, Modelo, Peso Máximo) -->
+    <div class="edit-modal-overlay" id="vehiculoModal">
+        <div class="edit-modal-box">
+            <div class="edit-modal-header" style="background:#0284c7;">
+                <h3 style="font-size: 15px; font-weight: 700;">Registrar Unidad de Transporte Pesado</h3>
+                <button onclick="closeVehiculoModal()" style="background:transparent; border:none; color:#ffffff; font-size:18px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <form id="vehiculoForm" onsubmit="saveVehiculo(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-field">
+                            <label>Placa Vehicular *</label>
+                            <input type="text" id="vehPlaca" required placeholder="Ej. AYZ-892" uppercase>
+                        </div>
+                        <div class="form-field">
+                            <label>Tipo de Unidad *</label>
+                            <select id="vehTipo" required>
+                                <option value="Tráiler Plataforma">Tráiler Plataforma (24 a 32 Tn)</option>
+                                <option value="Camión Pesado">Camión Pesado (20 a 28 Tn)</option>
+                                <option value="Furgón Cerrado">Furgón Cerrado (15 a 22 Tn)</option>
+                                <option value="Camión Rígido">Camión Rígido Corto (10 a 18 Tn)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Marca y Modelo *</label>
+                        <input type="text" id="vehModelo" required placeholder="Ej. Volvo FH 540 Globetrotter 6x4">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-field">
+                            <label>Capacidad Máxima (Toneladas) *</label>
+                            <input type="number" step="0.5" id="vehCapacidad" required placeholder="Ej. 32.0">
+                        </div>
+                        <div class="form-field">
+                            <label>Volumen Máximo (m³) *</label>
+                            <input type="number" step="0.5" id="vehVolumen" required placeholder="Ej. 45.0">
+                        </div>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Flota Asignada *</label>
+                        <select id="vehFlotaSelect" required>
+                            <!-- Llenado dinámicamente -->
+                        </select>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="closeVehiculoModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="background:#0284c7; border-color:#0284c7;">Guardar Vehículo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR FLOTA -->
+    <div class="edit-modal-overlay" id="flotaModal">
+        <div class="edit-modal-box">
+            <div class="edit-modal-header" style="background:#0369a1;">
+                <h3 style="font-size: 15px; font-weight: 700;">Añadir Nueva Flota</h3>
+                <button onclick="closeFlotaModal()" style="background:transparent; border:none; color:#ffffff; font-size:18px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <form id="flotaForm" onsubmit="saveFlota(event)">
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Nombre de la Flota *</label>
+                        <input type="text" id="flotaNombre" required placeholder="Ej. Flota Distribución Norte - Chiclayo">
+                    </div>
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Descripción Operativa</label>
+                        <input type="text" id="flotaDescripcion" placeholder="Ej. Cobertura de despachos a distribuidores de la zona norte">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="closeFlotaModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="background:#0369a1; border-color:#0369a1;">Crear Flota</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR CLIENTE -->
+    <div class="edit-modal-overlay" id="clienteModal">
+        <div class="edit-modal-box">
+            <div class="edit-modal-header" style="background:#1e40af;">
+                <h3 style="font-size: 15px; font-weight: 700;">Registrar Nuevo Cliente</h3>
+                <button onclick="closeClienteModal()" style="background:transparent; border:none; color:#ffffff; font-size:18px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <form id="clienteForm" onsubmit="saveCliente(event)">
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Razón Social / Nombre Completo *</label>
+                        <input type="text" id="cliNombre" required placeholder="Ej. Ferretería Industrial del Centro S.A.C.">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-field">
+                            <label>Tipo Documento *</label>
+                            <select id="cliTipoDoc" required>
+                                <option value="RUC">RUC</option>
+                                <option value="DNI">DNI</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Número de Documento *</label>
+                            <input type="text" id="cliNumDoc" required placeholder="20123456789">
+                        </div>
+                    </div>
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Dirección Fiscal / Destino *</label>
+                        <input type="text" id="cliDireccion" required placeholder="Av. Los Ingenieros 340, Ate, Lima">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div class="form-field">
+                            <label>Contacto Responsable</label>
+                            <input type="text" id="cliContacto" placeholder="Ing. Mario Bellido">
+                        </div>
+                        <div class="form-field">
+                            <label>Teléfono</label>
+                            <input type="text" id="cliTelefono" placeholder="987112233">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="closeClienteModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="background:#1e40af; border-color:#1e40af;">Guardar Cliente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR PEDIDO -->
+    <div class="edit-modal-overlay" id="pedidoModal">
+        <div class="edit-modal-box">
+            <div class="edit-modal-header" style="background:#0f766e;">
+                <h3 style="font-size: 15px; font-weight: 700;">Registrar Pedido de Acero</h3>
+                <button onclick="closePedidoModal()" style="background:transparent; border:none; color:#ffffff; font-size:18px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="edit-modal-body">
+                <form id="pedidoForm" onsubmit="savePedido(event)">
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Cliente Solicitante *</label>
+                        <select id="pedClienteSelect" required>
+                            <!-- Llenado dinámicamente -->
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="form-field">
+                            <label>Material de Acero *</label>
+                            <select id="pedMaterial" required>
+                                <option value="Bobinas de acero laminado (24 Tn)">Bobinas de acero laminado</option>
+                                <option value="Barras de construcción corrugadas 1/2&quot; (20 Tn)">Barras corrugadas 1/2&quot;</option>
+                                <option value="Alambrón industrial para trefilería (18 Tn)">Alambrón industrial</option>
+                                <option value="Planchas laminadas en caliente (22 Tn)">Planchas laminadas en caliente</option>
+                                <option value="Perfiles y vigas estructurales H (16 Tn)">Perfiles y vigas estructurales</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Peso de Carga (Toneladas) *</label>
+                            <input type="number" step="0.5" id="pedPeso" required value="24.0">
+                        </div>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 12px;">
+                        <label>Dirección / Destino de Entrega *</label>
+                        <input type="text" id="pedDestino" required placeholder="Ej. Planta Siderúrgica Pisco (F)">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div class="form-field">
+                            <label>Prioridad *</label>
+                            <select id="pedPrioridad">
+                                <option value="ALTA">🔴 Alta</option>
+                                <option value="MEDIA" selected>🟡 Media</option>
+                                <option value="BAJA">🟢 Baja</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Objetivo de Optimización</label>
+                            <select id="pedObjetivo">
+                                <option value="EQUILIBRIO">⚖️ Equilibrio (Tiempo / Costo)</option>
+                                <option value="MENOR_TIEMPO">⚡ Menor Tiempo</option>
+                                <option value="MENOR_COSTO">💰 Menor Costo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="closePedidoModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="background:#0f766e; border-color:#0f766e;">Crear Pedido</button>
                     </div>
                 </form>
             </div>

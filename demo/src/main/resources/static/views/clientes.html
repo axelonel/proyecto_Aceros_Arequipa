@@ -1,0 +1,66 @@
+<div id="viewClientes" class="users-section" style="display:block;">
+    <div class="section-header-bar">
+        <div>
+            <h2 style="font-size: 20px; font-weight: 700; color:#0f172a;">Gestión de Clientes y Pedidos de Acero</h2>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span id="clientesDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
+                <span style="font-size: 12.5px; color:#64748b;">Administración de empresas solicitantes y especificaciones de carga</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-primary" onclick="openNewClienteModal()" style="background:#0284c7; border-color:#0284c7;">
+                + Registrar Cliente
+            </button>
+            <button class="btn-primary" onclick="openNewPedidoModal()">
+                + Registrar Pedido
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLA DE PEDIDOS REGISTRADOS -->
+    <div style="margin-bottom: 28px;">
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Pedidos de Acero Solicitados</h3>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID Pedido</th>
+                        <th>Cliente Solicitante</th>
+                        <th>Material Relevante</th>
+                        <th>Peso (Tn)</th>
+                        <th>Destino de Entrega</th>
+                        <th>Prioridad</th>
+                        <th>Objetivo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="pedidosTbody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TABLA DE CLIENTES -->
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Cartera de Clientes Corporativos</h3>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Razón Social / Cliente</th>
+                        <th>Documento (RUC / DNI)</th>
+                        <th>Dirección Fiscal</th>
+                        <th>Contacto Responsable</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="clientesTbody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

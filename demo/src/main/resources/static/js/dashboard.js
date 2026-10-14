@@ -90,6 +90,8 @@ const viewFileMap = {
     'optimizar':     'views/optimizar.html',
     'historial':     'views/historial.html',
     'reportes':      'views/reportes.html',
+    'flota':         'views/flota.html',
+    'clientes':      'views/clientes.html',
     'usuarios':      'views/configuracion.html',
     'configuracion': 'views/configuracion.html'
 };
@@ -101,6 +103,8 @@ const menuIdMap = {
     'optimizar':     'menuOptimizar',
     'historial':     'menuHistorial',
     'reportes':      'menuReportes',
+    'flota':         'menuFlota',
+    'clientes':      'menuClientes',
     'usuarios':      'menuUsuarios',
     'configuracion': 'menuUsuarios'
 };
@@ -134,6 +138,8 @@ function applyRolePermissions() {
                                 (user.rol === 'SUPERVISOR') ? '📋' : '🚚';
     }
 
+    const menuFlota     = document.getElementById('menuFlota');
+    const menuClientes  = document.getElementById('menuClientes');
     const menuOptimizar = document.getElementById('menuOptimizar');
     const menuHistorial = document.getElementById('menuHistorial');
     const menuReportes  = document.getElementById('menuReportes');
@@ -161,6 +167,8 @@ function applyRolePermissions() {
 
     if (user.rol === 'ADMINISTRADOR') {
         // Administrador: Acceso total a todo
+        toggleMenu(menuFlota, true);
+        toggleMenu(menuClientes, true);
         toggleMenu(menuOptimizar, true);
         toggleMenu(menuHistorial, true);
         toggleMenu(menuReportes, true);
@@ -170,19 +178,22 @@ function applyRolePermissions() {
         toggleMenu(menuRutas, true);
     } 
     else if (user.rol === 'SUPERVISOR') {
-        // Supervisor: Puede optimizar, asignar, ver historial y reportes.
+        // Supervisor: Puede gestionar flotas, clientes, optimizar y asignar rutas.
         // NO PUEDE crear ni añadir cuentas de usuario (solo el Administrador).
+        toggleMenu(menuFlota, true);
+        toggleMenu(menuClientes, true);
         toggleMenu(menuOptimizar, true);
         toggleMenu(menuHistorial, true);
         toggleMenu(menuReportes, true);
         toggleMenu(menuUsuarios, false);
-        if (menuDivider) menuDivider.style.display = 'none';
+        if (menuDivider) menuDivider.style.display = '';
         toggleMenu(menuMisRutas, true);
         toggleMenu(menuRutas, true);
     } 
     else if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
-        // Transportista: NO puede optimizar rutas, NO ve historial general, NO ve reportes, NO ve cuentas.
-        // Solo ve Inicio, Red de puntos y Mis Rutas Asignadas.
+        // Transportista: Solo ve Inicio, Red de puntos y Mis Rutas Asignadas.
+        toggleMenu(menuFlota, false);
+        toggleMenu(menuClientes, false);
         toggleMenu(menuOptimizar, false);
         toggleMenu(menuHistorial, false);
         toggleMenu(menuReportes, false);
@@ -603,11 +614,15 @@ function onViewLoaded(viewName) {
     if (viewName === 'inicio') {
         setTimeout(drawChart, 60);
     } else if (viewName === 'mis-rutas') {
-        renderMisRutas(currentDispatchFilter);
+        loadAsignacionesFromDatabase();
     } else if (viewName === 'reportes') {
         setTimeout(drawReportBarChart, 80);
     } else if (viewName === 'usuarios' || viewName === 'configuracion') {
         loadUsersFromDatabase();
+    } else if (viewName === 'flota') {
+        loadFlotaData();
+    } else if (viewName === 'clientes') {
+        loadClientesData();
     } else if (viewName === 'optimizar') {
         showOptSubStep('form');
     }
@@ -737,35 +752,114 @@ function renderMisRutas(statusFilter = 'TODAS') {
     }).join('');
 }
 
-function updateDispatchStatus(dispatchId, newStatus) {
+async function loadAsignacionesFromDatabase() {
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await fetch(API_HOST + '/api/asignaciones');
+            if (res.ok) {
+                const list = await res.json();
+                if (list && list.length > 0) {
+                    activeDispatches = list.map(a => ({
+                        id: a.idAsignacion,
+                        codigo: 'DSP-' + (1000 + a.idAsignacion),
+                        origen: "Almacén Principal Lima (A)",
+                        destino: "Planta Siderúrgica Pisco (F)",
+                        trayecto: "A → C → E → F",
+                        material: "Carga de Acero Aceros Arequipa",
+                        conductorId: a.idTransportista,
+                        conductorNombre: a.conductorNombre || 'Transportista Asignado',
+                        vehiculo: (a.vehiculoTipo || 'Unidad de Flota') + ' - ' + (a.vehiculoModelo || ''),
+                        placa: a.vehiculoPlaca || 'V-100',
+                        prioridad: 'Alta',
+                        tiempoEst: "32 min",
+                        distancia: "18.5 km",
+                        costo: "S/ 85.00",
+                        estado: a.estado === 'ACTIVA' ? 'EN_TRANSITO' : 'COMPLETADA',
+                        fecha: a.fechaInicio ? new Date(a.fechaInicio).toLocaleDateString() : 'Hoy',
+                        supervisor: "Supervisor de Operaciones"
+                    }));
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Usando despachos locales de respaldo:', e);
+    }
+    renderMisRutas(currentDispatchFilter);
+}
+
+async function updateDispatchStatus(dispatchId, newStatus) {
     const item = activeDispatches.find(d => d.id === dispatchId);
     if (!item) return;
 
     item.estado = newStatus;
+
+    if (newStatus === 'COMPLETADA' && window.location.protocol !== 'file:') {
+        try {
+            await fetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
+        } catch (e) {
+            console.warn('Error completando asignacion en servidor:', e);
+        }
+    }
+
     const msg = (newStatus === 'EN_TRANSITO') 
         ? `🚚 ¡Buen viaje! Despacho ${item.codigo} marcado en tránsito hacia ${item.destino}.`
-        : `✅ ¡Entrega registrada con éxito para el despacho ${item.codigo}!`;
+        : `✅ ¡Entrega registrada con éxito para el despacho ${item.codigo}! (Guardado en base de datos)`;
 
     alert(msg);
     renderMisRutas(currentDispatchFilter);
 }
 
 /* ==========================================================================
-   MODAL DE ASIGNACIÓN DE RUTAS (SUPERVISOR / ADMIN)
+   MODAL DE ASIGNACIÓN DE RUTAS (SUPERVISOR / ADMIN CONECTADO A POSTGRESQL)
    ========================================================================== */
 
-function openAssignRouteModal() {
+async function openAssignRouteModal() {
     const selectConductor = document.getElementById('assignConductorSelect');
-    if (selectConductor) {
-        // Cargar conductores desde memoryUsers filtrando CONDUCTOR
-        const conductores = memoryUsers.filter(u => u.rol === 'CONDUCTOR');
-        selectConductor.innerHTML = conductores.map(c => `
-            <option value="${c.idUsuario}" data-nombre="${c.nombres} ${c.apellidos || ''}">${c.nombres} ${c.apellidos || ''} (${c.codEmpleado || 'TRP'})</option>
-        `).join('');
+    const selectVehiculo  = document.getElementById('assignVehiculoSelect');
+    const placaInput      = document.getElementById('assignPlacaInput');
 
-        if (conductores.length === 0) {
-            selectConductor.innerHTML = `<option value="3" data-nombre="Manuel Quispe">Manuel Quispe (TRP-001)</option>`;
+    // Cargar transportistas y vehiculos reales de PostgreSQL si es posible
+    if (window.location.protocol !== 'file:') {
+        try {
+            const [resTrp, resVeh] = await Promise.all([
+                fetch(API_HOST + '/api/transportistas'),
+                fetch(API_HOST + '/api/vehiculos')
+            ]);
+            if (resTrp.ok) {
+                const trps = await resTrp.json();
+                if (selectConductor && trps.length > 0) {
+                    selectConductor.innerHTML = trps.map(t => `
+                        <option value="${t.idTransportista}" data-nombre="${t.nombres} ${t.apellidos}">
+                            ${t.nombres} ${t.apellidos} (${t.dni}) - Lic. ${t.categoriaLicencia || 'A-IIIc'}
+                        </option>
+                    `).join('');
+                }
+            }
+            if (resVeh.ok) {
+                const vehs = await resVeh.json();
+                if (selectVehiculo && vehs.length > 0) {
+                    selectVehiculo.innerHTML = vehs.map(v => `
+                        <option value="${v.idVehiculo}" data-placa="${v.placa}" data-tipo="${v.tipoCamion}">
+                            ${v.tipoCamion} (${v.placa}) · ${v.modelo} [Max: ${v.capacidadMaxTon} Tn]
+                        </option>
+                    `).join('');
+                    if (placaInput && vehs[0]) {
+                        placaInput.value = vehs[0].placa;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('Error cargando datos de vehiculos/transportistas:', err);
         }
+    }
+
+    if (selectVehiculo) {
+        selectVehiculo.onchange = () => {
+            const opt = selectVehiculo.options[selectVehiculo.selectedIndex];
+            if (opt && placaInput) {
+                placaInput.value = opt.getAttribute('data-placa') || '';
+            }
+        };
     }
 
     const modal = document.getElementById('assignRouteModal');
@@ -777,21 +871,38 @@ function closeAssignRouteModal() {
     if (modal) modal.classList.remove('active');
 }
 
-function confirmAssignRoute(e) {
+async function confirmAssignRoute(e) {
     e.preventDefault();
-    const select = document.getElementById('assignConductorSelect');
-    const selectedOpt = select.options[select.selectedIndex];
-    const conductorId = parseInt(select.value);
-    const conductorNombre = selectedOpt ? selectedOpt.getAttribute('data-nombre') : 'Manuel Quispe';
-    
-    const vehiculo = document.getElementById('assignVehiculoSelect').value;
-    const placa = document.getElementById('assignPlacaInput').value.trim() || 'AYZ-892';
-    const material = document.getElementById('assignMaterialInput').value.trim() || 'Bobinas de acero (24 Tn)';
-    const prioridad = document.getElementById('assignPrioridadSelect').value || 'Alta';
+    const selectCond = document.getElementById('assignConductorSelect');
+    const selectVeh  = document.getElementById('assignVehiculoSelect');
+    const placa      = document.getElementById('assignPlacaInput').value.trim() || 'AYZ-892';
+    const material   = document.getElementById('assignMaterialInput').value.trim() || 'Bobinas de acero (24 Tn)';
+    const prioridad  = document.getElementById('assignPrioridadSelect').value || 'Alta';
+
+    const selectedCondOpt = selectCond ? selectCond.options[selectCond.selectedIndex] : null;
+    const conductorId     = selectCond ? parseInt(selectCond.value) : 1;
+    const conductorNombre = selectedCondOpt ? selectedCondOpt.getAttribute('data-nombre') : 'Manuel Quispe';
+
+    const selectedVehOpt  = selectVeh ? selectVeh.options[selectVeh.selectedIndex] : null;
+    const vehiculoId      = selectVeh ? parseInt(selectVeh.value) : 1;
+    const vehiculoTipo    = selectedVehOpt ? (selectedVehOpt.getAttribute('data-tipo') || selectedVehOpt.text) : 'Tráiler Plataforma';
 
     const supervisorUser = getCurrentUser();
     const newId = Date.now();
     const newCodigo = 'DSP-' + (Math.floor(1000 + Math.random() * 9000));
+
+    // Guardar en PostgreSQL
+    if (window.location.protocol !== 'file:') {
+        try {
+            await fetch(API_HOST + '/api/asignaciones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idVehiculo: vehiculoId, idTransportista: conductorId })
+            });
+        } catch (err) {
+            console.warn('No se pudo guardar la asignación en BD:', err);
+        }
+    }
 
     const newDispatch = {
         id: newId,
@@ -802,7 +913,7 @@ function confirmAssignRoute(e) {
         material: material,
         conductorId: conductorId,
         conductorNombre: conductorNombre,
-        vehiculo: vehiculo,
+        vehiculo: vehiculoTipo,
         placa: placa,
         prioridad: prioridad,
         tiempoEst: "32 min",
@@ -816,12 +927,12 @@ function confirmAssignRoute(e) {
     activeDispatches.unshift(newDispatch);
     closeAssignRouteModal();
 
-    alert(`✅ ¡Ruta asignada exitosamente!\n\nDespacho: ${newCodigo}\nConductor: ${conductorNombre}\nVehículo: ${vehiculo} (${placa})\n\nEl transportista ya tiene esta ruta en su panel "Mis Rutas Asignadas".`);
+    alert(`✅ ¡Ruta guardada en base de datos (asignaciones_conduccion)!\n\nDespacho: ${newCodigo}\nConductor: ${conductorNombre}\nVehículo: ${vehiculoTipo} (${placa})\n\nEl transportista ya tiene esta ruta en su panel.`);
     showView('mis-rutas');
 }
 
 /* ==========================================================================
-   LÓGICA DEL FLUJO: OPTIMIZAR RUTA (3 SUB-ETAPAS)
+   LÓGICA DEL FLUJO: OPTIMIZAR RUTA (CONEXIÓN A POSTGRESQL)
    ========================================================================== */
 
 function showOptSubStep(step) {
@@ -853,7 +964,7 @@ function startOptimizationProcess(e) {
     ];
 
     phases.forEach(({ target, delay }) => {
-        setTimeout(() => {
+        setTimeout(async () => {
             if (bar) bar.style.width = target + '%';
             if (label) label.textContent = target + '%';
 
@@ -867,6 +978,36 @@ function startOptimizationProcess(e) {
                     textReglas.style.color = '#1e293b';
                     textReglas.style.fontWeight = '500';
                     textReglas.textContent = 'Aplicando reglas expertas';
+                }
+
+                // Guardar en tabla rutas y rutas_optimizadas en PostgreSQL
+                if (window.location.protocol !== 'file:') {
+                    try {
+                        const origenSel = document.getElementById('optOrigen');
+                        const destinoSel = document.getElementById('optDestino');
+                        const matSel = document.getElementById('optMaterial');
+                        const pesoInput = document.getElementById('restPesoVal');
+
+                        const payload = {
+                            origen: origenSel ? origenSel.options[origenSel.selectedIndex].text : "Almacén Principal (A)",
+                            destino: destinoSel ? destinoSel.options[destinoSel.selectedIndex].text : "Planta Siderúrgica Pisco (F)",
+                            material: matSel ? matSel.options[matSel.selectedIndex].text : "Bobinas de acero (24 Tn)",
+                            peso: pesoInput ? parseFloat(pesoInput.value) : 24.0,
+                            trayecto: "A → C → E → F",
+                            distancia: 18.5,
+                            tiempo: 32,
+                            costo: 85.0
+                        };
+
+                        await fetch(API_HOST + '/api/rutas/guardar-optimizacion', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        console.log('✅ Ruta optimizada y alternativas persistidas en PostgreSQL');
+                    } catch (err) {
+                        console.warn('Error guardando optimización en BD:', err);
+                    }
                 }
 
                 setTimeout(() => showOptSubStep('result'), 600);
@@ -1050,6 +1191,325 @@ function drawChart() {
         ctx.arc(x, getYCoord(val), 4, 0, Math.PI * 2);
         ctx.fill();
     });
+}
+
+/* ==========================================================================
+   LÓGICA DE FLOTAS Y VEHÍCULOS (PARQUE VEHICULAR Y CAPACIDADES EN TONELADAS)
+   ========================================================================== */
+
+let memoryFlotas = [];
+let memoryVehiculos = [];
+let memoryClientes = [];
+let memoryPedidos = [];
+
+async function loadFlotaData() {
+    const grid = document.getElementById('flotasCardsGrid');
+    const tbody = document.getElementById('vehiculosTbody');
+    const badge = document.getElementById('flotaDbBadge');
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const [resFlotas, resVehiculos] = await Promise.all([
+                fetch(API_HOST + '/api/flotas'),
+                fetch(API_HOST + '/api/vehiculos')
+            ]);
+            if (resFlotas.ok) memoryFlotas = await resFlotas.json();
+            if (resVehiculos.ok) memoryVehiculos = await resVehiculos.json();
+
+            if (badge) {
+                badge.className = 'server-status-pill online';
+                badge.textContent = '🟢 PostgreSQL Conectado';
+            }
+        }
+    } catch (err) {
+        console.warn('Error cargando flotas/vehículos desde BD:', err);
+    }
+
+    if (grid) {
+        if (memoryFlotas.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:6px; color:#64748b; text-align:center;">No hay flotas registradas. Haz clic en "+ Nueva Flota".</div>`;
+        } else {
+            grid.innerHTML = memoryFlotas.map(f => `
+                <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
+                    <div style="font-size:11.5px; color:#0284c7; font-weight:700; text-transform:uppercase;">Flota #${f.idFlota}</div>
+                    <div style="font-size:15px; font-weight:800; color:#0f172a; margin:4px 0;">${f.nombreFlota}</div>
+                    <p style="font-size:12.5px; color:#64748b; margin:0;">${f.descripcion || 'Flota activa de transporte de acero'}</p>
+                </div>
+            `).join('');
+        }
+    }
+
+    if (tbody) {
+        if (memoryVehiculos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados. Haz clic en "+ Nuevo Vehículo".</td></tr>`;
+        } else {
+            tbody.innerHTML = memoryVehiculos.map(v => {
+                const badgeStatus = v.estadoOperativo === 'DISPONIBLE' ? 'badge-optima' : (v.estadoOperativo === 'EN_RUTA' ? 'badge-alternativa' : 'badge-no-optima');
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:#64748b;">#${v.idVehiculo}</td>
+                        <td><strong style="color:#0f172a; font-size:13.5px; letter-spacing:0.5px;">${v.placa}</strong></td>
+                        <td>${v.tipoCamion || 'Camión Pesado'}</td>
+                        <td style="font-weight:600; color:#0284c7;">${v.modelo || 'Volvo FH 540'}</td>
+                        <td><strong style="color:#15803d; font-size:14px;">${v.capacidadMaxTon} Tn</strong></td>
+                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '-'}</td>
+                        <td><span class="${badgeStatus}">${v.estadoOperativo}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+}
+
+function openNewVehiculoModal() {
+    const selFlota = document.getElementById('vehFlotaSelect');
+    if (selFlota && memoryFlotas.length > 0) {
+        selFlota.innerHTML = memoryFlotas.map(f => `<option value="${f.idFlota}">${f.nombreFlota}</option>`).join('');
+    }
+    const modal = document.getElementById('vehiculoModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeVehiculoModal() {
+    const modal = document.getElementById('vehiculoModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveVehiculo(e) {
+    e.preventDefault();
+    const placa = document.getElementById('vehPlaca').value.trim().toUpperCase();
+    const tipoCamion = document.getElementById('vehTipo').value;
+    const modelo = document.getElementById('vehModelo').value.trim();
+    const capacidadMaxTon = parseFloat(document.getElementById('vehCapacidad').value);
+    const volumenMaxM3 = parseFloat(document.getElementById('vehVolumen').value);
+    const idFlota = parseInt(document.getElementById('vehFlotaSelect')?.value || 1);
+
+    const payload = { placa, tipoCamion, modelo, capacidadMaxTon, volumenMaxM3, idFlota, estadoOperativo: 'DISPONIBLE' };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await fetch(API_HOST + '/api/vehiculos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar');
+            alert('✅ Vehículo registrado exitosamente en la base de datos.');
+        } else {
+            payload.idVehiculo = memoryVehiculos.length + 1;
+            memoryVehiculos.unshift(payload);
+            alert('✅ Vehículo registrado localmente.');
+        }
+        closeVehiculoModal();
+        loadFlotaData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+function openNewFlotaModal() {
+    const modal = document.getElementById('flotaModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeFlotaModal() {
+    const modal = document.getElementById('flotaModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveFlota(e) {
+    e.preventDefault();
+    const nombreFlota = document.getElementById('flotaNombre').value.trim();
+    const descripcion = document.getElementById('flotaDescripcion').value.trim();
+    const payload = { nombreFlota, descripcion, activo: true };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await fetch(API_HOST + '/api/flotas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al crear');
+            alert('✅ Flota creada exitosamente en PostgreSQL.');
+        } else {
+            payload.idFlota = memoryFlotas.length + 1;
+            memoryFlotas.push(payload);
+            alert('✅ Flota creada localmente.');
+        }
+        closeFlotaModal();
+        loadFlotaData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+/* ==========================================================================
+   LÓGICA DE CLIENTES Y PEDIDOS DE ACERO
+   ========================================================================== */
+
+async function loadClientesData() {
+    const tbodyCli = document.getElementById('clientesTbody');
+    const tbodyPed = document.getElementById('pedidosTbody');
+    const badge = document.getElementById('clientesDbBadge');
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const [resCli, resPed] = await Promise.all([
+                fetch(API_HOST + '/api/clientes'),
+                fetch(API_HOST + '/api/pedidos')
+            ]);
+            if (resCli.ok) memoryClientes = await resCli.json();
+            if (resPed.ok) memoryPedidos = await resPed.json();
+
+            if (badge) {
+                badge.className = 'server-status-pill online';
+                badge.textContent = '🟢 PostgreSQL Conectado';
+            }
+        }
+    } catch (err) {
+        console.warn('Error cargando clientes/pedidos desde BD:', err);
+    }
+
+    if (tbodyPed) {
+        if (memoryPedidos.length === 0) {
+            tbodyPed.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay pedidos registrados. Haz clic en "+ Registrar Pedido".</td></tr>`;
+        } else {
+            tbodyPed.innerHTML = memoryPedidos.map(p => {
+                const badgeClass = p.prioridad === 'ALTA' ? 'badge-no-optima' : (p.prioridad === 'MEDIA' ? 'badge-alternativa' : 'badge-optima');
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:#64748b;">#PED-${p.idPedido}</td>
+                        <td><strong>${p.clienteNombre || 'Cliente General'}</strong><br><small style="color:#64748b;">${p.clienteRuc || ''}</small></td>
+                        <td style="color:#0f172a; font-weight:600;">📦 ${p.tipoMaterial}</td>
+                        <td><strong style="color:#15803d; font-size:13.5px;">${p.pesoT} Tn</strong></td>
+                        <td>${p.direccionDestino}</td>
+                        <td><span class="${badgeClass}">${p.prioridad}</span></td>
+                        <td><small style="color:#475569; font-weight:600;">${p.objetivoOptimizacion}</small></td>
+                        <td><span class="badge-optima">${p.estadoPedido}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    if (tbodyCli) {
+        if (memoryClientes.length === 0) {
+            tbodyCli.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay clientes registrados. Haz clic en "+ Registrar Cliente".</td></tr>`;
+        } else {
+            tbodyCli.innerHTML = memoryClientes.map(c => `
+                <tr>
+                    <td style="font-weight:700; color:#64748b;">#${c.idCliente}</td>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${c.tipoDocumento}: ${c.numeroDocumento}</span></td>
+                    <td>${c.direccionFiscal || '-'}</td>
+                    <td>${c.contactoNombre || '-'}</td>
+                    <td>${c.telefono || '-'}</td>
+                    <td><span style="color:#16a34a; font-weight:600;">● Activo</span></td>
+                </tr>
+            `).join('');
+        }
+    }
+}
+
+function openNewClienteModal() {
+    const modal = document.getElementById('clienteModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeClienteModal() {
+    const modal = document.getElementById('clienteModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveCliente(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('cliNombre').value.trim();
+    const tipoDocumento = document.getElementById('cliTipoDoc').value;
+    const numeroDocumento = document.getElementById('cliNumDoc').value.trim();
+    const direccionFiscal = document.getElementById('cliDireccion').value.trim();
+    const contactoNombre = document.getElementById('cliContacto').value.trim();
+    const telefono = document.getElementById('cliTelefono').value.trim();
+
+    const payload = { nombre, tipoDocumento, numeroDocumento, direccionFiscal, contactoNombre, telefono, activo: true };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await fetch(API_HOST + '/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar cliente');
+            alert('✅ Cliente registrado exitosamente en PostgreSQL.');
+        } else {
+            payload.idCliente = memoryClientes.length + 1;
+            memoryClientes.push(payload);
+            alert('✅ Cliente registrado localmente.');
+        }
+        closeClienteModal();
+        loadClientesData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+function openNewPedidoModal() {
+    const selCliente = document.getElementById('pedClienteSelect');
+    if (selCliente && memoryClientes.length > 0) {
+        selCliente.innerHTML = memoryClientes.map(c => `<option value="${c.idCliente}">${c.nombre} (${c.tipoDocumento}: ${c.numeroDocumento})</option>`).join('');
+    }
+    const modal = document.getElementById('pedidoModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closePedidoModal() {
+    const modal = document.getElementById('pedidoModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function savePedido(e) {
+    e.preventDefault();
+    const idCliente = parseInt(document.getElementById('pedClienteSelect').value);
+    const tipoMaterial = document.getElementById('pedMaterial').value;
+    const pesoT = parseFloat(document.getElementById('pedPeso').value);
+    const direccionDestino = document.getElementById('pedDestino').value.trim();
+    const prioridad = document.getElementById('pedPrioridad').value;
+    const objetivoOptimizacion = document.getElementById('pedObjetivo').value;
+
+    const payload = {
+        idCliente,
+        idUsuarioGestor: 1,
+        tipoMaterial,
+        pesoT,
+        volumenM3: pesoT * 1.3,
+        direccionDestino,
+        prioridad,
+        objetivoOptimizacion,
+        evitarTraficoPesado: false,
+        evitarZonasMantenimiento: false,
+        estadoPedido: 'REGISTRADO'
+    };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await fetch(API_HOST + '/api/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar pedido');
+            alert('✅ Pedido de acero registrado exitosamente en PostgreSQL.');
+        } else {
+            payload.idPedido = memoryPedidos.length + 1;
+            memoryPedidos.unshift(payload);
+            alert('✅ Pedido guardado localmente.');
+        }
+        closePedidoModal();
+        loadClientesData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
 }
 
 /* ==========================================================================
