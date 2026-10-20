@@ -130,6 +130,21 @@ public class RutaOptimizationService {
         Vehiculo vehiculo = selectVehiculoParaCarga(request.getIdVehiculo(), peso);
         Transportista transportista = selectTransportista(vehiculo.getIdVehiculo());
 
+        // Mapeo seguro a los CHECK constraints de PostgreSQL
+        String objetivoDb = "EQUILIBRIO";
+        if (objetivo.contains("tiempo")) {
+            objetivoDb = "MENOR_TIEMPO";
+        } else if (objetivo.contains("costo")) {
+            objetivoDb = "MENOR_COSTO";
+        }
+
+        String prioridadDb = "ALTA";
+        if (request.getPrioridad() != null) {
+            String p = request.getPrioridad().toUpperCase();
+            if (p.contains("MEDIA")) prioridadDb = "MEDIA";
+            else if (p.contains("BAJA")) prioridadDb = "BAJA";
+        }
+
         // 5. Persistir en PostgreSQL (Pedido, Ruta y Rutas Optimizadas)
         Cliente cliente = selectCliente(request.getIdCliente());
         Pedido pedido = new Pedido(
@@ -140,10 +155,10 @@ public class RutaOptimizationService {
             BigDecimal.valueOf(peso),
             BigDecimal.valueOf(peso * 1.35).setScale(2, RoundingMode.HALF_UP),
             NOMBRES_NODOS[endNode],
-            request.getPrioridad() != null ? request.getPrioridad().toUpperCase() : "ALTA",
-            objetivo.toUpperCase(),
-            true,
-            false,
+            prioridadDb,
+            objetivoDb,
+            evitarTrafico,
+            evitarMantenimiento,
             "OPTIMIZADO",
             null,
             null,
