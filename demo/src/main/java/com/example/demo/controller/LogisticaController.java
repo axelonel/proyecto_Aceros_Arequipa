@@ -1,7 +1,10 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.OptimizacionRequestDto;
+import com.example.demo.dto.OptimizacionResponseDto;
 import com.example.demo.model.*;
 import com.example.demo.repository.*;
+import com.example.demo.service.RutaOptimizationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +27,7 @@ public class LogisticaController {
     private final PedidoRepository pedidoRepository;
     private final RutaRepository rutaRepository;
     private final RutaOptimizadaRepository rutaOptimizadaRepository;
+    private final RutaOptimizationService rutaOptimizationService;
 
     public LogisticaController(ClienteRepository clienteRepository,
                                FlotaRepository flotaRepository,
@@ -32,7 +36,8 @@ public class LogisticaController {
                                AsignacionConduccionRepository asignacionRepository,
                                PedidoRepository pedidoRepository,
                                RutaRepository rutaRepository,
-                               RutaOptimizadaRepository rutaOptimizadaRepository) {
+                               RutaOptimizadaRepository rutaOptimizadaRepository,
+                               RutaOptimizationService rutaOptimizationService) {
         this.clienteRepository = clienteRepository;
         this.flotaRepository = flotaRepository;
         this.vehiculoRepository = vehiculoRepository;
@@ -41,6 +46,7 @@ public class LogisticaController {
         this.pedidoRepository = pedidoRepository;
         this.rutaRepository = rutaRepository;
         this.rutaOptimizadaRepository = rutaOptimizadaRepository;
+        this.rutaOptimizationService = rutaOptimizationService;
     }
 
     // ==========================================
@@ -245,78 +251,71 @@ public class LogisticaController {
     }
 
     // ==========================================
-    // 7. REGISTRO DE RUTAS OPTIMIZADAS
+    // 7. OPTIMIZACIÓN DE RUTAS CON GOOGLE OR-TOOLS
     // ==========================================
+    @PostMapping("/rutas/optimizar-ortools")
+    public ResponseEntity<?> optimizarConOrTools(@RequestBody OptimizacionRequestDto request) {
+        try {
+            OptimizacionResponseDto response = rutaOptimizationService.optimizarYPersistir(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Error en el cálculo con Google OR-Tools: " + ex.getMessage()));
+        }
+    }
+
     @PostMapping("/rutas/guardar-optimizacion")
     public ResponseEntity<?> guardarOptimizacion(@RequestBody Map<String, Object> payload) {
         try {
-            String origen = (String) payload.getOrDefault("origen", "Almacén Principal Lima (A)");
-            String destino = (String) payload.getOrDefault("destino", "Planta Siderúrgica Pisco (F)");
-            String material = (String) payload.getOrDefault("material", "Bobinas de acero (24 Tn)");
-            Double peso = Double.valueOf(payload.getOrDefault("peso", 24.0).toString());
-            String trayectoOptimo = (String) payload.getOrDefault("trayecto", "A → C → E → F");
-            Double distancia = Double.valueOf(payload.getOrDefault("distancia", 18.5).toString());
-            Integer tiempo = Integer.valueOf(payload.getOrDefault("tiempo", 32).toString());
-            Double costo = Double.valueOf(payload.getOrDefault("costo", 85.0).toString());
+            OptimizacionRequestDto req = new OptimizacionRequestDto();
+            req.setOrigen((String) payload.getOrDefault("origen", "A"));
+            req.setDestino((String) payload.getOrDefault("destino", "F"));
+            req.setMaterial((String) payload.getOrDefault("material", "Bobinas de acero (24 Tn)"));
+            if (payload.get("peso") != null) {
+                req.setPeso(Double.valueOf(payload.get("peso").toString()));
+            }
+            req.setObjetivo((String) payload.getOrDefault("objetivo", "equilibrio"));
+            req.setPrioridad((String) payload.getOrDefault("prioridad", "Alta"));
+            req.setEvitarTrafico(Boolean.TRUE.equals(payload.get("evitarTrafico")));
+            req.setEvitarMantenimiento(Boolean.TRUE.equals(payload.get("evitarMantenimiento")));
 
-            // 1. Crear o asociar pedido
-            Long idCliente = 1L;
-            List<Cliente> clientes = clienteRepository.findAll();
-            if (!clientes.isEmpty()) idCliente = clientes.get(0).getIdCliente();
-
-            Pedido pedido = new Pedido(
-                null, idCliente, 1L, material, BigDecimal.valueOf(peso),
-                BigDecimal.valueOf(peso * 1.3), destino, "ALTA", "EQUILIBRIO",
-                true, false, "OPTIMIZADO", null, null, null
-            );
-            Pedido pedidoGuardado = pedidoRepository.save(pedido);
-
-            // 2. Asociar primer vehículo disponible
-            Long idVehiculo = 1L;
-            List<Vehiculo> vehiculos = vehiculoRepository.findAll();
-            if (!vehiculos.isEmpty()) idVehiculo = vehiculos.get(0).getIdVehiculo();
-
-            // 3. Crear registro en tabla rutas
-            Ruta ruta = new Ruta(
-                null, "Dijkstra Multicriterio + Reglas Expertas", costo, distancia,
-                "PLANIFICADA", LocalDate.now(), tiempo, 1L, idVehiculo, null
-            );
-            Ruta rutaGuardada = rutaRepository.save(ruta);
-            pedidoGuardado.setRutaId(rutaGuardada.getId());
-            pedidoRepository.save(pedidoGuardado);
-
-            // 4. Registrar variantes en rutas_optimizadas
-            List<Transportista> transportistas = transportistaRepository.findAll();
-            Long idTrp = !transportistas.isEmpty() ? transportistas.get(0).getIdTransportista() : 1L;
-
-            List<RutaOptimizada> variantes = List.of(
-                new RutaOptimizada(null, pedidoGuardado.getIdPedido(), idVehiculo, idTrp,
-                    origen, destino, trayectoOptimo, BigDecimal.valueOf(distancia),
-                    BigDecimal.valueOf(tiempo), BigDecimal.valueOf(costo),
-                    "Dijkstra Multicriterio", new BigDecimal("95.50"), "OPTIMA", null),
-                new RutaOptimizada(null, pedidoGuardado.getIdPedido(), idVehiculo, idTrp,
-                    origen, destino, "A → B → C → F", BigDecimal.valueOf(distancia * 1.35),
-                    BigDecimal.valueOf(tiempo * 1.3), BigDecimal.valueOf(costo * 1.25),
-                    "Dijkstra Alternativo", new BigDecimal("82.00"), "ALTERNATIVA", null),
-                new RutaOptimizada(null, pedidoGuardado.getIdPedido(), idVehiculo, idTrp,
-                    origen, destino, "A → B → D → F", BigDecimal.valueOf(distancia * 1.7),
-                    BigDecimal.valueOf(tiempo * 1.7), BigDecimal.valueOf(costo * 1.5),
-                    "Ruta Auxiliar Secundaria", new BigDecimal("68.00"), "NO_RECOMENDADA", null)
-            );
-            rutaOptimizadaRepository.saveAll(variantes);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "mensaje", "Ruta y variantes optimizadas guardadas exitosamente en PostgreSQL.",
-                "idPedido", pedidoGuardado.getIdPedido(),
-                "idRuta", rutaGuardada.getId(),
-                "trayecto", trayectoOptimo,
-                "distanciaKm", distancia,
-                "tiempoMin", tiempo,
-                "costoEst", costo
-            ));
+            OptimizacionResponseDto response = rutaOptimizationService.optimizarYPersistir(req);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Error al registrar la optimización: " + ex.getMessage()));
         }
+    }
+
+    @GetMapping("/rutas/ultimas-optimizaciones")
+    public ResponseEntity<List<RutaOptimizada>> listarUltimasOptimizaciones() {
+        return ResponseEntity.ok(rutaOptimizadaRepository.findAll());
+    }
+
+    // ==========================================
+    // 8. MÉTRICAS Y REPORTES
+    // ==========================================
+    @GetMapping("/reportes/metricas")
+    public ResponseEntity<Map<String, Object>> obtenerMetricasReportes() {
+        long totalVehiculos = vehiculoRepository.count();
+        long vehiculosDisponibles = vehiculoRepository.findAll().stream()
+            .filter(v -> "DISPONIBLE".equalsIgnoreCase(v.getEstadoOperativo())).count();
+
+        long totalPedidos = pedidoRepository.count();
+        double pesoTotalToneladas = pedidoRepository.findAll().stream()
+            .mapToDouble(p -> p.getPesoT() != null ? p.getPesoT().doubleValue() : 0.0)
+            .sum();
+
+        long totalRutas = rutaRepository.count();
+        List<RutaOptimizada> todasOptimizadas = rutaOptimizadaRepository.findAll();
+
+        return ResponseEntity.ok(Map.of(
+            "totalVehiculos", totalVehiculos,
+            "vehiculosDisponibles", vehiculosDisponibles,
+            "totalPedidos", totalPedidos,
+            "pesoTotalToneladas", Math.round(pesoTotalToneladas * 10.0) / 10.0,
+            "totalRutas", totalRutas,
+            "rutasOptimizadas", todasOptimizadas
+        ));
     }
 }

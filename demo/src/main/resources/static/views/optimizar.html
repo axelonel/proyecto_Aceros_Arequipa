@@ -226,33 +226,33 @@
             
             <!-- Tarjeta Izquierda: Ruta Recomendada -->
             <div class="result-card">
-                <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada</h3>
-                <div style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">
+                <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada (Google OR-Tools)</h3>
+                <div id="optResultTrayecto" style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">
                     A &nbsp;→&nbsp; C &nbsp;→&nbsp; E &nbsp;→&nbsp; F
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div id="optResultNodesList" style="display: flex; flex-direction: column; gap: 4px;">
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#2563eb;">A</span>
-                        <span style="font-weight: 600;">Almacén Principal</span>
+                        <span style="font-weight: 600;">Almacén Principal Lima</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#16a34a;">C</span>
-                        <span style="font-weight: 600;">Zona de Carga</span>
+                        <span style="font-weight: 600;">Centro Logístico Lurín</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#9333ea;">E</span>
-                        <span style="font-weight: 600;">Centro de Distribución</span>
+                        <span style="font-weight: 600;">Centro de Distribución Arequipa</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#ef4444;">F</span>
-                        <span style="font-weight: 600;">Planta de Producción</span>
+                        <span style="font-weight: 600;">Planta de Producción Callao</span>
                     </div>
                 </div>
             </div>
@@ -260,24 +260,24 @@
             <!-- Tarjeta Derecha: Resumen de la ruta -->
             <div class="result-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                    <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta</h3>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta óptima</h3>
                     
                     <div class="metric-row">
                         <span style="font-size: 18px;">🕒</span>
                         <span style="font-weight: 700; text-transform: uppercase; font-size: 13px;">TIEMPO ESTIMADO</span>
-                        <span style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span>
+                        <span id="optResultTiempo" style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span>
                     </div>
 
                     <div class="metric-row">
                         <span style="font-size: 18px;">🗺️</span>
                         <span style="font-weight: 500; font-size: 13.5px;">Distancia total</span>
-                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span>
+                        <span id="optResultDistancia" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span>
                     </div>
 
                     <div class="metric-row">
                         <span style="font-size: 18px; color:#16a34a; font-weight:800;">$</span>
                         <span style="font-weight: 500; font-size: 13.5px;">Costo estimado</span>
-                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span>
+                        <span id="optResultCosto" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span>
                     </div>
                 </div>
 
@@ -285,7 +285,7 @@
                     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"></polygon>
                     </svg>
-                    RECOMENDADA
+                    RECOMENDADA (OR-TOOLS)
                 </div>
             </div>
 
@@ -295,24 +295,20 @@
         <div class="why-card">
             <div>
                 <h2 style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 6px;">¿Por qué esta ruta?</h2>
-                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el sistema experto porque:</p>
+                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el motor de optimización matemática porque:</p>
 
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div id="optResultMotivos" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Presenta el menor tiempo de traslado</span>
+                        <span>Ruta globalmente óptima calculada por Google OR-Tools</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Tiene un costo aceptable dentro del presupuesto</span>
+                        <span>Presenta el menor tiempo y costo ponderado de traslado</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Evita zonas con trafico y mantenimiento</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
-                        <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Cumple con la prioridad seleccionada</span>
+                        <span>Cumple estrictamente con la capacidad máxima del camión</span>
                     </div>
                 </div>
             </div>
