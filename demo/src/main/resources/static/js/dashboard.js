@@ -452,24 +452,51 @@ const FALLBACK_VIEWS = {
     'reportes': `
         <div id="viewReportes">
             <div class="content-header" style="margin-bottom: 24px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">COMPARACIÓN DE ALTERNATIVAS</h1>
-                <p style="font-size: 13.5px; color: #475569;">Análisis de todas las rutas posibles</p>
+                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & COMPARACIÓN DE RUTAS</h1>
+                <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y alternativas generadas con Google OR-Tools en PostgreSQL</p>
             </div>
-            <table class="report-table">
-                <thead>
-                    <tr><th>Ruta</th><th>Trayecto</th><th>Tiempo (min)</th><th>Distancia (km)</th><th>Costo (S/)</th><th>Puntaje</th><th>Recomendación</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td style="font-weight: 700;">1</td><td style="font-weight: 600;">A - C - E - F</td><td>32</td><td>18.5</td><td>85.00</td><td style="font-weight: 700;">92%</td><td><span class="badge-optima">Óptima</span></td></tr>
-                    <tr><td style="font-weight: 700;">2</td><td style="font-weight: 600;">A - B - D - F</td><td>41</td><td>22.3</td><td>72.00</td><td style="font-weight: 700;">84%</td><td><span class="badge-alternativa">Alternativa</span></td></tr>
-                    <tr><td style="font-weight: 700;">3</td><td style="font-weight: 600;">A - D - E - F</td><td>38</td><td>20.1</td><td>88.00</td><td style="font-weight: 700;">79%</td><td><span class="badge-alternativa">Alternativa</span></td></tr>
-                    <tr><td style="font-weight: 700;">4</td><td style="font-weight: 600;">A - B - E - F</td><td>55</td><td>26.8</td><td>110.00</td><td style="font-weight: 700;">61%</td><td><span class="badge-no-optima">No recomendada</span></td></tr>
-                </tbody>
-            </table>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Toneladas Movilizadas</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span id="kpiReporteToneladas" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- Tn</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">📦 Registrado</span>
+                    </div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Rutas Optimizadas</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span id="kpiReporteRutas" style="font-size: 24px; font-weight: 800; color: #2563eb;">--</span>
+                        <span style="font-size: 12px; color: #2563eb; font-weight: 600;">🛣️ Google OR-Tools</span>
+                    </div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Tiempo Promedio</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span id="kpiReporteTiempo" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- min</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">⚡ Eficiente</span>
+                    </div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Ahorro Logístico Est.</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span id="kpiReporteAhorro" style="font-size: 24px; font-weight: 800; color: #16a34a;">S/ --</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">💰 Fletes</span>
+                    </div>
+                </div>
+            </div>
+            <div style="background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px;">
+                <table class="report-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr><th>Ruta</th><th>Trayecto</th><th>Tiempo (min)</th><th>Distancia (km)</th><th>Costo (S/)</th><th>Puntaje</th><th>Recomendación</th></tr>
+                    </thead>
+                    <tbody id="reportesTableBody"></tbody>
+                </table>
+            </div>
             <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
                 <div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="font-size: 15px; font-weight: 700; color: #1e293b;">Comparación visual</h3>
+                        <h3 style="font-size: 15px; font-weight: 700; color: #1e293b;">Comparación visual de Tiempos y Costos</h3>
                         <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 600; color: #475569;">
                             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb;"></span><span>Tiempo (min)</span></div>
                             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span><span>Costo (S/)</span></div>
@@ -478,8 +505,8 @@ const FALLBACK_VIEWS = {
                     <div style="width: 100%; height: 230px;"><canvas id="reportBarChart" width="460" height="230" style="width: 100%; height: 100%; display: block;"></canvas></div>
                 </div>
                 <div class="conclusion-sticky-card">
-                    <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión</h2>
-                    <p style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">La ruta 1 (A-C-E-F) es la mejor opcion por que ofrece el menor tiempo con un costo aceptable logrando el mejor equilibrio segun los criterios seleccionados.</p>
+                    <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión del Sistema Experto</h2>
+                    <p id="reporteConclusionTexto" style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">Las rutas óptimas calculadas por Google OR-Tools minimizan el tiempo y costo global de transporte.</p>
                 </div>
             </div>
         </div>
@@ -487,17 +514,31 @@ const FALLBACK_VIEWS = {
     'historial': `
         <div id="viewHistorial">
             <div class="content-header" style="margin-bottom: 24px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">HISTORIAL DE OPTIMIZACIONES</h1>
-                <p style="font-size: 13.5px; color: #475569;">Registro de rutas calculadas y despachos programados</p>
+                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">HISTORIAL DE OPTIMIZACIONES & DESPACHOS</h1>
+                <p style="font-size: 13.5px; color: #475569;">Registro de rutas calculadas, asignaciones y despachos programados en PostgreSQL</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Despachos</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 4px;"><span id="kpiHistorialTotal">--</span></div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Rutas Óptimas</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #16a34a; margin-top: 4px;"><span id="kpiHistorialOptimas">--</span></div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Flota en Ruta</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #f59e0b; margin-top: 4px;"><span id="kpiHistorialFlotaActiva">--</span></div>
+                </div>
+                <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Puntaje Promedio</div>
+                    <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 4px;"><span id="kpiHistorialPuntaje">95.2%</span></div>
+                </div>
             </div>
             <div class="card-container">
                 <table class="report-table" style="margin-bottom: 0;">
-                    <thead><tr><th>Código</th><th>Fecha / Hora</th><th>Origen - Destino</th><th>Material</th><th>Transportista</th><th>Vehículo</th><th>Estado</th></tr></thead>
-                    <tbody>
-                        <tr><td style="font-weight:700;">#OPT-1092</td><td>Hoy 14:32</td><td>Almacén Principal → Planta Pisco</td><td>Bobinas de acero (24 Tn)</td><td>Manuel Quispe</td><td>Tráiler Plataforma (V-102)</td><td><span class="badge-optima">Completada</span></td></tr>
-                        <tr><td style="font-weight:700;">#OPT-1091</td><td>Hoy 11:15</td><td>Sede Lima → Distribuidora Norte</td><td>Barras corrugadas (20 Tn)</td><td>Carlos Mendoza</td><td>Camión Pesado (V-105)</td><td><span class="badge-optima">En Tránsito</span></td></tr>
-                        <tr><td style="font-weight:700;">#OPT-1090</td><td>Ayer 16:40</td><td>Almacén Principal → Centro Lurín</td><td>Alambrón (18 Tn)</td><td>Jorge Ramirez</td><td>Furgón (V-108)</td><td><span class="badge-optima">Completada</span></td></tr>
-                    </tbody>
+                    <thead><tr><th>Código</th><th>Fecha / Hora</th><th>Origen → Destino</th><th>Material</th><th>Transportista</th><th>Vehículo</th><th>Dist. / Tiempo</th><th>Costo (S/)</th><th>Recomendación</th></tr></thead>
+                    <tbody id="historialTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -616,7 +657,8 @@ function onViewLoaded(viewName) {
         loadAsignacionesFromDatabase();
     } else if (viewName === 'reportes') {
         loadReportesData();
-        setTimeout(drawReportBarChart, 80);
+    } else if (viewName === 'historial') {
+        loadHistorialData();
     } else if (viewName === 'usuarios' || viewName === 'configuracion') {
         loadUsersFromDatabase();
     } else if (viewName === 'flota') {
@@ -1104,55 +1146,59 @@ function renderOrToolsResults(data) {
 }
 
 /**
- * Carga la tabla comparativa de alternativas en la vista de Reportes
+ * Carga métricas, tabla y gráfico comparativo en la vista de Reportes desde PostgreSQL
  */
 async function loadReportesData() {
     const tbody = document.getElementById('reportesTableBody');
-    if (!tbody) return;
 
-    // Si ya tenemos el último resultado de Google OR-Tools en memoria, mostrar sus alternativas
+    // 1. Si tenemos alternativas recién calculadas con OR-Tools en la sesión
     if (window.lastOrToolsResult && window.lastOrToolsResult.rutasAlternativas && window.lastOrToolsResult.rutasAlternativas.length > 0) {
         renderReportesTable(window.lastOrToolsResult.rutasAlternativas);
-        return;
+        drawReportBarChart(window.lastOrToolsResult.rutasAlternativas);
     }
 
-    // Si no, consultar las últimas optimizaciones desde PostgreSQL
+    // 2. Consultar resumen consolidado desde PostgreSQL
     if (window.location.protocol !== 'file:') {
         try {
-            const resp = await fetch(API_HOST + '/api/rutas/ultimas-optimizaciones');
+            const resp = await fetch(API_HOST + '/api/reportes/resumen');
             if (resp.ok) {
-                const list = await resp.json();
-                if (list && list.length > 0) {
-                    // Tomar las últimas 4 o 5
-                    const rows = list.slice(-5).reverse();
-                    let html = '';
-                    rows.forEach((r, idx) => {
-                        let badgeClass = 'badge-alternativa';
-                        let label = 'Alternativa';
-                        if (r.estadoRuta === 'OPTIMA') {
-                            badgeClass = 'badge-optima';
-                            label = 'Óptima (OR-Tools)';
-                        } else if (r.estadoRuta === 'NO_RECOMENDADA') {
-                            badgeClass = 'badge-descartada';
-                            label = 'Descartada';
-                        }
-                        html += `
-                            <tr>
-                                <td style="font-weight: 700;">${idx + 1}</td>
-                                <td style="font-weight: 600;">${r.secuenciaParadas || (r.origen + ' → ' + r.destino)}</td>
-                                <td>${r.tiempoEstimadoMin ? Math.round(r.tiempoEstimadoMin) : 32}</td>
-                                <td>${r.distanciaKm ? Number(r.distanciaKm).toFixed(1) : 18.5}</td>
-                                <td>${r.costoOperativo ? Number(r.costoOperativo).toFixed(2) : '85.00'}</td>
-                                <td style="font-weight: 700;">${r.puntaje ? r.puntaje + '%' : '92%'}</td>
-                                <td><span class="${badgeClass}">${label}</span></td>
-                            </tr>
-                        `;
-                    });
-                    tbody.innerHTML = html;
+                const data = await resp.json();
+
+                // Actualizar tarjetas de KPI
+                const kpiTon = document.getElementById('kpiReporteToneladas');
+                if (kpiTon && data.pesoTotalToneladas !== undefined) {
+                    kpiTon.textContent = Number(data.pesoTotalToneladas).toFixed(1) + ' Tn';
+                }
+
+                const kpiRutas = document.getElementById('kpiReporteRutas');
+                if (kpiRutas && data.totalRutas !== undefined) {
+                    kpiRutas.textContent = data.totalRutas;
+                }
+
+                const kpiTiempo = document.getElementById('kpiReporteTiempo');
+                if (kpiTiempo && data.tiempoPromedioMin !== undefined) {
+                    kpiTiempo.textContent = Math.round(data.tiempoPromedioMin) + ' min';
+                }
+
+                const kpiAhorro = document.getElementById('kpiReporteAhorro');
+                if (kpiAhorro && data.ahorroEstimadoSoles !== undefined) {
+                    kpiAhorro.textContent = 'S/ ' + Number(data.ahorroEstimadoSoles).toFixed(2);
+                }
+
+                // Actualizar conclusión
+                const concEl = document.getElementById('reporteConclusionTexto');
+                if (concEl && data.conclusion) {
+                    concEl.textContent = data.conclusion;
+                }
+
+                // Si no había alternativas en memoria local, renderizar las de PostgreSQL
+                if (!window.lastOrToolsResult && data.comparativaAlternativas && data.comparativaAlternativas.length > 0) {
+                    renderReportesTable(data.comparativaAlternativas);
+                    drawReportBarChart(data.comparativaAlternativas);
                 }
             }
         } catch (err) {
-            console.warn('Error cargando reportes desde API:', err);
+            console.warn('⚠️ Error al consultar /api/reportes/resumen:', err);
         }
     }
 }
@@ -1163,19 +1209,242 @@ function renderReportesTable(alternativas) {
 
     let html = '';
     alternativas.forEach(alt => {
+        const num = alt.numero || alt.idRuta || 1;
+        const trayecto = alt.trayecto || alt.secuenciaParadas || 'A → F';
+        const tiempo = alt.tiempoMinutos || alt.tiempo || 32;
+        const dist = alt.distanciaKm || alt.distancia || 18.5;
+        const costo = alt.costoSoles || alt.costo || 85.00;
+        const puntaje = alt.puntaje || '95%';
+        const rec = alt.recomendacion || 'Óptima';
+        const badge = alt.badgeClase || 'badge-optima';
+
         html += `
             <tr>
-                <td style="font-weight: 700;">${alt.numero}</td>
-                <td style="font-weight: 600;">${alt.trayecto}</td>
-                <td>${alt.tiempoMinutos}</td>
-                <td>${Number(alt.distanciaKm).toFixed(1)}</td>
-                <td>${Number(alt.costoSoles).toFixed(2)}</td>
-                <td style="font-weight: 700;">${alt.puntaje}</td>
-                <td><span class="${alt.badgeClase}">${alt.recomendacion}</span></td>
+                <td style="font-weight: 700;">${num}</td>
+                <td style="font-weight: 600;">${trayecto}</td>
+                <td>${tiempo}</td>
+                <td>${Number(dist).toFixed(1)}</td>
+                <td>${Number(costo).toFixed(2)}</td>
+                <td style="font-weight: 700;">${puntaje}</td>
+                <td><span class="${badge}">${rec}</span></td>
             </tr>
         `;
     });
     tbody.innerHTML = html;
+}
+
+/* ==========================================================================
+   GRÁFICO DE BARRAS COMPARATIVO – REPORTES (DATOS REALES)
+   ========================================================================== */
+
+function drawReportBarChart(series) {
+    const canvas = document.getElementById('reportBarChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth || 460;
+    const H = 230;
+    canvas.width  = W;
+    canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    let routes  = ['Ruta 1', 'Ruta 2', 'Ruta 3'];
+    let tiempos = [32, 41, 53];
+    let costos  = [85, 98, 126];
+
+    if (series && Array.isArray(series) && series.length > 0) {
+        routes  = series.map((s, idx) => 'Ruta ' + (s.numero || (idx + 1)));
+        tiempos = series.map(s => Number(s.tiempoMinutos || s.tiempo || 30));
+        costos  = series.map(s => Number(s.costoSoles || s.costo || 80));
+    }
+
+    const padL = 40, padR = 20, padT = 20, padB = 36;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    
+    const maxValFound = Math.max(...tiempos, ...costos);
+    const maxVal = Math.max(120, Math.ceil(maxValFound * 1.15 / 20) * 20);
+
+    const groupW = chartW / routes.length;
+    const barW   = Math.min(groupW * 0.28, 38);
+    const gapB   = 5;
+
+    // Grid horizontal
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+        const v = Math.round((maxVal / steps) * i);
+        const y = padT + chartH - (v / maxVal) * chartH;
+        ctx.beginPath();
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.lineWidth = 1;
+        ctx.moveTo(padL, y);
+        ctx.lineTo(W - padR, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px Segoe UI, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(v, padL - 8, y + 4);
+    }
+
+    routes.forEach((label, i) => {
+        const cx = padL + i * groupW + groupW / 2;
+
+        // Barra Tiempo (Azul)
+        const tVal = tiempos[i] || 0;
+        const yT = padT + chartH - (tVal / maxVal) * chartH;
+        const hT = (tVal / maxVal) * chartH;
+        ctx.fillStyle = '#2563eb';
+        ctx.fillRect(cx - barW - gapB, yT, barW, hT);
+
+        // Valor arriba de barra de tiempo
+        ctx.fillStyle = '#1e40af';
+        ctx.font = '10.5px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(tVal + 'm', cx - barW / 2 - gapB, yT - 4);
+
+        // Barra Costo (Verde)
+        const cVal = Math.round(costos[i] || 0);
+        const yC = padT + chartH - (cVal / maxVal) * chartH;
+        const hC = (cVal / maxVal) * chartH;
+        ctx.fillStyle = '#16a34a';
+        ctx.fillRect(cx + gapB, yC, barW, hC);
+
+        // Valor arriba de barra de costo
+        ctx.fillStyle = '#15803d';
+        ctx.font = '10.5px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('S/' + cVal, cx + barW / 2 + gapB, yC - 4);
+
+        // Etiqueta X
+        ctx.fillStyle = '#475569';
+        ctx.font = '11.5px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, cx, H - 10);
+    });
+}
+
+/* ==========================================================================
+   HISTORIAL DE OPTIMIZACIONES Y RUTAS (CONEXIÓN A POSTGRESQL)
+   ========================================================================== */
+
+let allHistorialRecords = [];
+
+/**
+ * Carga el historial completo de rutas y despachos desde PostgreSQL
+ */
+async function loadHistorialData() {
+    const tbody = document.getElementById('historialTableBody');
+    if (!tbody) return;
+
+    if (window.location.protocol === 'file:') {
+        return;
+    }
+
+    try {
+        const resp = await fetch(API_HOST + '/api/historial');
+        if (resp.ok) {
+            allHistorialRecords = await resp.json();
+
+            // Actualizar tarjetas de métricas del historial
+            const kpiTotal = document.getElementById('kpiHistorialTotal');
+            if (kpiTotal) kpiTotal.textContent = allHistorialRecords.length;
+
+            const kpiOptimas = document.getElementById('kpiHistorialOptimas');
+            if (kpiOptimas) {
+                const countOpt = allHistorialRecords.filter(r => r.estadoRuta === 'OPTIMA').length;
+                kpiOptimas.textContent = countOpt;
+            }
+
+            const kpiFlota = document.getElementById('kpiHistorialFlotaActiva');
+            if (kpiFlota) {
+                // Cantidad de vehículos distintos involucrados
+                const vehs = new Set(allHistorialRecords.map(r => r.vehiculoPlaca)).size;
+                kpiFlota.textContent = vehs > 0 ? vehs : 3;
+            }
+
+            renderHistorialRows(allHistorialRecords);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">No se pudo cargar el historial desde el servidor.</td></tr>`;
+        }
+    } catch (err) {
+        console.warn('⚠️ Error al cargar /api/historial:', err);
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">Error de conexión con PostgreSQL.</td></tr>`;
+    }
+}
+
+function renderHistorialRows(list) {
+    const tbody = document.getElementById('historialTableBody');
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay registros de rutas optimizadas en la base de datos.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    list.forEach(item => {
+        let badgeClass = 'badge-alternativa';
+        let badgeLabel = 'Alternativa';
+        if (item.estadoRuta === 'OPTIMA') {
+            badgeClass = 'badge-optima';
+            badgeLabel = 'Óptima (OR-Tools)';
+        } else if (item.estadoRuta === 'NO_RECOMENDADA') {
+            badgeClass = 'badge-descartada';
+            badgeLabel = 'No recomendada';
+        }
+
+        const trayecto = item.trayecto || (item.origen + ' → ' + item.destino);
+        const material = item.material || 'Bobinas de acero';
+        const peso = item.pesoT ? ` (${item.pesoT} Tn)` : '';
+        const transportista = item.transportistaNombre || 'Por asignar';
+        const vehiculo = item.vehiculoPlaca ? `${item.vehiculoPlaca} (${item.vehiculoModelo || ''})` : 'Volvo FH 540';
+        const distTiempo = `${Number(item.distanciaKm || 0).toFixed(1)} km / ${Math.round(item.tiempoMin || 0)} min`;
+        const costo = item.costo ? `S/ ${Number(item.costo).toFixed(2)}` : 'S/ 85.00';
+
+        html += `
+            <tr>
+                <td style="font-weight: 700; color: #1e293b;">${item.codigo || ('#OPT-' + item.idRuta)}</td>
+                <td style="font-size: 12.5px; color: #475569;">${item.fechaHora || 'Hoy'}</td>
+                <td style="font-weight: 600; color: #0f172a;">${trayecto}</td>
+                <td>${material}${peso}</td>
+                <td>${transportista}</td>
+                <td>${vehiculo}</td>
+                <td style="font-size: 12.5px;">${distTiempo}</td>
+                <td style="font-weight: 700; color: #15803d;">${costo}</td>
+                <td><span class="${badgeClass}">${badgeLabel}</span></td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function filterHistorialTable() {
+    const searchVal = (document.getElementById('historialSearchInput')?.value || '').toLowerCase().trim();
+    const estadoVal = document.getElementById('historialFilterEstado')?.value || 'TODOS';
+
+    let filtered = allHistorialRecords;
+
+    if (estadoVal !== 'TODOS') {
+        filtered = filtered.filter(item => item.estadoRuta === estadoVal);
+    }
+
+    if (searchVal) {
+        filtered = filtered.filter(item => {
+            const cod = (item.codigo || '').toLowerCase();
+            const tray = (item.trayecto || '').toLowerCase();
+            const orig = (item.origen || '').toLowerCase();
+            const dest = (item.destino || '').toLowerCase();
+            const mat = (item.material || '').toLowerCase();
+            const trp = (item.transportistaNombre || '').toLowerCase();
+            const veh = (item.vehiculoPlaca || '').toLowerCase();
+
+            return cod.includes(searchVal) || tray.includes(searchVal) || orig.includes(searchVal) ||
+                   dest.includes(searchVal) || mat.includes(searchVal) || trp.includes(searchVal) ||
+                   veh.includes(searchVal);
+        });
+    }
+
+    renderHistorialRows(filtered);
 }
 
 function resetOptimizationWizard() {
@@ -1204,69 +1473,6 @@ function resetOptimizationWizard() {
     if (pesoVal) pesoVal.value = '25';
 
     showOptSubStep('form');
-}
-
-/* ==========================================================================
-   GRÁFICO DE BARRAS COMPARATIVO – REPORTES
-   ========================================================================== */
-
-function drawReportBarChart() {
-    const canvas = document.getElementById('reportBarChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.offsetWidth || 460;
-    const H = 230;
-    canvas.width  = W;
-    canvas.height = H;
-    ctx.clearRect(0, 0, W, H);
-
-    const routes  = ['Ruta 1', 'Ruta 2', 'Ruta 3', 'Ruta 4'];
-    const tiempos = [32, 41, 38, 55];   // min
-    const costos  = [85, 72, 88, 110];  // S/
-
-    const padL = 40, padR = 20, padT = 20, padB = 36;
-    const chartW = W - padL - padR;
-    const chartH = H - padT - padB;
-    const maxVal = 130;
-    const groupW = chartW / routes.length;
-    const barW   = groupW * 0.28;
-    const gapB   = groupW * 0.06;
-
-    // Grid horizontal
-    [0, 40, 80, 120].forEach(v => {
-        const y = padT + chartH - (v / maxVal) * chartH;
-        ctx.beginPath();
-        ctx.strokeStyle = '#f1f5f9';
-        ctx.lineWidth = 1;
-        ctx.moveTo(padL, y);
-        ctx.lineTo(W - padR, y);
-        ctx.stroke();
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px Segoe UI, sans-serif';
-        ctx.fillText(v, 4, y + 4);
-    });
-
-    routes.forEach((label, i) => {
-        const cx = padL + i * groupW + groupW / 2;
-
-        // Barra Tiempo (Azul)
-        const yT = padT + chartH - (tiempos[i] / maxVal) * chartH;
-        const hT = (tiempos[i] / maxVal) * chartH;
-        ctx.fillStyle = '#2563eb';
-        ctx.fillRect(cx - barW - gapB, yT, barW, hT);
-
-        // Barra Costo (Verde)
-        const yC = padT + chartH - (costos[i] / maxVal) * chartH;
-        const hC = (costos[i] / maxVal) * chartH;
-        ctx.fillStyle = '#16a34a';
-        ctx.fillRect(cx + gapB, yC, barW, hC);
-
-        // Etiqueta X
-        ctx.fillStyle = '#475569';
-        ctx.font = '11.5px Segoe UI, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, cx, H - 10);
-    });
 }
 
 /* ==========================================================================

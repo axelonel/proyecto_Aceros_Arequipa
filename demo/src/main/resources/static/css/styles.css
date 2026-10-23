@@ -1229,7 +1229,8 @@ body.dashboard-body {
     font-size: 12.5px;
 }
 
-.badge-no-optima {
+.badge-no-optima,
+.badge-descartada {
     background: #fecaca;
     color: #b91c1c;
     font-weight: 700;
