@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Credenciales y configuracion sensible ###
+application.properties
+**/application.properties
+!**/application.properties.example
+.env
+*.env
+

@@ -1,0 +1,27 @@
+spring.application.name=demo
+
+# ===================================================================
+# PLANTILLA DE CONFIGURACIÓN - SISTEMA EXPERTO DE RUTAS ACEROS AREQUIPA
+# ===================================================================
+# INSTRUCCIONES:
+# 1. Copia este archivo y renómbralo como 'application.properties'
+#    en esta misma carpeta (src/main/resources/).
+# 2. Configura las variables de entorno en tu sistema operativo, .env,
+#    o reemplaza los valores de ejemplo por tus credenciales reales.
+# 3. 'application.properties' está en .gitignore y NUNCA se subirá a Git.
+# ===================================================================
+
+# Configuración de la base de datos PostgreSQL mediante variables de entorno:
+#   DB_HOST     -> Host del servidor (por defecto: localhost)
+#   DB_PORT     -> Puerto (por defecto: 5433 local, o 5432 en Supabase/Cloud)
+#   DB_NAME     -> Nombre de la BD (por defecto: Aceros_Arequipa)
+#   DB_USERNAME -> Usuario de la BD (por defecto: postgres)
+#   DB_PASSWORD -> Contraseña de la BD
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:Aceros_Arequipa}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:tu_password_aqui}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Configuración de JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
