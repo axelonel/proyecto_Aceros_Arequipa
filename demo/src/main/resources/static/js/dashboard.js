@@ -21,7 +21,13 @@ async function apiFetch(url, options = {}) {
         ...(options.headers || {}),
         ...(token ? { 'Authorization': 'Bearer ' + token } : {})
     };
-    return apiFetch(url, { ...options, headers });
+    const resp = await window.fetch(url, { ...options, headers });
+    if (resp.status === 401 || resp.status === 403) {
+        console.warn('⚠️ Sesión no autorizada o expirada (HTTP ' + resp.status + '). Redirigiendo a login...');
+        sessionStorage.removeItem('jwtToken');
+        window.location.href = 'index.html';
+    }
+    return resp;
 }
 
 /**
