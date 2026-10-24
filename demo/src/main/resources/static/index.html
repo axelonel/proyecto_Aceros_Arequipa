@@ -121,7 +121,7 @@
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
                         </span>
-                        <input type="password" id="password" placeholder="Contraseña" required value="••••••••">
+                        <input type="password" id="password" placeholder="Contraseña" required>
                     </div>
 
                     <!-- Botón Enviar -->
@@ -267,47 +267,61 @@
             document.getElementById('btnSubmit').textContent = conf.btnText;
             document.getElementById('username').placeholder = conf.userPlaceholder;
             document.getElementById('username').value = conf.defaultUser;
+            document.getElementById('password').value = '';
             document.getElementById('statusMessage').textContent = '';
         }
 
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
             const status = document.getElementById('statusMessage');
-            const usernameInput = document.getElementById('username').value.trim();
+            const email    = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const btn      = document.getElementById('btnSubmit');
 
-            status.style.color = '#2563eb';
-            status.textContent = 'Verificando credenciales de ' + currentRole.toUpperCase() + '...';
-
-            let rolCode = 'ADMINISTRADOR';
-            let nombreUser = 'Admin Principal';
-            let idUsuario = 1;
-
-            if (currentRole === 'supervisor') {
-                rolCode = 'SUPERVISOR';
-                nombreUser = 'Roberto Gómez';
-                idUsuario = 2;
-            } else if (currentRole === 'transportista') {
-                rolCode = 'CONDUCTOR';
-                nombreUser = 'Manuel Quispe';
-                idUsuario = 3;
+            if (!email || !password) {
+                status.style.color = '#dc2626';
+                status.textContent = 'Completa el correo y la contraseña.';
+                return;
             }
 
-            const currentUser = {
-                idUsuario: idUsuario,
-                nombres: nombreUser,
-                email: usernameInput,
-                rol: rolCode
-            };
+            status.style.color = '#2563eb';
+            status.textContent = 'Verificando credenciales...';
+            btn.disabled = true;
 
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-            setTimeout(() => {
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    status.style.color = '#dc2626';
+                    status.textContent = data.error || 'Credenciales incorrectas.';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Guardar token y datos de sesión
+                sessionStorage.setItem('jwtToken', data.token);
+                sessionStorage.setItem('currentUser', JSON.stringify({
+                    idUsuario: data.id,
+                    nombres:   data.nombre,
+                    email:     data.email,
+                    rol:       data.rol
+                }));
+
                 status.style.color = '#16a34a';
                 status.textContent = '¡Acceso concedido! Redirigiendo al Panel Principal...';
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 500);
-            }, 450);
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+
+            } catch (err) {
+                status.style.color = '#dc2626';
+                status.textContent = 'Error de conexión con el servidor.';
+                btn.disabled = false;
+            }
         }
 
         function closeAdminModal() {
