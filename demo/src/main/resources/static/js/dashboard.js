@@ -1,9 +1,9 @@
 /**
- * Sistema Experto de Rutas - CorporaciÃ³n Aceros Arequipa
- * LÃ³gica modular del Dashboard, RBAC (Permisos por Rol) y AsignaciÃ³n de Rutas
+ * Sistema Experto de Rutas - Corporación Aceros Arequipa
+ * Lógica modular del Dashboard, RBAC (Permisos por Rol) y Asignación de Rutas
  */
 
-// â”€â”€â”€ JWT Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── JWT Helpers ───────────────────────────────────────────────────────────────
 
 /** Obtiene el token JWT guardado en sessionStorage */
 function getToken() {
@@ -11,8 +11,8 @@ function getToken() {
 }
 
 /**
- * Wrapper de fetch que aÃ±ade automÃ¡ticamente el header Authorization con el JWT.
- * Ãšsalo en lugar de fetch() para cualquier llamada a /api/...
+ * Wrapper de fetch que añade automáticamente el header Authorization con el JWT.
+ * Úsalo en lugar de fetch() para cualquier llamada a /api/...
  */
 async function apiFetch(url, options = {}) {
     const token = getToken();
@@ -21,11 +21,11 @@ async function apiFetch(url, options = {}) {
         ...(options.headers || {}),
         ...(token ? { 'Authorization': 'Bearer ' + token } : {})
     };
-    return fetch(url, { ...options, headers });
+    return apiFetch(url, { ...options, headers });
 }
 
 /**
- * Verifica si el usuario tiene sesiÃ³n activa. Si no, redirige al login.
+ * Verifica si el usuario tiene sesión activa. Si no, redirige al login.
  */
 function requireAuth() {
     const token = getToken();
@@ -35,18 +35,19 @@ function requireAuth() {
     }
 }
 
-// â”€â”€â”€ Fin JWT Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Fin JWT Helpers ───────────────────────────────────────────────────────────
 
-// CachÃ© de vistas HTML cargadas
+
+// Caché de vistas HTML cargadas
 const viewCache = {};
 
-// Usuarios en memoria (fallback en caso de que backend no estÃ© disponible)
+// Usuarios en memoria (fallback en caso de que backend no esté disponible)
 let memoryUsers = [
     { idUsuario: 1, nombres: "Admin", apellidos: "Principal", email: "admin@acerosarequipa.com", rol: "ADMINISTRADOR", codEmpleado: "ADM-001", activo: true },
     { idUsuario: 2, nombres: "Roberto", apellidos: "Gomez", email: "rgomez@acerosarequipa.com", rol: "SUPERVISOR", codEmpleado: "SUP-001", activo: true },
     { idUsuario: 3, nombres: "Manuel", apellidos: "Quispe", email: "mquispe@acerosarequipa.com", rol: "CONDUCTOR", codEmpleado: "TRP-001", activo: true },
     { idUsuario: 4, nombres: "Carlos", apellidos: "Mendoza", email: "cmendoza@acerosarequipa.com", rol: "CONDUCTOR", codEmpleado: "TRP-002", activo: true },
-    { idUsuario: 5, nombres: "Jorge", apellidos: "RamÃ­rez", email: "jramirez@acerosarequipa.com", rol: "CONDUCTOR", codEmpleado: "TRP-003", activo: true }
+    { idUsuario: 5, nombres: "Jorge", apellidos: "Ramírez", email: "jramirez@acerosarequipa.com", rol: "CONDUCTOR", codEmpleado: "TRP-003", activo: true }
 ];
 
 // Lista de despachos / rutas asignadas
@@ -54,13 +55,13 @@ let activeDispatches = [
     {
         id: 101,
         codigo: "DSP-1092",
-        origen: "AlmacÃ©n Principal Lima (A)",
-        destino: "Planta SiderÃºrgica Pisco (F)",
-        trayecto: "A â†’ C â†’ E â†’ F",
+        origen: "Almacén Principal Lima (A)",
+        destino: "Planta Siderúrgica Pisco (F)",
+        trayecto: "A → C → E → F",
         material: "Bobinas de acero (24 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
-        vehiculo: "TrÃ¡iler Plataforma (V-102)",
+        vehiculo: "Tráiler Plataforma (V-102)",
         placa: "AYZ-892",
         prioridad: "Alta",
         tiempoEst: "32 min",
@@ -68,18 +69,18 @@ let activeDispatches = [
         costo: "S/ 85.00",
         estado: "EN_TRANSITO", // ASIGNADA, EN_TRANSITO, COMPLETADA
         fecha: "Hoy, 10:15 AM",
-        supervisor: "Roberto GÃ³mez"
+        supervisor: "Roberto Gómez"
     },
     {
         id: 102,
         codigo: "DSP-1093",
-        origen: "Zona de Carga LurÃ­n (C)",
-        destino: "Centro DistribuciÃ³n Arequipa (E)",
-        trayecto: "C â†’ E â†’ F",
-        material: "Barras de construcciÃ³n (20 Tn)",
+        origen: "Zona de Carga Lurín (C)",
+        destino: "Centro Distribución Arequipa (E)",
+        trayecto: "C → E → F",
+        material: "Barras de construcción (20 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
-        vehiculo: "CamiÃ³n Pesado (V-105)",
+        vehiculo: "Camión Pesado (V-105)",
         placa: "B8U-711",
         prioridad: "Media",
         tiempoEst: "45 min",
@@ -87,18 +88,18 @@ let activeDispatches = [
         costo: "S/ 115.00",
         estado: "ASIGNADA",
         fecha: "Hoy, 14:00 PM",
-        supervisor: "Roberto GÃ³mez"
+        supervisor: "Roberto Gómez"
     },
     {
         id: 100,
         codigo: "DSP-1090",
-        origen: "AlmacÃ©n Principal Lima (A)",
+        origen: "Almacén Principal Lima (A)",
         destino: "Distribuidora Norte Chiclayo (D)",
-        trayecto: "A â†’ B â†’ D",
-        material: "AlambrÃ³n industrial (18 Tn)",
+        trayecto: "A → B → D",
+        material: "Alambrón industrial (18 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
-        vehiculo: "FurgÃ³n Cerrado (V-108)",
+        vehiculo: "Furgón Cerrado (V-108)",
         placa: "T1A-904",
         prioridad: "Alta",
         tiempoEst: "52 min",
@@ -106,14 +107,14 @@ let activeDispatches = [
         costo: "S/ 130.00",
         estado: "COMPLETADA",
         fecha: "Ayer, 16:30 PM",
-        supervisor: "Roberto GÃ³mez"
+        supervisor: "Roberto Gómez"
     }
 ];
 
 // Filtro actual de la vista Mis Rutas
 let currentDispatchFilter = 'TODAS';
 
-// Determinar endpoint API segÃºn entorno
+// Determinar endpoint API según entorno
 const API_HOST = (window.location.protocol === 'file:') ? '' : ((window.location.port === '8080') ? '' : 'http://localhost:8080');
 
 // Mapeo de vistas a archivos en /views/
@@ -151,12 +152,12 @@ function getCurrentUser() {
         const stored = sessionStorage.getItem('currentUser');
         if (stored) return JSON.parse(stored);
     } catch (e) {}
-    // Por defecto Administrador si no se iniciÃ³ sesiÃ³n previamente
+    // Por defecto Administrador si no se inició sesión previamente
     return { idUsuario: 1, nombres: "Admin Principal", email: "admin@acerosarequipa.com", rol: "ADMINISTRADOR" };
 }
 
 /**
- * Aplicar restricciones visuales y de menÃº segÃºn el rol
+ * Aplicar restricciones visuales y de menú según el rol
  */
 function applyRolePermissions() {
     const user = getCurrentUser();
@@ -168,8 +169,8 @@ function applyRolePermissions() {
     if (badgeName) badgeName.textContent = user.nombres || user.email;
     if (badgeRole) badgeRole.textContent = user.rol;
     if (badgeIcon) {
-        badgeIcon.textContent = (user.rol === 'ADMINISTRADOR') ? 'ðŸ‘‘' :
-                                (user.rol === 'SUPERVISOR') ? 'ðŸ“‹' : 'ðŸšš';
+        badgeIcon.textContent = (user.rol === 'ADMINISTRADOR') ? '👑' :
+                                (user.rol === 'SUPERVISOR') ? '📋' : '🚚';
     }
 
     const menuFlota     = document.getElementById('menuFlota');
@@ -182,7 +183,7 @@ function applyRolePermissions() {
     const menuMisRutas  = document.getElementById('menuMisRutas');
     const menuRutas     = document.getElementById('menuRutas');
 
-    // Texto del menÃº adaptado por rol:
+    // Texto del menú adaptado por rol:
     // Conductor: "Mis Rutas Asignadas" | Supervisor / Admin: "Rutas Asignadas"
     const menuMisRutasText = document.getElementById('menuMisRutasText');
     if (menuMisRutasText) {
@@ -213,7 +214,7 @@ function applyRolePermissions() {
     } 
     else if (user.rol === 'SUPERVISOR') {
         // Supervisor: Puede gestionar flotas, clientes, optimizar y asignar rutas.
-        // NO PUEDE crear ni aÃ±adir cuentas de usuario (solo el Administrador).
+        // NO PUEDE crear ni añadir cuentas de usuario (solo el Administrador).
         toggleMenu(menuFlota, true);
         toggleMenu(menuClientes, true);
         toggleMenu(menuOptimizar, true);
@@ -246,13 +247,13 @@ const FALLBACK_VIEWS = {
         <div id="viewInicio">
             <div class="content-header" style="margin-bottom: 24px;">
                 <h1>PANEL PRINCIPAL</h1>
-                <p>Resumen general del sistema logÃ­stico</p>
+                <p>Resumen general del sistema logístico</p>
             </div>
             <div class="kpi-row">
                 <div class="kpi-card blue">
                     <div class="kpi-title">Rutas analizadas</div>
                     <div class="kpi-value" id="kpiRutas">125</div>
-                    <div class="kpi-subtitle">total de anÃ¡lisis</div>
+                    <div class="kpi-subtitle">total de análisis</div>
                 </div>
                 <div class="kpi-card green">
                     <div class="kpi-title">Ahorro estimado</div>
@@ -300,7 +301,7 @@ const FALLBACK_VIEWS = {
                 <div style="display: flex; gap: 8px;">
                     <button class="filter-tab active" onclick="filterDispatches('TODAS', this)">Todas</button>
                     <button class="filter-tab" onclick="filterDispatches('ASIGNADA', this)">Por Iniciar</button>
-                    <button class="filter-tab" onclick="filterDispatches('EN_TRANSITO', this)">En TrÃ¡nsito</button>
+                    <button class="filter-tab" onclick="filterDispatches('EN_TRANSITO', this)">En Tránsito</button>
                     <button class="filter-tab" onclick="filterDispatches('COMPLETADA', this)">Completadas</button>
                 </div>
             </div>
@@ -310,30 +311,30 @@ const FALLBACK_VIEWS = {
     'rutas': `
         <div id="viewRutas">
             <div class="content-header" style="margin-bottom: 24px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÃSTICAS</h1>
-                <p style="font-size: 13.5px; color: #475569;">Puntos de acopio, plantas de producciÃ³n y centros de distribuciÃ³n de CorporaciÃ³n Aceros Arequipa</p>
+                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h1>
+                <p style="font-size: 13.5px; color: #475569;">Puntos de acopio, plantas de producción y centros de distribución de Corporación Aceros Arequipa</p>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="card-container">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                         <span class="node-circle-badge" style="background:#2563eb;">A</span>
-                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">AlmacÃ©n Principal Lima</h4><span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span></div>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Almacén Principal Lima</h4><span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span></div>
                     </div>
-                    <p style="font-size: 13px; color:#475569;">Punto primario de despacho de productos terminados para la regiÃ³n central.</p>
+                    <p style="font-size: 13px; color:#475569;">Punto primario de despacho de productos terminados para la región central.</p>
                 </div>
                 <div class="card-container">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                         <span class="node-circle-badge" style="background:#16a34a;">C</span>
-                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Zona de Carga y Acopio LurÃ­n</h4><span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span></div>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Zona de Carga y Acopio Lurín</h4><span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span></div>
                     </div>
-                    <p style="font-size: 13px; color:#475569;">ConsolidaciÃ³n de carga pesada y distribuciÃ³n sur.</p>
+                    <p style="font-size: 13px; color:#475569;">Consolidación de carga pesada y distribución sur.</p>
                 </div>
                 <div class="card-container">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                         <span class="node-circle-badge" style="background:#ef4444;">F</span>
-                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Planta SiderÃºrgica Pisco</h4><span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span></div>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Planta Siderúrgica Pisco</h4><span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span></div>
                     </div>
-                    <p style="font-size: 13px; color:#475569;">Planta central de fundiciÃ³n, laminaciÃ³n y producciÃ³n de aceros largos.</p>
+                    <p style="font-size: 13px; color:#475569;">Planta central de fundición, laminación y producción de aceros largos.</p>
                 </div>
             </div>
         </div>
@@ -342,20 +343,20 @@ const FALLBACK_VIEWS = {
         <div id="viewOptimizar">
             <div id="optSubForm">
                 <div class="content-header" style="margin-bottom: 24px;">
-                    <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">NUEVA OPTIMIZACIÃ“N DE RUTA</h1>
+                    <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">NUEVA OPTIMIZACIÓN DE RUTA</h1>
                     <p style="font-size: 13.5px; color: #475569;">Ingrese los datos para encontrar la mejor ruta</p>
                 </div>
                 <div class="form-opt-card">
                     <form id="formOptimizacion" onsubmit="startOptimizationProcess(event)">
                         <div class="form-opt-grid">
                             <div>
-                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Origen</label><select id="optOrigen" class="form-opt-select" required><option value="A">AlmacÃ©n Principal (A)</option><option value="B">Planta SiderÃºrgica Pisco (B)</option><option value="C">Centro LogÃ­stico LurÃ­n (C)</option></select></div>
-                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Material</label><select id="optMaterial" class="form-opt-select" required><option value="bobinas">Bobinas de acero</option><option value="barras">Barras de construcciÃ³n</option><option value="alambron">AlambrÃ³n</option><option value="planchas">Planchas laminadas</option></select></div>
+                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Origen</label><select id="optOrigen" class="form-opt-select" required><option value="A">Almacén Principal (A)</option><option value="B">Planta Siderúrgica Pisco (B)</option><option value="C">Centro Logístico Lurín (C)</option></select></div>
+                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Material</label><select id="optMaterial" class="form-opt-select" required><option value="bobinas">Bobinas de acero</option><option value="barras">Barras de construcción</option><option value="alambron">Alambrón</option><option value="planchas">Planchas laminadas</option></select></div>
                                 <div><label class="form-opt-label">Prioridad</label><select id="optPrioridad" class="form-opt-select" required><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option></select></div>
                             </div>
                             <div>
-                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Destino</label><select id="optDestino" class="form-opt-select" required><option value="F">Planta de produccion (F)</option><option value="E">Centro de DistribuciÃ³n Arequipa (E)</option><option value="D">Distribuidora Norte Chiclayo (D)</option></select></div>
-                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Tipo de transporte</label><select id="optTransporte" class="form-opt-select" required><option value="camion">Camion</option><option value="trailer">Trailer</option><option value="furgon">FurgÃ³n</option></select></div>
+                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Destino</label><select id="optDestino" class="form-opt-select" required><option value="F">Planta de produccion (F)</option><option value="E">Centro de Distribución Arequipa (E)</option><option value="D">Distribuidora Norte Chiclayo (D)</option></select></div>
+                                <div style="margin-bottom: 20px;"><label class="form-opt-label">Tipo de transporte</label><select id="optTransporte" class="form-opt-select" required><option value="camion">Camion</option><option value="trailer">Trailer</option><option value="furgon">Furgón</option></select></div>
                                 <div><label class="form-opt-label">Objetivo de optimizacion</label>
                                     <div class="radio-opt-group">
                                         <label class="radio-opt-label"><input type="radio" name="optObjetivo" value="tiempo"> Menor tiempo</label>
@@ -414,10 +415,10 @@ const FALLBACK_VIEWS = {
                         <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 14px; font-weight: 700; color: #1e293b;">Evaluando alternativas</span><span id="optProgressLabel" style="font-size: 13.5px; font-weight: 700; color: #2563eb;">75%</span></div>
                         <div class="progress-container"><div id="optProgressBar" class="progress-bar-fill" style="width: 75%;"></div></div>
                         <div style="margin-top: 14px;">
-                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">â˜‘</span><span>Calculando distancias</span></div>
-                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">â˜‘</span><span>Evaluando tiempos</span></div>
-                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">â˜‘</span><span>Calculando costos</span></div>
-                            <div class="checklist-item" id="itemReglasExpertas"><span id="iconReglasExpertas" class="spinner-rule" style="color:#2563eb; font-size:16px;">ðŸ”„</span><span id="textReglasExpertas" style="color: #2563eb; font-weight: 600;">Aplicando reglas expertas</span></div>
+                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">☑</span><span>Calculando distancias</span></div>
+                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">☑</span><span>Evaluando tiempos</span></div>
+                            <div class="checklist-item"><span style="color:#16a34a; font-size:16px;">☑</span><span>Calculando costos</span></div>
+                            <div class="checklist-item" id="itemReglasExpertas"><span id="iconReglasExpertas" class="spinner-rule" style="color:#2563eb; font-size:16px;">🔄</span><span id="textReglasExpertas" style="color: #2563eb; font-weight: 600;">Aplicando reglas expertas</span></div>
                         </div>
                     </div>
                 </div>
@@ -430,22 +431,22 @@ const FALLBACK_VIEWS = {
                 <div class="result-top-grid">
                     <div class="result-card">
                         <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada (Google OR-Tools)</h3>
-                        <div id="optResultTrayecto" style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">A &nbsp;â†’&nbsp; C &nbsp;â†’&nbsp; E &nbsp;â†’&nbsp; F</div>
+                        <div id="optResultTrayecto" style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">A &nbsp;→&nbsp; C &nbsp;→&nbsp; E &nbsp;→&nbsp; F</div>
                         <div id="optResultNodesList" style="display: flex; flex-direction: column; gap: 4px;">
-                            <div class="route-step-node"><span class="node-circle-badge" style="background:#2563eb;">A</span><span style="font-weight: 600;">AlmacÃ©n Principal Lima</span></div>
-                            <div class="step-arrow-down">â†“</div>
-                            <div class="route-step-node"><span class="node-circle-badge" style="background:#16a34a;">C</span><span style="font-weight: 600;">Centro LogÃ­stico LurÃ­n</span></div>
-                            <div class="step-arrow-down">â†“</div>
-                            <div class="route-step-node"><span class="node-circle-badge" style="background:#9333ea;">E</span><span style="font-weight: 600;">Centro de DistribuciÃ³n Arequipa</span></div>
-                            <div class="step-arrow-down">â†“</div>
-                            <div class="route-step-node"><span class="node-circle-badge" style="background:#ef4444;">F</span><span style="font-weight: 600;">Planta de ProducciÃ³n Callao</span></div>
+                            <div class="route-step-node"><span class="node-circle-badge" style="background:#2563eb;">A</span><span style="font-weight: 600;">Almacén Principal Lima</span></div>
+                            <div class="step-arrow-down">↓</div>
+                            <div class="route-step-node"><span class="node-circle-badge" style="background:#16a34a;">C</span><span style="font-weight: 600;">Centro Logístico Lurín</span></div>
+                            <div class="step-arrow-down">↓</div>
+                            <div class="route-step-node"><span class="node-circle-badge" style="background:#9333ea;">E</span><span style="font-weight: 600;">Centro de Distribución Arequipa</span></div>
+                            <div class="step-arrow-down">↓</div>
+                            <div class="route-step-node"><span class="node-circle-badge" style="background:#ef4444;">F</span><span style="font-weight: 600;">Planta de Producción Callao</span></div>
                         </div>
                     </div>
                     <div class="result-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                         <div>
-                            <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta Ã³ptima</h3>
-                            <div class="metric-row"><span style="font-size: 18px;">ðŸ•’</span><span style="font-weight: 700; text-transform: uppercase; font-size: 13px;">TIEMPO ESTIMADO</span><span id="optResultTiempo" style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span></div>
-                            <div class="metric-row"><span style="font-size: 18px;">ðŸ—ºï¸</span><span style="font-weight: 500; font-size: 13.5px;">Distancia total</span><span id="optResultDistancia" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span></div>
+                            <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta óptima</h3>
+                            <div class="metric-row"><span style="font-size: 18px;">🕒</span><span style="font-weight: 700; text-transform: uppercase; font-size: 13px;">TIEMPO ESTIMADO</span><span id="optResultTiempo" style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span></div>
+                            <div class="metric-row"><span style="font-size: 18px;">🗺️</span><span style="font-weight: 500; font-size: 13.5px;">Distancia total</span><span id="optResultDistancia" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span></div>
                             <div class="metric-row"><span style="font-size: 18px; color:#16a34a; font-weight:800;">$</span><span style="font-weight: 500; font-size: 13.5px;">Costo estimado</span><span id="optResultCosto" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span></div>
                         </div>
                         <div class="recommended-badge-box">
@@ -456,12 +457,12 @@ const FALLBACK_VIEWS = {
                 </div>
                 <div class="why-card">
                     <div>
-                        <h2 style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 6px;">Â¿Por quÃ© esta ruta?</h2>
-                        <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el motor de optimizaciÃ³n matemÃ¡tica porque:</p>
+                        <h2 style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 6px;">¿Por qué esta ruta?</h2>
+                        <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el motor de optimización matemática porque:</p>
                         <div id="optResultMotivos" style="display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">âœ“</span><span>Ruta globalmente Ã³ptima calculada por Google OR-Tools</span></div>
-                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">âœ“</span><span>Presenta el menor tiempo y costo ponderado de traslado</span></div>
-                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">âœ“</span><span>Cumple estrictamente con la capacidad mÃ¡xima del camiÃ³n</span></div>
+                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">✓</span><span>Ruta globalmente óptima calculada por Google OR-Tools</span></div>
+                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">✓</span><span>Presenta el menor tiempo y costo ponderado de traslado</span></div>
+                            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;"><span style="color: #16a34a; font-weight: 800;">✓</span><span>Cumple estrictamente con la capacidad máxima del camión</span></div>
                         </div>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
@@ -472,10 +473,10 @@ const FALLBACK_VIEWS = {
                             <line x1="22" y1="78" x2="32" y2="68"></line><line x1="68" y1="32" x2="78" y2="22"></line>
                         </svg>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
-                            <button type="button" onclick="resetOptimizationWizard()" style="padding: 8px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">â†º Nueva</button>
+                            <button type="button" onclick="resetOptimizationWizard()" style="padding: 8px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">↺ Nueva</button>
                             <button type="button" onclick="showView('reportes')" style="padding: 8px 14px; background: #0047ff; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">Ver Reportes</button>
                             <button type="button" id="btnAsignarRuta" onclick="openAssignRouteModal()" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
-                                <span>ðŸšš</span> Asignar a Transportista
+                                <span>🚚</span> Asignar a Transportista
                             </button>
                         </div>
                     </div>
@@ -486,43 +487,43 @@ const FALLBACK_VIEWS = {
     'reportes': `
         <div id="viewReportes">
             <div class="content-header" style="margin-bottom: 24px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÃ‰TRICAS & COMPARACIÃ“N DE RUTAS</h1>
-                <p style="font-size: 13.5px; color: #475569;">AnÃ¡lisis de eficiencia logÃ­stica y alternativas generadas con Google OR-Tools en PostgreSQL</p>
+                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & COMPARACIÓN DE RUTAS</h1>
+                <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y alternativas generadas con Google OR-Tools en PostgreSQL</p>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                     <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Toneladas Movilizadas</div>
                     <div style="display: flex; align-items: baseline; gap: 8px;">
                         <span id="kpiReporteToneladas" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- Tn</span>
-                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">ðŸ“¦ Registrado</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">📦 Registrado</span>
                     </div>
                 </div>
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                     <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Rutas Optimizadas</div>
                     <div style="display: flex; align-items: baseline; gap: 8px;">
                         <span id="kpiReporteRutas" style="font-size: 24px; font-weight: 800; color: #2563eb;">--</span>
-                        <span style="font-size: 12px; color: #2563eb; font-weight: 600;">ðŸ›£ï¸ Google OR-Tools</span>
+                        <span style="font-size: 12px; color: #2563eb; font-weight: 600;">🛣️ Google OR-Tools</span>
                     </div>
                 </div>
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                     <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Tiempo Promedio</div>
                     <div style="display: flex; align-items: baseline; gap: 8px;">
                         <span id="kpiReporteTiempo" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- min</span>
-                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">âš¡ Eficiente</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">⚡ Eficiente</span>
                     </div>
                 </div>
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Ahorro LogÃ­stico Est.</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Ahorro Logístico Est.</div>
                     <div style="display: flex; align-items: baseline; gap: 8px;">
                         <span id="kpiReporteAhorro" style="font-size: 24px; font-weight: 800; color: #16a34a;">S/ --</span>
-                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">ðŸ’° Fletes</span>
+                        <span style="font-size: 12px; color: #16a34a; font-weight: 600;">💰 Fletes</span>
                     </div>
                 </div>
             </div>
             <div style="background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px;">
                 <table class="report-table" style="margin-bottom: 0;">
                     <thead>
-                        <tr><th>Ruta</th><th>Trayecto</th><th>Tiempo (min)</th><th>Distancia (km)</th><th>Costo (S/)</th><th>Puntaje</th><th>RecomendaciÃ³n</th></tr>
+                        <tr><th>Ruta</th><th>Trayecto</th><th>Tiempo (min)</th><th>Distancia (km)</th><th>Costo (S/)</th><th>Puntaje</th><th>Recomendación</th></tr>
                     </thead>
                     <tbody id="reportesTableBody"></tbody>
                 </table>
@@ -530,7 +531,7 @@ const FALLBACK_VIEWS = {
             <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
                 <div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="font-size: 15px; font-weight: 700; color: #1e293b;">ComparaciÃ³n visual de Tiempos y Costos</h3>
+                        <h3 style="font-size: 15px; font-weight: 700; color: #1e293b;">Comparación visual de Tiempos y Costos</h3>
                         <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 600; color: #475569;">
                             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb;"></span><span>Tiempo (min)</span></div>
                             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span><span>Costo (S/)</span></div>
@@ -539,8 +540,8 @@ const FALLBACK_VIEWS = {
                     <div style="width: 100%; height: 230px;"><canvas id="reportBarChart" width="460" height="230" style="width: 100%; height: 100%; display: block;"></canvas></div>
                 </div>
                 <div class="conclusion-sticky-card">
-                    <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">ConclusiÃ³n del Sistema Experto</h2>
-                    <p id="reporteConclusionTexto" style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">Las rutas Ã³ptimas calculadas por Google OR-Tools minimizan el tiempo y costo global de transporte.</p>
+                    <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión del Sistema Experto</h2>
+                    <p id="reporteConclusionTexto" style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">Las rutas óptimas calculadas por Google OR-Tools minimizan el tiempo y costo global de transporte.</p>
                 </div>
             </div>
         </div>
@@ -557,7 +558,7 @@ const FALLBACK_VIEWS = {
                     <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-top: 4px;"><span id="kpiHistorialTotal">--</span></div>
                 </div>
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
-                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Rutas Ã“ptimas</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Rutas Óptimas</div>
                     <div style="font-size: 24px; font-weight: 800; color: #16a34a; margin-top: 4px;"><span id="kpiHistorialOptimas">--</span></div>
                 </div>
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0;">
@@ -571,7 +572,7 @@ const FALLBACK_VIEWS = {
             </div>
             <div class="card-container">
                 <table class="report-table" style="margin-bottom: 0;">
-                    <thead><tr><th>CÃ³digo</th><th>Fecha / Hora</th><th>Origen â†’ Destino</th><th>Material</th><th>Transportista</th><th>VehÃ­culo</th><th>Dist. / Tiempo</th><th>Costo (S/)</th><th>RecomendaciÃ³n</th></tr></thead>
+                    <thead><tr><th>Código</th><th>Fecha / Hora</th><th>Origen → Destino</th><th>Material</th><th>Transportista</th><th>Vehículo</th><th>Dist. / Tiempo</th><th>Costo (S/)</th><th>Recomendación</th></tr></thead>
                     <tbody id="historialTableBody"></tbody>
                 </table>
             </div>
@@ -581,9 +582,9 @@ const FALLBACK_VIEWS = {
         <div id="viewUsuarios" class="users-section">
             <div class="section-header-bar">
                 <div>
-                    <h2 style="font-size: 20px; font-weight: 700; color:#0f172a;">AdministraciÃ³n de Usuarios y Roles</h2>
+                    <h2 style="font-size: 20px; font-weight: 700; color:#0f172a;">Administración de Usuarios y Roles</h2>
                     <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-                        <span id="serverStatusBadge" class="server-status-pill offline">â— Conectando...</span>
+                        <span id="serverStatusBadge" class="server-status-pill offline">● Conectando...</span>
                         <span style="font-size: 12.5px; color:#64748b;">Base de datos PostgreSQL: <strong>Aceros_Arequipa</strong></span>
                     </div>
                 </div>
@@ -595,7 +596,7 @@ const FALLBACK_VIEWS = {
             <div id="noticeBanner" style="display:none; background:#eff6ff; border-left:4px solid #3b82f6; padding:12px 16px; margin-bottom:16px; border-radius:4px; font-size:12.5px; color:#1e40af;"></div>
             <div class="users-table-wrap">
                 <table class="users-table">
-                    <thead><tr><th>ID</th><th>Nombre Completo</th><th>Correo / Usuario</th><th>Rol Asignado</th><th>CÃ³digo / TelÃ©fono</th><th>Estado</th><th style="text-align: right;">Acciones</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Nombre Completo</th><th>Correo / Usuario</th><th>Rol Asignado</th><th>Código / Teléfono</th><th>Estado</th><th style="text-align: right;">Acciones</th></tr></thead>
                     <tbody id="usersTbody"></tbody>
                 </table>
             </div>
@@ -604,7 +605,7 @@ const FALLBACK_VIEWS = {
 };
 
 /**
- * Carga dinÃ¡mica de vistas parciales HTML con control de permisos
+ * Carga dinámica de vistas parciales HTML con control de permisos
  */
 async function showView(viewName) {
     const mainContent = document.getElementById('mainContent');
@@ -617,14 +618,14 @@ async function showView(viewName) {
     // === VALIDACIONES DE SEGURIDAD POR ROL ===
     if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
         if (['optimizar', 'historial', 'reportes', 'usuarios', 'configuracion'].includes(key)) {
-            alert('âš ï¸ Acceso Restringido: Los transportistas no tienen autorizaciÃ³n para optimizar rutas ni ver reportes globales. Solo pueden consultar sus rutas asignadas.');
+            alert('⚠️ Acceso Restringido: Los transportistas no tienen autorización para optimizar rutas ni ver reportes globales. Solo pueden consultar sus rutas asignadas.');
             return showView('mis-rutas');
         }
     }
 
     if (user.rol === 'SUPERVISOR') {
         if (['usuarios', 'configuracion'].includes(key)) {
-            alert('âš ï¸ Acceso Restringido: Solo el Administrador del sistema tiene permisos para crear o modificar cuentas de usuario.');
+            alert('⚠️ Acceso Restringido: Solo el Administrador del sistema tiene permisos para crear o modificar cuentas de usuario.');
             return showView('inicio');
         }
     }
@@ -659,20 +660,20 @@ async function showView(viewName) {
                 html = FALLBACK_VIEWS[key];
             }
 
-            if (!html) throw new Error(`No se encontrÃ³ el contenido de la vista: ${key}`);
+            if (!html) throw new Error(`No se encontró el contenido de la vista: ${key}`);
             viewCache[key] = html;
         }
 
         mainContent.innerHTML = html;
 
-        // Ejecutar inicializadores segÃºn la vista
+        // Ejecutar inicializadores según la vista
         onViewLoaded(key);
 
     } catch (err) {
         console.error(`Error cargando la vista ${key}:`, err);
         mainContent.innerHTML = `
             <div style="padding: 30px; background: #fff; border-radius: 8px; border: 1px solid #fee2e2;">
-                <h3 style="color: #dc2626; margin-bottom: 8px;">Error al cargar la secciÃ³n</h3>
+                <h3 style="color: #dc2626; margin-bottom: 8px;">Error al cargar la sección</h3>
                 <p style="color: #64748b; font-size: 14px;">No se pudo cargar el archivo parcial <code>views/${viewFileMap[key]}</code>.</p>
                 <p style="color: #94a3b8; font-size: 12px; margin-top: 6px;">Detalle: ${err.message}</p>
                 <button onclick="showView('${key}')" class="btn-primary" style="margin-top: 16px;">Reintentar</button>
@@ -705,7 +706,7 @@ function onViewLoaded(viewName) {
 }
 
 /* ==========================================================================
-   LÃ“GICA DE RUTAS ASIGNADAS (DESPACHOS) Y CONTROL DEL TRANSPORTISTA
+   LÓGICA DE RUTAS ASIGNADAS (DESPACHOS) Y CONTROL DEL TRANSPORTISTA
    ========================================================================== */
 
 function filterDispatches(status, btnElement) {
@@ -723,7 +724,7 @@ function renderMisRutas(statusFilter = 'TODAS') {
 
     const user = getCurrentUser();
 
-    // Adaptar tÃ­tulo segÃºn rol: Conductor -> "MIS RUTAS ASIGNADAS" | Supervisor/Admin -> "RUTAS ASIGNADAS"
+    // Adaptar título según rol: Conductor -> "MIS RUTAS ASIGNADAS" | Supervisor/Admin -> "RUTAS ASIGNADAS"
     const headerTitle = document.getElementById('rutasHeaderTitle');
     const headerSubtitle = document.getElementById('rutasHeaderSubtitle');
     if (headerTitle && headerSubtitle) {
@@ -754,7 +755,7 @@ function renderMisRutas(statusFilter = 'TODAS') {
         container.innerHTML = `
             <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:36px; text-align:center; color:#64748b;">
                 <p style="font-size:15px; font-weight:600; margin-bottom:4px;">No hay rutas asignadas en este estado.</p>
-                <span style="font-size:12.5px; color:#94a3b8;">Las nuevas rutas serÃ¡n asignadas por el Supervisor de Flotas.</span>
+                <span style="font-size:12.5px; color:#94a3b8;">Las nuevas rutas serán asignadas por el Supervisor de Flotas.</span>
             </div>
         `;
         return;
@@ -765,23 +766,23 @@ function renderMisRutas(statusFilter = 'TODAS') {
         let actionBtnHtml = '';
 
         if (d.estado === 'ASIGNADA') {
-            badgeHtml = `<span class="badge-status badge-status-asignada">â— Por Iniciar</span>`;
+            badgeHtml = `<span class="badge-status badge-status-asignada">● Por Iniciar</span>`;
             actionBtnHtml = `
                 <button class="btn-dispatch-action btn-start-trip" onclick="updateDispatchStatus(${d.id}, 'EN_TRANSITO')">
-                    â–¶ Iniciar Recorrido
+                    ▶ Iniciar Recorrido
                 </button>
             `;
         } else if (d.estado === 'EN_TRANSITO') {
-            badgeHtml = `<span class="badge-status badge-status-transito">ðŸšš En TrÃ¡nsito</span>`;
+            badgeHtml = `<span class="badge-status badge-status-transito">🚚 En Tránsito</span>`;
             actionBtnHtml = `
                 <button class="btn-dispatch-action btn-complete-trip" onclick="updateDispatchStatus(${d.id}, 'COMPLETADA')">
-                    âœ“ Confirmar Entrega en Destino
+                    ✓ Confirmar Entrega en Destino
                 </button>
             `;
         } else if (d.estado === 'COMPLETADA') {
-            badgeHtml = `<span class="badge-status badge-status-completada">âœ” Completada</span>`;
+            badgeHtml = `<span class="badge-status badge-status-completada">✔ Completada</span>`;
             actionBtnHtml = `
-                <span style="font-size:12.5px; color:#16a34a; font-weight:700;">âœ… Entrega Finalizada</span>
+                <span style="font-size:12.5px; color:#16a34a; font-weight:700;">✅ Entrega Finalizada</span>
             `;
         }
 
@@ -789,8 +790,8 @@ function renderMisRutas(statusFilter = 'TODAS') {
             <div class="dispatch-card">
                 <div class="dispatch-header">
                     <div>
-                        <div class="dispatch-title">${d.codigo} &nbsp;Â·&nbsp; ${d.origen} â†’ ${d.destino}</div>
-                        <div style="font-size:12px; color:#64748b; margin-top:2px;">Asignado por: <strong>${d.supervisor}</strong> Â· ${d.fecha}</div>
+                        <div class="dispatch-title">${d.codigo} &nbsp;·&nbsp; ${d.origen} → ${d.destino}</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:2px;">Asignado por: <strong>${d.supervisor}</strong> · ${d.fecha}</div>
                     </div>
                     <div>${badgeHtml}</div>
                 </div>
@@ -798,25 +799,25 @@ function renderMisRutas(statusFilter = 'TODAS') {
                 <div class="dispatch-route-badge-line">
                     <span>Itinerario Experto:</span>
                     <strong>${d.trayecto}</strong>
-                    <span style="font-size:12px; color:#15803d; font-weight:600; margin-left:8px;">(${d.tiempoEst} Â· ${d.distancia})</span>
+                    <span style="font-size:12px; color:#15803d; font-weight:600; margin-left:8px;">(${d.tiempoEst} · ${d.distancia})</span>
                 </div>
 
                 <div class="dispatch-details-grid">
                     <div>
                         <div class="dispatch-meta-label">Conductor Asignado</div>
-                        <div class="dispatch-meta-val">ðŸ‘¤ ${d.conductorNombre}</div>
+                        <div class="dispatch-meta-val">👤 ${d.conductorNombre}</div>
                     </div>
                     <div>
-                        <div class="dispatch-meta-label">VehÃ­culo & Placa</div>
-                        <div class="dispatch-meta-val">ðŸš› ${d.vehiculo} <span style="color:#64748b;">(${d.placa})</span></div>
+                        <div class="dispatch-meta-label">Vehículo & Placa</div>
+                        <div class="dispatch-meta-val">🚛 ${d.vehiculo} <span style="color:#64748b;">(${d.placa})</span></div>
                     </div>
                     <div>
                         <div class="dispatch-meta-label">Material & Carga</div>
-                        <div class="dispatch-meta-val">ðŸ“¦ ${d.material}</div>
+                        <div class="dispatch-meta-val">📦 ${d.material}</div>
                     </div>
                     <div>
                         <div class="dispatch-meta-label">Prioridad</div>
-                        <div class="dispatch-meta-val">${d.prioridad === 'Alta' ? 'ðŸ”´ Alta' : 'ðŸŸ¡ Media'}</div>
+                        <div class="dispatch-meta-val">${d.prioridad === 'Alta' ? '🔴 Alta' : '🟡 Media'}</div>
                     </div>
                 </div>
 
@@ -838,9 +839,9 @@ async function loadAsignacionesFromDatabase() {
                     activeDispatches = list.map(a => ({
                         id: a.idAsignacion,
                         codigo: 'DSP-' + (1000 + a.idAsignacion),
-                        origen: "AlmacÃ©n Principal Lima (A)",
-                        destino: "Planta SiderÃºrgica Pisco (F)",
-                        trayecto: "A â†’ C â†’ E â†’ F",
+                        origen: "Almacén Principal Lima (A)",
+                        destino: "Planta Siderúrgica Pisco (F)",
+                        trayecto: "A → C → E → F",
                         material: "Carga de Acero Aceros Arequipa",
                         conductorId: a.idTransportista,
                         conductorNombre: a.conductorNombre || 'Transportista Asignado',
@@ -878,15 +879,15 @@ async function updateDispatchStatus(dispatchId, newStatus) {
     }
 
     const msg = (newStatus === 'EN_TRANSITO') 
-        ? `ðŸšš Â¡Buen viaje! Despacho ${item.codigo} marcado en trÃ¡nsito hacia ${item.destino}.`
-        : `âœ… Â¡Entrega registrada con Ã©xito para el despacho ${item.codigo}! (Guardado en base de datos)`;
+        ? `🚚 ¡Buen viaje! Despacho ${item.codigo} marcado en tránsito hacia ${item.destino}.`
+        : `✅ ¡Entrega registrada con éxito para el despacho ${item.codigo}! (Guardado en base de datos)`;
 
     alert(msg);
     renderMisRutas(currentDispatchFilter);
 }
 
 /* ==========================================================================
-   MODAL DE ASIGNACIÃ“N DE RUTAS (SUPERVISOR / ADMIN CONECTADO A POSTGRESQL)
+   MODAL DE ASIGNACIÓN DE RUTAS (SUPERVISOR / ADMIN CONECTADO A POSTGRESQL)
    ========================================================================== */
 
 async function openAssignRouteModal() {
@@ -898,8 +899,8 @@ async function openAssignRouteModal() {
     if (window.location.protocol !== 'file:') {
         try {
             const [resTrp, resVeh] = await Promise.all([
-                fetch(API_HOST + '/api/transportistas'),
-                fetch(API_HOST + '/api/vehiculos')
+                apiFetch(API_HOST + '/api/transportistas'),
+                apiFetch(API_HOST + '/api/vehiculos')
             ]);
             if (resTrp.ok) {
                 const trps = await resTrp.json();
@@ -916,7 +917,7 @@ async function openAssignRouteModal() {
                 if (selectVehiculo && vehs.length > 0) {
                     selectVehiculo.innerHTML = vehs.map(v => `
                         <option value="${v.idVehiculo}" data-placa="${v.placa}" data-tipo="${v.tipoCamion}">
-                            ${v.tipoCamion} (${v.placa}) Â· ${v.modelo} [Max: ${v.capacidadMaxTon} Tn]
+                            ${v.tipoCamion} (${v.placa}) · ${v.modelo} [Max: ${v.capacidadMaxTon} Tn]
                         </option>
                     `).join('');
                     if (placaInput && vehs[0]) {
@@ -961,7 +962,7 @@ async function confirmAssignRoute(e) {
 
     const selectedVehOpt  = selectVeh ? selectVeh.options[selectVeh.selectedIndex] : null;
     const vehiculoId      = selectVeh ? parseInt(selectVeh.value) : 1;
-    const vehiculoTipo    = selectedVehOpt ? (selectedVehOpt.getAttribute('data-tipo') || selectedVehOpt.text) : 'TrÃ¡iler Plataforma';
+    const vehiculoTipo    = selectedVehOpt ? (selectedVehOpt.getAttribute('data-tipo') || selectedVehOpt.text) : 'Tráiler Plataforma';
 
     const supervisorUser = getCurrentUser();
     const newId = Date.now();
@@ -976,16 +977,16 @@ async function confirmAssignRoute(e) {
                 body: JSON.stringify({ idVehiculo: vehiculoId, idTransportista: conductorId })
             });
         } catch (err) {
-            console.warn('No se pudo guardar la asignaciÃ³n en BD:', err);
+            console.warn('No se pudo guardar la asignación en BD:', err);
         }
     }
 
     const newDispatch = {
         id: newId,
         codigo: newCodigo,
-        origen: "AlmacÃ©n Principal Lima (A)",
-        destino: "Planta SiderÃºrgica Pisco (F)",
-        trayecto: "A â†’ C â†’ E â†’ F",
+        origen: "Almacén Principal Lima (A)",
+        destino: "Planta Siderúrgica Pisco (F)",
+        trayecto: "A → C → E → F",
         material: material,
         conductorId: conductorId,
         conductorNombre: conductorNombre,
@@ -1003,12 +1004,12 @@ async function confirmAssignRoute(e) {
     activeDispatches.unshift(newDispatch);
     closeAssignRouteModal();
 
-    alert(`âœ… Â¡Ruta guardada en base de datos (asignaciones_conduccion)!\n\nDespacho: ${newCodigo}\nConductor: ${conductorNombre}\nVehÃ­culo: ${vehiculoTipo} (${placa})\n\nEl transportista ya tiene esta ruta en su panel.`);
+    alert(`✅ ¡Ruta guardada en base de datos (asignaciones_conduccion)!\n\nDespacho: ${newCodigo}\nConductor: ${conductorNombre}\nVehículo: ${vehiculoTipo} (${placa})\n\nEl transportista ya tiene esta ruta en su panel.`);
     showView('mis-rutas');
 }
 
 /* ==========================================================================
-   LÃ“GICA DEL FLUJO: OPTIMIZAR RUTA (CONEXIÃ“N A POSTGRESQL)
+   LÓGICA DEL FLUJO: OPTIMIZAR RUTA (CONEXIÓN A POSTGRESQL)
    ========================================================================== */
 
 function showOptSubStep(step) {
@@ -1032,7 +1033,7 @@ async function startOptimizationProcess(e) {
     if (bar) bar.style.width = '0%';
     if (label) label.textContent = '0%';
 
-    // Extraer datos del formulario de optimizaciÃ³n
+    // Extraer datos del formulario de optimización
     const origenSel     = document.getElementById('optOrigen');
     const destinoSel    = document.getElementById('optDestino');
     const matSel        = document.getElementById('optMaterial');
@@ -1072,11 +1073,11 @@ async function startOptimizationProcess(e) {
             if (resp.ok) {
                 orToolsResponse = await resp.json();
                 window.lastOrToolsResult = orToolsResponse;
-                console.log('âœ… OptimizaciÃ³n resuelta con Google OR-Tools:', orToolsResponse);
+                console.log('✅ Optimización resuelta con Google OR-Tools:', orToolsResponse);
             }
         }
     } catch (err) {
-        console.warn('âš ï¸ No se pudo comunicar con /api/rutas/optimizar-ortools:', err);
+        console.warn('⚠️ No se pudo comunicar con /api/rutas/optimizar-ortools:', err);
     }
 
     const phases = [
@@ -1094,16 +1095,16 @@ async function startOptimizationProcess(e) {
             if (target === 100) {
                 if (iconReglas) {
                     iconReglas.classList.remove('spinner-rule');
-                    iconReglas.textContent = 'â˜‘';
+                    iconReglas.textContent = '☑';
                     iconReglas.style.color = '#16a34a';
                 }
                 if (textReglas) {
                     textReglas.style.color = '#1e293b';
                     textReglas.style.fontWeight = '500';
-                    textReglas.textContent = 'SoluciÃ³n Google OR-Tools calculada';
+                    textReglas.textContent = 'Solución Google OR-Tools calculada';
                 }
 
-                // Renderizar mÃ©tricas reales de Google OR-Tools
+                // Renderizar métricas reales de Google OR-Tools
                 if (orToolsResponse && orToolsResponse.exito) {
                     renderOrToolsResults(orToolsResponse);
                 }
@@ -1161,7 +1162,7 @@ function renderOrToolsResults(data) {
                 </div>
             `;
             if (i < data.nodosClave.length - 1) {
-                html += `<div class="step-arrow-down">â†“</div>`;
+                html += `<div class="step-arrow-down">↓</div>`;
             }
         }
         nodesList.innerHTML = html;
@@ -1172,7 +1173,7 @@ function renderOrToolsResults(data) {
     if (motivosEl && data.motivosSeleccion && data.motivosSeleccion.length > 0) {
         motivosEl.innerHTML = data.motivosSeleccion.map(m => `
             <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
-                <span style="color: #16a34a; font-weight: 800;">âœ“</span>
+                <span style="color: #16a34a; font-weight: 800;">✓</span>
                 <span>${m}</span>
             </div>
         `).join('');
@@ -1180,12 +1181,12 @@ function renderOrToolsResults(data) {
 }
 
 /**
- * Carga mÃ©tricas, tabla y grÃ¡fico comparativo en la vista de Reportes desde PostgreSQL
+ * Carga métricas, tabla y gráfico comparativo en la vista de Reportes desde PostgreSQL
  */
 async function loadReportesData() {
     const tbody = document.getElementById('reportesTableBody');
 
-    // 1. Si tenemos alternativas reciÃ©n calculadas con OR-Tools en la sesiÃ³n
+    // 1. Si tenemos alternativas recién calculadas con OR-Tools en la sesión
     if (window.lastOrToolsResult && window.lastOrToolsResult.rutasAlternativas && window.lastOrToolsResult.rutasAlternativas.length > 0) {
         renderReportesTable(window.lastOrToolsResult.rutasAlternativas);
         drawReportBarChart(window.lastOrToolsResult.rutasAlternativas);
@@ -1219,20 +1220,20 @@ async function loadReportesData() {
                     kpiAhorro.textContent = 'S/ ' + Number(data.ahorroEstimadoSoles).toFixed(2);
                 }
 
-                // Actualizar conclusiÃ³n
+                // Actualizar conclusión
                 const concEl = document.getElementById('reporteConclusionTexto');
                 if (concEl && data.conclusion) {
                     concEl.textContent = data.conclusion;
                 }
 
-                // Si no habÃ­a alternativas en memoria local, renderizar las de PostgreSQL
+                // Si no había alternativas en memoria local, renderizar las de PostgreSQL
                 if (!window.lastOrToolsResult && data.comparativaAlternativas && data.comparativaAlternativas.length > 0) {
                     renderReportesTable(data.comparativaAlternativas);
                     drawReportBarChart(data.comparativaAlternativas);
                 }
             }
         } catch (err) {
-            console.warn('âš ï¸ Error al consultar /api/reportes/resumen:', err);
+            console.warn('⚠️ Error al consultar /api/reportes/resumen:', err);
         }
     }
 }
@@ -1244,12 +1245,12 @@ function renderReportesTable(alternativas) {
     let html = '';
     alternativas.forEach(alt => {
         const num = alt.numero || alt.idRuta || 1;
-        const trayecto = alt.trayecto || alt.secuenciaParadas || 'A â†’ F';
+        const trayecto = alt.trayecto || alt.secuenciaParadas || 'A → F';
         const tiempo = alt.tiempoMinutos || alt.tiempo || 32;
         const dist = alt.distanciaKm || alt.distancia || 18.5;
         const costo = alt.costoSoles || alt.costo || 85.00;
         const puntaje = alt.puntaje || '95%';
-        const rec = alt.recomendacion || 'Ã“ptima';
+        const rec = alt.recomendacion || 'Óptima';
         const badge = alt.badgeClase || 'badge-optima';
 
         html += `
@@ -1268,7 +1269,7 @@ function renderReportesTable(alternativas) {
 }
 
 /* ==========================================================================
-   GRÃFICO DE BARRAS COMPARATIVO â€“ REPORTES (DATOS REALES)
+   GRÁFICO DE BARRAS COMPARATIVO – REPORTES (DATOS REALES)
    ========================================================================== */
 
 function drawReportBarChart(series) {
@@ -1358,7 +1359,7 @@ function drawReportBarChart(series) {
 }
 
 /* ==========================================================================
-   HISTORIAL DE OPTIMIZACIONES Y RUTAS (CONEXIÃ“N A POSTGRESQL)
+   HISTORIAL DE OPTIMIZACIONES Y RUTAS (CONEXIÓN A POSTGRESQL)
    ========================================================================== */
 
 let allHistorialRecords = [];
@@ -1379,7 +1380,7 @@ async function loadHistorialData() {
         if (resp.ok) {
             allHistorialRecords = await resp.json();
 
-            // Actualizar tarjetas de mÃ©tricas del historial
+            // Actualizar tarjetas de métricas del historial
             const kpiTotal = document.getElementById('kpiHistorialTotal');
             if (kpiTotal) kpiTotal.textContent = allHistorialRecords.length;
 
@@ -1391,7 +1392,7 @@ async function loadHistorialData() {
 
             const kpiFlota = document.getElementById('kpiHistorialFlotaActiva');
             if (kpiFlota) {
-                // Cantidad de vehÃ­culos distintos involucrados
+                // Cantidad de vehículos distintos involucrados
                 const vehs = new Set(allHistorialRecords.map(r => r.vehiculoPlaca)).size;
                 kpiFlota.textContent = vehs > 0 ? vehs : 3;
             }
@@ -1401,8 +1402,8 @@ async function loadHistorialData() {
             tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">No se pudo cargar el historial desde el servidor.</td></tr>`;
         }
     } catch (err) {
-        console.warn('âš ï¸ Error al cargar /api/historial:', err);
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">Error de conexiÃ³n con PostgreSQL.</td></tr>`;
+        console.warn('⚠️ Error al cargar /api/historial:', err);
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">Error de conexión con PostgreSQL.</td></tr>`;
     }
 }
 
@@ -1421,13 +1422,13 @@ function renderHistorialRows(list) {
         let badgeLabel = 'Alternativa';
         if (item.estadoRuta === 'OPTIMA') {
             badgeClass = 'badge-optima';
-            badgeLabel = 'Ã“ptima (OR-Tools)';
+            badgeLabel = 'Óptima (OR-Tools)';
         } else if (item.estadoRuta === 'NO_RECOMENDADA') {
             badgeClass = 'badge-descartada';
             badgeLabel = 'No recomendada';
         }
 
-        const trayecto = item.trayecto || (item.origen + ' â†’ ' + item.destino);
+        const trayecto = item.trayecto || (item.origen + ' → ' + item.destino);
         const material = item.material || 'Bobinas de acero';
         const peso = item.pesoT ? ` (${item.pesoT} Tn)` : '';
         const transportista = item.transportistaNombre || 'Por asignar';
@@ -1486,7 +1487,7 @@ function resetOptimizationWizard() {
     const textReglas = document.getElementById('textReglasExpertas');
     if (iconReglas) {
         iconReglas.classList.add('spinner-rule');
-        iconReglas.textContent = 'ðŸ”„';
+        iconReglas.textContent = '🔄';
         iconReglas.style.color = '#2563eb';
     }
     if (textReglas) {
@@ -1510,7 +1511,7 @@ function resetOptimizationWizard() {
 }
 
 /* ==========================================================================
-   GRÃFICO SEMANAL DE RENDIMIENTO â€“ INICIO
+   GRÁFICO SEMANAL DE RENDIMIENTO – INICIO
    ========================================================================== */
 
 function drawChart() {
@@ -1541,7 +1542,7 @@ function drawChart() {
         ctx.fillText(val, 15, y + 4);
     });
 
-    const xLabels = ['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'];
+    const xLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
     const stepX = chartW / (xLabels.length - 1);
 
     xLabels.forEach((day, i) => {
@@ -1556,7 +1557,7 @@ function drawChart() {
         return padT + chartH - ((val / 80) * chartH);
     }
 
-    // LÃ­nea Tiempo (Azul)
+    // Línea Tiempo (Azul)
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
@@ -1575,7 +1576,7 @@ function drawChart() {
         ctx.fill();
     });
 
-    // LÃ­nea Costo (Verde)
+    // Línea Costo (Verde)
     ctx.beginPath();
     ctx.strokeStyle = '#16a34a';
     ctx.lineWidth = 2.5;
@@ -1596,7 +1597,7 @@ function drawChart() {
 }
 
 /* ==========================================================================
-   LÃ“GICA DE FLOTAS Y VEHÃCULOS (PARQUE VEHICULAR Y CAPACIDADES EN TONELADAS)
+   LÓGICA DE FLOTAS Y VEHÍCULOS (PARQUE VEHICULAR Y CAPACIDADES EN TONELADAS)
    ========================================================================== */
 
 let memoryFlotas = [];
@@ -1612,19 +1613,19 @@ async function loadFlotaData() {
     try {
         if (window.location.protocol !== 'file:') {
             const [resFlotas, resVehiculos] = await Promise.all([
-                fetch(API_HOST + '/api/flotas'),
-                fetch(API_HOST + '/api/vehiculos')
+                apiFetch(API_HOST + '/api/flotas'),
+                apiFetch(API_HOST + '/api/vehiculos')
             ]);
             if (resFlotas.ok) memoryFlotas = await resFlotas.json();
             if (resVehiculos.ok) memoryVehiculos = await resVehiculos.json();
 
             if (badge) {
                 badge.className = 'server-status-pill online';
-                badge.textContent = 'ðŸŸ¢ PostgreSQL Conectado';
+                badge.textContent = '🟢 PostgreSQL Conectado';
             }
         }
     } catch (err) {
-        console.warn('Error cargando flotas/vehÃ­culos desde BD:', err);
+        console.warn('Error cargando flotas/vehículos desde BD:', err);
     }
 
     if (grid) {
@@ -1643,7 +1644,7 @@ async function loadFlotaData() {
 
     if (tbody) {
         if (memoryVehiculos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay vehÃ­culos registrados. Haz clic en "+ Nuevo VehÃ­culo".</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados. Haz clic en "+ Nuevo Vehículo".</td></tr>`;
         } else {
             tbody.innerHTML = memoryVehiculos.map(v => {
                 const badgeStatus = v.estadoOperativo === 'DISPONIBLE' ? 'badge-optima' : (v.estadoOperativo === 'EN_RUTA' ? 'badge-alternativa' : 'badge-no-optima');
@@ -1651,10 +1652,10 @@ async function loadFlotaData() {
                     <tr>
                         <td style="font-weight:700; color:#64748b;">#${v.idVehiculo}</td>
                         <td><strong style="color:#0f172a; font-size:13.5px; letter-spacing:0.5px;">${v.placa}</strong></td>
-                        <td>${v.tipoCamion || 'CamiÃ³n Pesado'}</td>
+                        <td>${v.tipoCamion || 'Camión Pesado'}</td>
                         <td style="font-weight:600; color:#0284c7;">${v.modelo || 'Volvo FH 540'}</td>
                         <td><strong style="color:#15803d; font-size:14px;">${v.capacidadMaxTon} Tn</strong></td>
-                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' mÂ³' : '-'}</td>
+                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '-'}</td>
                         <td><span class="${badgeStatus}">${v.estadoOperativo}</span></td>
                     </tr>
                 `;
@@ -1696,11 +1697,11 @@ async function saveVehiculo(e) {
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar');
-            alert('âœ… VehÃ­culo registrado exitosamente en la base de datos.');
+            alert('✅ Vehículo registrado exitosamente en la base de datos.');
         } else {
             payload.idVehiculo = memoryVehiculos.length + 1;
             memoryVehiculos.unshift(payload);
-            alert('âœ… VehÃ­culo registrado localmente.');
+            alert('✅ Vehículo registrado localmente.');
         }
         closeVehiculoModal();
         loadFlotaData();
@@ -1733,11 +1734,11 @@ async function saveFlota(e) {
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al crear');
-            alert('âœ… Flota creada exitosamente en PostgreSQL.');
+            alert('✅ Flota creada exitosamente en PostgreSQL.');
         } else {
             payload.idFlota = memoryFlotas.length + 1;
             memoryFlotas.push(payload);
-            alert('âœ… Flota creada localmente.');
+            alert('✅ Flota creada localmente.');
         }
         closeFlotaModal();
         loadFlotaData();
@@ -1747,7 +1748,7 @@ async function saveFlota(e) {
 }
 
 /* ==========================================================================
-   LÃ“GICA DE CLIENTES Y PEDIDOS DE ACERO
+   LÓGICA DE CLIENTES Y PEDIDOS DE ACERO
    ========================================================================== */
 
 async function loadClientesData() {
@@ -1758,15 +1759,15 @@ async function loadClientesData() {
     try {
         if (window.location.protocol !== 'file:') {
             const [resCli, resPed] = await Promise.all([
-                fetch(API_HOST + '/api/clientes'),
-                fetch(API_HOST + '/api/pedidos')
+                apiFetch(API_HOST + '/api/clientes'),
+                apiFetch(API_HOST + '/api/pedidos')
             ]);
             if (resCli.ok) memoryClientes = await resCli.json();
             if (resPed.ok) memoryPedidos = await resPed.json();
 
             if (badge) {
                 badge.className = 'server-status-pill online';
-                badge.textContent = 'ðŸŸ¢ PostgreSQL Conectado';
+                badge.textContent = '🟢 PostgreSQL Conectado';
             }
         }
     } catch (err) {
@@ -1783,7 +1784,7 @@ async function loadClientesData() {
                     <tr>
                         <td style="font-weight:700; color:#64748b;">#PED-${p.idPedido}</td>
                         <td><strong>${p.clienteNombre || 'Cliente General'}</strong><br><small style="color:#64748b;">${p.clienteRuc || ''}</small></td>
-                        <td style="color:#0f172a; font-weight:600;">ðŸ“¦ ${p.tipoMaterial}</td>
+                        <td style="color:#0f172a; font-weight:600;">📦 ${p.tipoMaterial}</td>
                         <td><strong style="color:#15803d; font-size:13.5px;">${p.pesoT} Tn</strong></td>
                         <td>${p.direccionDestino}</td>
                         <td><span class="${badgeClass}">${p.prioridad}</span></td>
@@ -1807,7 +1808,7 @@ async function loadClientesData() {
                     <td>${c.direccionFiscal || '-'}</td>
                     <td>${c.contactoNombre || '-'}</td>
                     <td>${c.telefono || '-'}</td>
-                    <td><span style="color:#16a34a; font-weight:600;">â— Activo</span></td>
+                    <td><span style="color:#16a34a; font-weight:600;">● Activo</span></td>
                 </tr>
             `).join('');
         }
@@ -1843,11 +1844,11 @@ async function saveCliente(e) {
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar cliente');
-            alert('âœ… Cliente registrado exitosamente en PostgreSQL.');
+            alert('✅ Cliente registrado exitosamente en PostgreSQL.');
         } else {
             payload.idCliente = memoryClientes.length + 1;
             memoryClientes.push(payload);
-            alert('âœ… Cliente registrado localmente.');
+            alert('✅ Cliente registrado localmente.');
         }
         closeClienteModal();
         loadClientesData();
@@ -1901,11 +1902,11 @@ async function savePedido(e) {
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar pedido');
-            alert('âœ… Pedido de acero registrado exitosamente en PostgreSQL.');
+            alert('✅ Pedido de acero registrado exitosamente en PostgreSQL.');
         } else {
             payload.idPedido = memoryPedidos.length + 1;
             memoryPedidos.unshift(payload);
-            alert('âœ… Pedido guardado localmente.');
+            alert('✅ Pedido guardado localmente.');
         }
         closePedidoModal();
         loadClientesData();
@@ -1915,7 +1916,7 @@ async function savePedido(e) {
 }
 
 /* ==========================================================================
-   GESTIÃ“N DE CUENTAS (PERSISTENCIA CON POSTGRESQL / REST API)
+   GESTIÓN DE CUENTAS (PERSISTENCIA CON POSTGRESQL / REST API)
    ========================================================================== */
 
 async function loadUsersFromDatabase() {
@@ -1929,7 +1930,7 @@ async function loadUsersFromDatabase() {
     if (isFileProtocol) {
         if (statusBadge) {
             statusBadge.className = 'server-status-pill offline';
-            statusBadge.textContent = 'ðŸŸ¡ Modo Archivo Local (file://)';
+            statusBadge.textContent = '🟡 Modo Archivo Local (file://)';
         }
         if (noticeBanner) {
             noticeBanner.style.display = 'block';
@@ -1946,12 +1947,12 @@ async function loadUsersFromDatabase() {
 
         if (statusBadge) {
             statusBadge.className = 'server-status-pill online';
-            statusBadge.textContent = 'ðŸŸ¢ PostgreSQL Conectado';
+            statusBadge.textContent = '🟢 PostgreSQL Conectado';
         }
         if (noticeBanner) noticeBanner.style.display = 'none';
 
         if (users.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">No hay usuarios registrados aÃºn en PostgreSQL. Haz clic en "Nueva Cuenta".</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">No hay usuarios registrados aún en PostgreSQL. Haz clic en "Nueva Cuenta".</td></tr>`;
             return;
         }
 
@@ -1959,14 +1960,14 @@ async function loadUsersFromDatabase() {
         renderUserRows(users);
 
     } catch (err) {
-        console.warn('Backend desconectado o error de conexiÃ³n:', err);
+        console.warn('Backend desconectado o error de conexión:', err);
         if (statusBadge) {
             statusBadge.className = 'server-status-pill offline';
-            statusBadge.textContent = 'ðŸ”´ Servidor backend desconectado';
+            statusBadge.textContent = '🔴 Servidor backend desconectado';
         }
         if (noticeBanner) {
             noticeBanner.style.display = 'block';
-            noticeBanner.innerHTML = '<strong>Servidor backend no detectado en http://localhost:8080.</strong> Si estÃ¡s usando Live Server (puerto 5500), abre directamente <a href="http://localhost:8080/dashboard.html" target="_blank" style="font-weight:bold; text-decoration:underline;">http://localhost:8080/dashboard.html</a>. Mostrando datos locales:';
+            noticeBanner.innerHTML = '<strong>Servidor backend no detectado en http://localhost:8080.</strong> Si estás usando Live Server (puerto 5500), abre directamente <a href="http://localhost:8080/dashboard.html" target="_blank" style="font-weight:bold; text-decoration:underline;">http://localhost:8080/dashboard.html</a>. Mostrando datos locales:';
         }
         renderUserRows(memoryUsers);
     }
@@ -1984,7 +1985,7 @@ function renderUserRows(users) {
                 <td>${u.email}</td>
                 <td><span class="user-badge-role ${badgeClass}">${u.rol}</span></td>
                 <td style="color:#64748b;">${u.codEmpleado || u.telefono || '-'}</td>
-                <td><span style="color:#16a34a; font-weight:600;">â— Activo</span></td>
+                <td><span style="color:#16a34a; font-weight:600;">● Activo</span></td>
                 <td style="text-align:right;">
                     <button class="btn-action-edit" onclick="openEditUserModal(${u.idUsuario}, '${u.nombres}', '${u.apellidos || ''}', '${u.email}', '${u.rol}', '${u.telefono || ''}', '${u.codEmpleado || ''}')">Editar / Rol</button>
                     <button class="btn-action-del" onclick="deleteUser(${u.idUsuario}, '${u.nombres}')">Eliminar</button>
@@ -2059,7 +2060,7 @@ async function saveUser(e) {
             const newId = memoryUsers.length > 0 ? Math.max(...memoryUsers.map(x => x.idUsuario)) + 1 : 1;
             memoryUsers.unshift({ idUsuario: newId, nombres, apellidos, email, rol, codEmpleado, activo: true });
         }
-        alert('âœ… Cambios guardados localmente.');
+        alert('✅ Cambios guardados localmente.');
         closeUserModal();
         renderUserRows(memoryUsers);
         return;
@@ -2074,7 +2075,7 @@ async function saveUser(e) {
             method = 'PUT';
         }
 
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -2093,30 +2094,30 @@ async function saveUser(e) {
             return;
         }
 
-        alert(id ? 'âœ… Usuario y rol actualizados con Ã©xito en PostgreSQL.' : 'âœ… Usuario creado y guardado con Ã©xito en PostgreSQL.');
+        alert(id ? '✅ Usuario y rol actualizados con éxito en PostgreSQL.' : '✅ Usuario creado y guardado con éxito en PostgreSQL.');
         closeUserModal();
         loadUsersFromDatabase();
 
     } catch (err) {
         console.error(err);
-        alert('Error al conectar con el servidor: ' + err.message + '\n\nVerifica que el backend estÃ© corriendo en http://localhost:8080');
+        alert('Error al conectar con el servidor: ' + err.message + '\n\nVerifica que el backend esté corriendo en http://localhost:8080');
     }
 }
 
 async function deleteUser(id, nombre) {
-    if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar permanentemente la cuenta de ${nombre}?`)) {
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la cuenta de ${nombre}?`)) {
         return;
     }
 
     if (window.location.protocol === 'file:') {
         memoryUsers = memoryUsers.filter(x => x.idUsuario !== id);
         renderUserRows(memoryUsers);
-        alert(`âœ… Cuenta de ${nombre} eliminada localmente.`);
+        alert(`✅ Cuenta de ${nombre} eliminada localmente.`);
         return;
     }
 
     try {
-        const res = await fetch((API_HOST || '') + `/api/usuarios/${id}`, { method: 'DELETE' });
+        const res = await apiFetch((API_HOST || '') + `/api/usuarios/${id}`, { method: 'DELETE' });
         if (!res.ok) {
             let errMsg = `Error ${res.status}`;
             try {
@@ -2127,7 +2128,7 @@ async function deleteUser(id, nombre) {
             return;
         }
 
-        alert(`âœ… Cuenta de ${nombre} eliminada correctamente de PostgreSQL.`);
+        alert(`✅ Cuenta de ${nombre} eliminada correctamente de PostgreSQL.`);
         loadUsersFromDatabase();
     } catch (err) {
         console.error(err);
@@ -2136,7 +2137,7 @@ async function deleteUser(id, nombre) {
 }
 
 /* ==========================================================================
-   INICIALIZACIÃ“N AL CARGAR LA PÃGINA
+   INICIALIZACIÓN AL CARGAR LA PÁGINA
    ========================================================================== */
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -2146,7 +2147,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // 1. Aplicar permisos y ajustar menú según el rol conectado
     applyRolePermissions();
 
-    // 2. Escuchar cambios de hash para navegaciÃ³n
+    // 2. Escuchar cambios de hash para navegación
     window.addEventListener('hashchange', () => {
         const h = window.location.hash.replace('#', '') || 'inicio';
         showView(h);
@@ -2161,5 +2162,3 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     showView(initialView);
 });
-
-
