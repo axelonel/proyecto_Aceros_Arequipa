@@ -402,6 +402,77 @@ public class LogisticaController {
     // ==========================================
     // 7. OPTIMIZACIÓN DE RUTAS CON GOOGLE OR-TOOLS
     // ==========================================
+        // ==========================================
+    // 7. RUTAS PROGRAMADAS (CRUD) Y OPTIMIZACIÓN
+    // ==========================================
+    @GetMapping("/rutas")
+    public ResponseEntity<List<Ruta>> listarRutas() {
+        return ResponseEntity.ok(rutaRepository.findAll());
+    }
+
+    @PostMapping("/rutas")
+    public ResponseEntity<?> crearRuta(@RequestBody Map<String, Object> body) {
+        try {
+            Ruta r = new Ruta();
+            r.setAlgoritmoUsado((String) body.getOrDefault("algoritmoUsado", "Google OR-Tools Constraint Solver"));
+            if (body.get("distanciaTotalKm") != null) {
+                r.setDistanciaTotalKm(Double.valueOf(body.get("distanciaTotalKm").toString()));
+            }
+            if (body.get("tiempoEstimadoMin") != null) {
+                r.setTiempoEstimadoMin(Integer.valueOf(body.get("tiempoEstimadoMin").toString()));
+            }
+            if (body.get("costoEstimadoSoles") != null) {
+                r.setCostoEstimadoSoles(Double.valueOf(body.get("costoEstimadoSoles").toString()));
+            }
+            r.setEstado((String) body.getOrDefault("estado", "PLANIFICADA"));
+
+            Long vehiculoId = 1L;
+            if (body.get("vehiculoId") != null) {
+                try {
+                    vehiculoId = Long.valueOf(body.get("vehiculoId").toString());
+                } catch (Exception ignored) {}
+            }
+            final Long targetVehiculoId = vehiculoId;
+            if (vehiculoRepository.existsById(targetVehiculoId)) {
+                r.setVehiculoId(targetVehiculoId);
+            } else {
+                r.setVehiculoId(vehiculoRepository.findAll().stream().findFirst().map(Vehiculo::getIdVehiculo).orElse(1L));
+            }
+
+            r.setFechaRuta(LocalDate.now());
+            Ruta saved = rutaRepository.save(r);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al crear ruta: " + ex.getMessage()));
+        }
+    }
+
+    @PutMapping("/rutas/{id}")
+    public ResponseEntity<?> actualizarRuta(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return rutaRepository.findById(id).map(r -> {
+            if (body.get("algoritmoUsado") != null) r.setAlgoritmoUsado((String) body.get("algoritmoUsado"));
+            if (body.get("distanciaTotalKm") != null) r.setDistanciaTotalKm(Double.valueOf(body.get("distanciaTotalKm").toString()));
+            if (body.get("tiempoEstimadoMin") != null) r.setTiempoEstimadoMin(Integer.valueOf(body.get("tiempoEstimadoMin").toString()));
+            if (body.get("costoEstimadoSoles") != null) r.setCostoEstimadoSoles(Double.valueOf(body.get("costoEstimadoSoles").toString()));
+            if (body.get("estado") != null) r.setEstado((String) body.get("estado"));
+            return ResponseEntity.ok(rutaRepository.save(r));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/rutas/{id}")
+    public ResponseEntity<?> eliminarRuta(@PathVariable Long id) {
+        return rutaRepository.findById(id).map(r -> {
+            try {
+                rutaRepository.delete(r);
+                return ResponseEntity.ok(Map.of("message", "Ruta eliminada correctamente."));
+            } catch (Exception ex) {
+                r.setEstado("CANCELADA");
+                rutaRepository.save(r);
+                return ResponseEntity.ok(Map.of("message", "Ruta cancelada por dependencias activas."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/rutas/optimizar-ortools")
     public ResponseEntity<?> optimizarConOrTools(@RequestBody OptimizacionRequestDto request) {
         try {
