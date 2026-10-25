@@ -1,41 +1,78 @@
-<div id="viewRutas">
-    <div class="content-header" style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h1>
-        <p style="font-size: 13.5px; color: #475569;">Puntos de acopio, plantas de producción y centros de distribución de Corporación Aceros Arequipa</p>
+<div id="viewRutas" class="users-section" style="display:block;">
+    <div class="section-header-bar" style="margin-bottom: 24px;">
+        <div>
+            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h2>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span id="rutasDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
+                <span style="font-size: 13px; color: #475569;">Puntos de acopio, plantas de producción y rutas activas de Corporación Aceros Arequipa</span>
+            </div>
+        </div>
+        <button class="btn-primary" onclick="openNewRutaModal()">
+            + Registrar Nueva Ruta
+        </button>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#2563eb;">A</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Almacén Principal Lima</h4>
-                    <span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span>
+    <!-- PUNTOS LOGÍSTICOS PRINCIPALES -->
+    <div style="margin-bottom: 28px;">
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Puntos de la Red de Distribución</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#2563eb; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">A</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Almacén Principal Lima</h4>
+                        <span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span>
+                    </div>
                 </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Punto primario de despacho de productos terminados para la región central.</p>
             </div>
-            <p style="font-size: 13px; color:#475569;">Punto primario de despacho de productos terminados para la región central.</p>
-        </div>
 
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#16a34a;">C</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Zona de Carga y Acopio Lurín</h4>
-                    <span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span>
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#16a34a; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">C</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Zona de Carga y Acopio Lurín</h4>
+                        <span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span>
+                    </div>
                 </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Consolidación de carga pesada y distribución sur.</p>
             </div>
-            <p style="font-size: 13px; color:#475569;">Consolidación de carga pesada y distribución sur.</p>
-        </div>
 
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#ef4444;">F</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Planta Siderúrgica Pisco</h4>
-                    <span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span>
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#ef4444; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">F</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Planta Siderúrgica Pisco</h4>
+                        <span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span>
+                    </div>
                 </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Planta central de fundición, laminación y producción de aceros largos.</p>
             </div>
-            <p style="font-size: 13px; color:#475569;">Planta central de fundición, laminación y producción de aceros largos.</p>
+        </div>
+    </div>
+
+    <!-- TABLA DE RUTAS PROGRAMADAS -->
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Rutas Registradas en Base de Datos</h3>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID Ruta</th>
+                        <th>Fecha</th>
+                        <th>Algoritmo / Estrategia</th>
+                        <th>Vehículo ID</th>
+                        <th>Distancia (km)</th>
+                        <th>Tiempo (min)</th>
+                        <th>Costo Estimado</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="rutasTbody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

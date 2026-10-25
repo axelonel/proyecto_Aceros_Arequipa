@@ -69,6 +69,34 @@ public class LogisticaController {
         Cliente guardado = clienteRepository.save(cliente);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
     }
+    @PutMapping("/clientes/{id}")
+    public ResponseEntity<?> actualizarCliente(@PathVariable Long id, @RequestBody Cliente c) {
+        return clienteRepository.findById(id).map(cliente -> {
+            if (c.getNombre() != null && !c.getNombre().isBlank()) cliente.setNombre(c.getNombre());
+            if (c.getTipoDocumento() != null) cliente.setTipoDocumento(c.getTipoDocumento());
+            if (c.getNumeroDocumento() != null && !c.getNumeroDocumento().isBlank()) cliente.setNumeroDocumento(c.getNumeroDocumento());
+            if (c.getDireccionFiscal() != null) cliente.setDireccionFiscal(c.getDireccionFiscal());
+            if (c.getContactoNombre() != null) cliente.setContactoNombre(c.getContactoNombre());
+            if (c.getTelefono() != null) cliente.setTelefono(c.getTelefono());
+            if (c.getEmail() != null) cliente.setEmail(c.getEmail());
+            if (c.getActivo() != null) cliente.setActivo(c.getActivo());
+            return ResponseEntity.ok(clienteRepository.save(cliente));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/clientes/{id}")
+    public ResponseEntity<?> eliminarCliente(@PathVariable Long id) {
+        return clienteRepository.findById(id).map(c -> {
+            try {
+                clienteRepository.delete(c);
+                return ResponseEntity.ok(Map.of("message", "Cliente eliminado correctamente de la base de datos."));
+            } catch (Exception ex) {
+                c.setActivo(false);
+                clienteRepository.save(c);
+                return ResponseEntity.ok(Map.of("message", "Cliente desactivado (tenía pedidos históricos asociados)."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
 
     // ==========================================
     // 2. FLOTAS
@@ -85,6 +113,29 @@ public class LogisticaController {
         }
         Flota guardada = flotaRepository.save(flota);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
+    }
+    @PutMapping("/flotas/{id}")
+    public ResponseEntity<?> actualizarFlota(@PathVariable Long id, @RequestBody Flota f) {
+        return flotaRepository.findById(id).map(flota -> {
+            if (f.getNombreFlota() != null && !f.getNombreFlota().isBlank()) flota.setNombreFlota(f.getNombreFlota());
+            if (f.getDescripcion() != null) flota.setDescripcion(f.getDescripcion());
+            if (f.getActivo() != null) flota.setActivo(f.getActivo());
+            return ResponseEntity.ok(flotaRepository.save(flota));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/flotas/{id}")
+    public ResponseEntity<?> eliminarFlota(@PathVariable Long id) {
+        return flotaRepository.findById(id).map(f -> {
+            try {
+                flotaRepository.delete(f);
+                return ResponseEntity.ok(Map.of("message", "Flota eliminada correctamente."));
+            } catch (Exception ex) {
+                f.setActivo(false);
+                flotaRepository.save(f);
+                return ResponseEntity.ok(Map.of("message", "Flota desactivada (tenía vehículos vinculados)."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // ==========================================
@@ -106,6 +157,33 @@ public class LogisticaController {
         Vehiculo guardado = vehiculoRepository.save(v);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
     }
+    @PutMapping("/vehiculos/{id}")
+    public ResponseEntity<?> actualizarVehiculo(@PathVariable Long id, @RequestBody Vehiculo v) {
+        return vehiculoRepository.findById(id).map(veh -> {
+            if (v.getPlaca() != null && !v.getPlaca().isBlank()) veh.setPlaca(v.getPlaca());
+            if (v.getTipoCamion() != null) veh.setTipoCamion(v.getTipoCamion());
+            if (v.getModelo() != null) veh.setModelo(v.getModelo());
+            if (v.getCapacidadMaxTon() != null) veh.setCapacidadMaxTon(v.getCapacidadMaxTon());
+            if (v.getVolumenMaxM3() != null) veh.setVolumenMaxM3(v.getVolumenMaxM3());
+            if (v.getEstadoOperativo() != null) veh.setEstadoOperativo(v.getEstadoOperativo());
+            if (v.getIdFlota() != null) veh.setIdFlota(v.getIdFlota());
+            return ResponseEntity.ok(vehiculoRepository.save(veh));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/vehiculos/{id}")
+    public ResponseEntity<?> eliminarVehiculo(@PathVariable Long id) {
+        return vehiculoRepository.findById(id).map(v -> {
+            try {
+                vehiculoRepository.delete(v);
+                return ResponseEntity.ok(Map.of("message", "Vehículo eliminado correctamente."));
+            } catch (Exception ex) {
+                v.setEstadoOperativo("INACTIVO");
+                vehiculoRepository.save(v);
+                return ResponseEntity.ok(Map.of("message", "Vehículo marcado como INACTIVO (tiene despachos asociados)."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
 
     // ==========================================
     // 4. TRANSPORTISTAS
@@ -125,6 +203,33 @@ public class LogisticaController {
         }
         Transportista guardado = transportistaRepository.save(t);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+    }
+    @PutMapping("/transportistas/{id}")
+    public ResponseEntity<?> actualizarTransportista(@PathVariable Long id, @RequestBody Transportista t) {
+        return transportistaRepository.findById(id).map(tr -> {
+            if (t.getNombres() != null) tr.setNombres(t.getNombres());
+            if (t.getApellidos() != null) tr.setApellidos(t.getApellidos());
+            if (t.getDni() != null) tr.setDni(t.getDni());
+            if (t.getLicenciaConducir() != null) tr.setLicenciaConducir(t.getLicenciaConducir());
+            if (t.getCategoriaLicencia() != null) tr.setCategoriaLicencia(t.getCategoriaLicencia());
+            if (t.getTelefono() != null) tr.setTelefono(t.getTelefono());
+            if (t.getActivo() != null) tr.setActivo(t.getActivo());
+            return ResponseEntity.ok(transportistaRepository.save(tr));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/transportistas/{id}")
+    public ResponseEntity<?> eliminarTransportista(@PathVariable Long id) {
+        return transportistaRepository.findById(id).map(t -> {
+            try {
+                transportistaRepository.delete(t);
+                return ResponseEntity.ok(Map.of("message", "Transportista eliminado correctamente."));
+            } catch (Exception ex) {
+                t.setActivo(false);
+                transportistaRepository.save(t);
+                return ResponseEntity.ok(Map.of("message", "Transportista desactivado."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // ==========================================
@@ -172,6 +277,49 @@ public class LogisticaController {
         }
         Pedido guardado = pedidoRepository.save(p);
         return ResponseEntity.status(HttpStatus.CREATED).body(guardado);
+    }
+    @PutMapping("/pedidos/{id}")
+    public ResponseEntity<?> actualizarPedido(@PathVariable Long id, @RequestBody Pedido p) {
+        return pedidoRepository.findById(id).map(ped -> {
+            if (p.getTipoMaterial() != null) ped.setTipoMaterial(p.getTipoMaterial());
+            if (p.getPesoT() != null) ped.setPesoT(p.getPesoT());
+            if (p.getVolumenM3() != null) ped.setVolumenM3(p.getVolumenM3());
+            if (p.getDireccionDestino() != null) ped.setDireccionDestino(p.getDireccionDestino());
+            if (p.getPrioridad() != null) ped.setPrioridad(p.getPrioridad());
+            if (p.getObjetivoOptimizacion() != null) ped.setObjetivoOptimizacion(p.getObjetivoOptimizacion());
+            if (p.getEstadoPedido() != null) ped.setEstadoPedido(p.getEstadoPedido());
+            if (p.getIdCliente() != null) ped.setIdCliente(p.getIdCliente());
+            return ResponseEntity.ok(pedidoRepository.save(ped));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/pedidos/{id}")
+    public ResponseEntity<?> eliminarPedido(@PathVariable Long id) {
+        return pedidoRepository.findById(id).map(p -> {
+            try {
+                pedidoRepository.delete(p);
+                return ResponseEntity.ok(Map.of("message", "Pedido eliminado correctamente de la base de datos."));
+            } catch (Exception ex) {
+                p.setEstadoPedido("CANCELADO");
+                pedidoRepository.save(p);
+                return ResponseEntity.ok(Map.of("message", "Pedido marcado como CANCELADO (tiene rutas calculadas asociadas)."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/pedidos/{id}/estado")
+    public ResponseEntity<?> cambiarEstadoPedido(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String nuevoEstado = body.get("estado");
+        if (nuevoEstado == null || nuevoEstado.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El estado es obligatorio."));
+        }
+        return pedidoRepository.findById(id).map(p -> {
+            p.setEstadoPedido(nuevoEstado.toUpperCase());
+            if ("ENTREGADO".equalsIgnoreCase(nuevoEstado)) {
+                p.setFechaEntrega(LocalDateTime.now());
+            }
+            return ResponseEntity.ok(pedidoRepository.save(p));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // ==========================================

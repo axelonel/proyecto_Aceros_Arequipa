@@ -692,7 +692,9 @@ async function showView(viewName) {
  * Acciones posteriores al renderizado de cada vista
  */
 function onViewLoaded(viewName) {
-    if (viewName === 'inicio') {
+    if (viewName === 'rutas') {
+        loadRutasData();
+    } else if (viewName === 'inicio') {
         setTimeout(drawChart, 60);
     } else if (viewName === 'mis-rutas') {
         loadAsignacionesFromDatabase();
@@ -1611,6 +1613,14 @@ let memoryVehiculos = [];
 let memoryClientes = [];
 let memoryPedidos = [];
 
+/* ==========================================================================
+   CRUD COMPLETO: FLOTAS, VEHÍCULOS, CLIENTES, PEDIDOS Y RUTAS
+   ========================================================================== */
+
+let memoryRutas = [];
+
+// ── 1. FLOTAS Y VEHÍCULOS ──────────────────────────────────────────────────
+
 async function loadFlotaData() {
     const grid = document.getElementById('flotasCardsGrid');
     const tbody = document.getElementById('vehiculosTbody');
@@ -1635,34 +1645,47 @@ async function loadFlotaData() {
     }
 
     if (grid) {
-        if (memoryFlotas.length === 0) {
+        if (!memoryFlotas || memoryFlotas.length === 0) {
             grid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:6px; color:#64748b; text-align:center;">No hay flotas registradas. Haz clic en "+ Nueva Flota".</div>`;
         } else {
             grid.innerHTML = memoryFlotas.map(f => `
-                <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
-                    <div style="font-size:11.5px; color:#0284c7; font-weight:700; text-transform:uppercase;">Flota #${f.idFlota}</div>
-                    <div style="font-size:15px; font-weight:800; color:#0f172a; margin:4px 0;">${f.nombreFlota}</div>
-                    <p style="font-size:12.5px; color:#64748b; margin:0;">${f.descripcion || 'Flota activa de transporte de acero'}</p>
+                <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11.5px; color:#0284c7; font-weight:700; text-transform:uppercase;">Flota #${f.idFlota}</span>
+                            <span class="${f.activo !== false ? 'badge-optima' : 'badge-no-optima'}" style="font-size:10px;">${f.activo !== false ? 'ACTIVA' : 'INACTIVA'}</span>
+                        </div>
+                        <div style="font-size:15px; font-weight:800; color:#0f172a; margin:6px 0 4px;">${f.nombreFlota}</div>
+                        <p style="font-size:12.5px; color:#64748b; margin:0 0 12px;">${f.descripcion || 'Flota activa de transporte de acero'}</p>
+                    </div>
+                    <div style="border-top:1px solid #f1f5f9; padding-top:10px; display:flex; justify-content:flex-end; gap:6px;">
+                        <button class="btn-action-edit" onclick="openEditFlotaModal(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}', '${(f.descripcion || '').replace(/'/g, "\'")}')">Editar</button>
+                        <button class="btn-action-del" onclick="deleteFlota(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}')">Eliminar</button>
+                    </div>
                 </div>
             `).join('');
         }
     }
 
     if (tbody) {
-        if (memoryVehiculos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados. Haz clic en "+ Nuevo Vehículo".</td></tr>`;
+        if (!memoryVehiculos || memoryVehiculos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados. Haz clic en "+ Nuevo Vehículo".</td></tr>`;
         } else {
             tbody.innerHTML = memoryVehiculos.map(v => {
                 const badgeStatus = v.estadoOperativo === 'DISPONIBLE' ? 'badge-optima' : (v.estadoOperativo === 'EN_RUTA' ? 'badge-alternativa' : 'badge-no-optima');
                 return `
                     <tr>
                         <td style="font-weight:700; color:#64748b;">#${v.idVehiculo}</td>
-                        <td><strong style="color:#0f172a; font-size:13.5px; letter-spacing:0.5px;">${v.placa}</strong></td>
-                        <td>${v.tipoCamion || 'Camión Pesado'}</td>
-                        <td style="font-weight:600; color:#0284c7;">${v.modelo || 'Volvo FH 540'}</td>
-                        <td><strong style="color:#15803d; font-size:14px;">${v.capacidadMaxTon} Tn</strong></td>
-                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '-'}</td>
-                        <td><span class="${badgeStatus}">${v.estadoOperativo}</span></td>
+                        <td style="font-weight:700; color:#1e293b;"><span style="background:#f1f5f9; padding:2px 8px; border-radius:4px; border:1px solid #cbd5e1;">${v.placa}</span></td>
+                        <td>${v.tipoCamion || 'Plataforma'}</td>
+                        <td><strong>${v.modelo || 'Volvo FH 540'}</strong></td>
+                        <td style="color:#15803d; font-weight:700;">${v.capacidadMaxTon || 24} Tn</td>
+                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '32 m³'}</td>
+                        <td><span class="${badgeStatus}">${v.estadoOperativo || 'DISPONIBLE'}</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="btn-action-edit" onclick="openEditVehiculoModal(${v.idVehiculo}, '${v.placa}', '${v.tipoCamion || ''}', '${(v.modelo || '').replace(/'/g, "\'")}', ${v.capacidadMaxTon || 24}, ${v.volumenMaxM3 || 32}, '${v.estadoOperativo || 'DISPONIBLE'}', ${v.idFlota || 1})">Editar</button>
+                            <button class="btn-action-del" onclick="deleteVehiculo(${v.idVehiculo}, '${v.placa}')">Eliminar</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1670,53 +1693,28 @@ async function loadFlotaData() {
     }
 }
 
-function openNewVehiculoModal() {
-    const selFlota = document.getElementById('vehFlotaSelect');
-    if (selFlota && memoryFlotas.length > 0) {
-        selFlota.innerHTML = memoryFlotas.map(f => `<option value="${f.idFlota}">${f.nombreFlota}</option>`).join('');
-    }
-    const modal = document.getElementById('vehiculoModal');
+// ── Modales y operaciones de Flotas ────────────────────────────────────────
+
+function openNewFlotaModal() {
+    const hiddenId = document.getElementById('flotaId');
+    if (hiddenId) hiddenId.value = '';
+    const nameInput = document.getElementById('flotaNombre');
+    const descInput = document.getElementById('flotaDescripcion');
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+
+    const modal = document.getElementById('flotaModal');
     if (modal) modal.classList.add('active');
 }
 
-function closeVehiculoModal() {
-    const modal = document.getElementById('vehiculoModal');
-    if (modal) modal.classList.remove('active');
-}
+function openEditFlotaModal(id, nombre, desc) {
+    const hiddenId = document.getElementById('flotaId');
+    if (hiddenId) hiddenId.value = id;
+    const nameInput = document.getElementById('flotaNombre');
+    const descInput = document.getElementById('flotaDescripcion');
+    if (nameInput) nameInput.value = nombre;
+    if (descInput) descInput.value = desc || '';
 
-async function saveVehiculo(e) {
-    e.preventDefault();
-    const placa = document.getElementById('vehPlaca').value.trim().toUpperCase();
-    const tipoCamion = document.getElementById('vehTipo').value;
-    const modelo = document.getElementById('vehModelo').value.trim();
-    const capacidadMaxTon = parseFloat(document.getElementById('vehCapacidad').value);
-    const volumenMaxM3 = parseFloat(document.getElementById('vehVolumen').value);
-    const idFlota = parseInt(document.getElementById('vehFlotaSelect')?.value || 1);
-
-    const payload = { placa, tipoCamion, modelo, capacidadMaxTon, volumenMaxM3, idFlota, estadoOperativo: 'DISPONIBLE' };
-
-    try {
-        if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/vehiculos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar');
-            alert('✅ Vehículo registrado exitosamente en la base de datos.');
-        } else {
-            payload.idVehiculo = memoryVehiculos.length + 1;
-            memoryVehiculos.unshift(payload);
-            alert('✅ Vehículo registrado localmente.');
-        }
-        closeVehiculoModal();
-        loadFlotaData();
-    } catch (err) {
-        alert('Error: ' + err.message);
-    }
-}
-
-function openNewFlotaModal() {
     const modal = document.getElementById('flotaModal');
     if (modal) modal.classList.add('active');
 }
@@ -1728,23 +1726,24 @@ function closeFlotaModal() {
 
 async function saveFlota(e) {
     e.preventDefault();
+    const id = document.getElementById('flotaId')?.value;
     const nombreFlota = document.getElementById('flotaNombre').value.trim();
     const descripcion = document.getElementById('flotaDescripcion').value.trim();
     const payload = { nombreFlota, descripcion, activo: true };
 
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/flotas', {
-                method: 'POST',
+            const url = id ? `${API_HOST}/api/flotas/${id}` : `${API_HOST}/api/flotas`;
+            const method = id ? 'PUT' : 'POST';
+            const res = await apiFetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (!res.ok) throw new Error((await res.json()).error || 'Error al crear');
-            alert('✅ Flota creada exitosamente en PostgreSQL.');
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar flota');
+            alert(id ? '✅ Flota actualizada correctamente.' : '✅ Flota creada exitosamente en PostgreSQL.');
         } else {
-            payload.idFlota = memoryFlotas.length + 1;
-            memoryFlotas.push(payload);
-            alert('✅ Flota creada localmente.');
+            alert('✅ Flota procesada localmente.');
         }
         closeFlotaModal();
         loadFlotaData();
@@ -1753,9 +1752,115 @@ async function saveFlota(e) {
     }
 }
 
-/* ==========================================================================
-   LÓGICA DE CLIENTES Y PEDIDOS DE ACERO
-   ========================================================================== */
+async function deleteFlota(id, nombre) {
+    if (!confirm(`¿Estás seguro de eliminar o desactivar la flota "${nombre}" (#${id})?`)) return;
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/flotas/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || '✅ Flota eliminada.');
+        }
+        loadFlotaData();
+    } catch (err) {
+        alert('Error al eliminar flota: ' + err.message);
+    }
+}
+
+// ── Modales y operaciones de Vehículos ─────────────────────────────────────
+
+function openNewVehiculoModal() {
+    const hiddenId = document.getElementById('vehId');
+    if (hiddenId) hiddenId.value = '';
+    const form = document.getElementById('vehiculoForm');
+    if (form) form.reset();
+
+    const sel = document.getElementById('vehFlotaSelect');
+    if (sel && memoryFlotas.length > 0) {
+        sel.innerHTML = memoryFlotas.map(f => `<option value="${f.idFlota}">${f.nombreFlota}</option>`).join('');
+    }
+
+    const modal = document.getElementById('vehiculoModal');
+    if (modal) modal.classList.add('active');
+}
+
+function openEditVehiculoModal(id, placa, tipo, modelo, cap, vol, estado, idFlota) {
+    const hiddenId = document.getElementById('vehId');
+    if (hiddenId) hiddenId.value = id;
+
+    const placaInput = document.getElementById('vehPlaca');
+    const tipoSelect = document.getElementById('vehTipo');
+    const modeloInput = document.getElementById('vehModelo');
+    const capInput = document.getElementById('vehCapacidad');
+    const volInput = document.getElementById('vehVolumen');
+
+    if (placaInput) placaInput.value = placa;
+    if (tipoSelect) tipoSelect.value = tipo;
+    if (modeloInput) modeloInput.value = modelo;
+    if (capInput) capInput.value = cap;
+    if (volInput) volInput.value = vol;
+
+    const sel = document.getElementById('vehFlotaSelect');
+    if (sel && memoryFlotas.length > 0) {
+        sel.innerHTML = memoryFlotas.map(f => `<option value="${f.idFlota}" ${f.idFlota === idFlota ? 'selected' : ''}>${f.nombreFlota}</option>`).join('');
+    }
+
+    const modal = document.getElementById('vehiculoModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeVehiculoModal() {
+    const modal = document.getElementById('vehiculoModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveVehiculo(e) {
+    e.preventDefault();
+    const id = document.getElementById('vehId')?.value;
+    const placa = document.getElementById('vehPlaca').value.trim().toUpperCase();
+    const tipoCamion = document.getElementById('vehTipo').value;
+    const modelo = document.getElementById('vehModelo').value.trim();
+    const capacidadMaxTon = parseFloat(document.getElementById('vehCapacidad').value);
+    const volumenMaxM3 = parseFloat(document.getElementById('vehVolumen').value);
+    const idFlota = parseInt(document.getElementById('vehFlotaSelect')?.value || 1);
+
+    const payload = { placa, tipoCamion, modelo, capacidadMaxTon, volumenMaxM3, idFlota, estadoOperativo: 'DISPONIBLE' };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const url = id ? `${API_HOST}/api/vehiculos/${id}` : `${API_HOST}/api/vehiculos`;
+            const method = id ? 'PUT' : 'POST';
+            const res = await apiFetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar vehículo');
+            alert(id ? '✅ Vehículo actualizado correctamente.' : '✅ Vehículo registrado exitosamente en la base de datos.');
+        } else {
+            alert('✅ Vehículo procesado localmente.');
+        }
+        closeVehiculoModal();
+        loadFlotaData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteVehiculo(id, placa) {
+    if (!confirm(`¿Estás seguro de eliminar o inactivar el vehículo con placa ${placa} (#${id})?`)) return;
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/vehiculos/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || '✅ Vehículo eliminado.');
+        }
+        loadFlotaData();
+    } catch (err) {
+        alert('Error al eliminar vehículo: ' + err.message);
+    }
+}
+
+// ── 2. CLIENTES Y PEDIDOS ──────────────────────────────────────────────────
 
 async function loadClientesData() {
     const tbodyCli = document.getElementById('clientesTbody');
@@ -1781,8 +1886,8 @@ async function loadClientesData() {
     }
 
     if (tbodyPed) {
-        if (memoryPedidos.length === 0) {
-            tbodyPed.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay pedidos registrados. Haz clic en "+ Registrar Pedido".</td></tr>`;
+        if (!memoryPedidos || memoryPedidos.length === 0) {
+            tbodyPed.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay pedidos registrados. Haz clic en "+ Registrar Pedido".</td></tr>`;
         } else {
             tbodyPed.innerHTML = memoryPedidos.map(p => {
                 const badgeClass = p.prioridad === 'ALTA' ? 'badge-no-optima' : (p.prioridad === 'MEDIA' ? 'badge-alternativa' : 'badge-optima');
@@ -1794,8 +1899,21 @@ async function loadClientesData() {
                         <td><strong style="color:#15803d; font-size:13.5px;">${p.pesoT} Tn</strong></td>
                         <td>${p.direccionDestino}</td>
                         <td><span class="${badgeClass}">${p.prioridad}</span></td>
-                        <td><small style="color:#475569; font-weight:600;">${p.objetivoOptimizacion}</small></td>
-                        <td><span class="badge-optima">${p.estadoPedido}</span></td>
+                        <td><small style="color:#0284c7; font-weight:600;">${p.objetivoOptimizacion}</small></td>
+                        <td>
+                            <select onchange="quickChangePedidoEstado(${p.idPedido}, this.value)" style="padding:3px 6px; font-size:11.5px; border-radius:4px; font-weight:600; border:1px solid #cbd5e1; background:#f8fafc;">
+                                <option value="REGISTRADO" ${p.estadoPedido === 'REGISTRADO' ? 'selected' : ''}>REGISTRADO</option>
+                                <option value="EN_PROCESO" ${p.estadoPedido === 'EN_PROCESO' ? 'selected' : ''}>EN_PROCESO</option>
+                                <option value="OPTIMIZADO" ${p.estadoPedido === 'OPTIMIZADO' ? 'selected' : ''}>OPTIMIZADO</option>
+                                <option value="DESPACHADO" ${p.estadoPedido === 'DESPACHADO' ? 'selected' : ''}>DESPACHADO</option>
+                                <option value="ENTREGADO" ${p.estadoPedido === 'ENTREGADO' ? 'selected' : ''}>ENTREGADO</option>
+                                <option value="CANCELADO" ${p.estadoPedido === 'CANCELADO' ? 'selected' : ''}>CANCELADO</option>
+                            </select>
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="btn-action-edit" onclick="openEditPedidoModal(${p.idPedido}, ${p.idCliente || 1}, '${p.tipoMaterial.replace(/'/g, "\'")}', ${p.pesoT}, '${p.direccionDestino.replace(/'/g, "\'")}', '${p.prioridad}', '${p.objetivoOptimizacion}', '${p.estadoPedido}')">Editar</button>
+                            <button class="btn-action-del" onclick="deletePedido(${p.idPedido})">Eliminar</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -1803,25 +1921,58 @@ async function loadClientesData() {
     }
 
     if (tbodyCli) {
-        if (memoryClientes.length === 0) {
-            tbodyCli.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#64748b;">No hay clientes registrados. Haz clic en "+ Registrar Cliente".</td></tr>`;
+        if (!memoryClientes || memoryClientes.length === 0) {
+            tbodyCli.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay clientes registrados. Haz clic en "+ Registrar Cliente".</td></tr>`;
         } else {
             tbodyCli.innerHTML = memoryClientes.map(c => `
                 <tr>
-                    <td style="font-weight:700; color:#64748b;">#${c.idCliente}</td>
-                    <td><strong>${c.nombre}</strong></td>
-                    <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${c.tipoDocumento}: ${c.numeroDocumento}</span></td>
-                    <td>${c.direccionFiscal || '-'}</td>
-                    <td>${c.contactoNombre || '-'}</td>
-                    <td>${c.telefono || '-'}</td>
-                    <td><span style="color:#16a34a; font-weight:600;">● Activo</span></td>
+                    <td style="font-weight:700; color:#64748b;">#CLI-${c.idCliente}</td>
+                    <td><strong style="color:#0f172a;">${c.nombre}</strong></td>
+                    <td><span style="font-family:monospace; font-weight:600; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${c.tipoDocumento} ${c.numeroDocumento}</span></td>
+                    <td><small style="color:#475569;">${c.direccionFiscal || 'No registrada'}</small></td>
+                    <td>${c.contactoNombre || 'Contacto Comercial'}</td>
+                    <td>${c.telefono || 'Sin teléfono'}</td>
+                    <td><span class="${c.activo !== false ? 'badge-optima' : 'badge-no-optima'}">${c.activo !== false ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn-action-edit" onclick="openEditClienteModal(${c.idCliente}, '${c.nombre.replace(/'/g, "\'")}', '${c.tipoDocumento}', '${c.numeroDocumento}', '${(c.direccionFiscal || '').replace(/'/g, "\'")}', '${(c.contactoNombre || '').replace(/'/g, "\'")}', '${c.telefono || ''}', '${c.email || ''}')">Editar</button>
+                        <button class="btn-action-del" onclick="deleteCliente(${c.idCliente}, '${c.nombre.replace(/'/g, "\'")}')">Eliminar</button>
+                    </td>
                 </tr>
             `).join('');
         }
     }
 }
 
+// ── Modales y operaciones de Clientes ──────────────────────────────────────
+
 function openNewClienteModal() {
+    const hiddenId = document.getElementById('cliId');
+    if (hiddenId) hiddenId.value = '';
+    const form = document.getElementById('clienteForm');
+    if (form) form.reset();
+
+    const modal = document.getElementById('clienteModal');
+    if (modal) modal.classList.add('active');
+}
+
+function openEditClienteModal(id, nombre, tipoDoc, numDoc, dir, contacto, tel, email) {
+    const hiddenId = document.getElementById('cliId');
+    if (hiddenId) hiddenId.value = id;
+
+    const nombreIn = document.getElementById('cliNombre');
+    const tipoSelect = document.getElementById('cliTipoDoc');
+    const numIn = document.getElementById('cliNumDoc');
+    const dirIn = document.getElementById('cliDireccion');
+    const contIn = document.getElementById('cliContacto');
+    const telIn = document.getElementById('cliTelefono');
+
+    if (nombreIn) nombreIn.value = nombre;
+    if (tipoSelect) tipoSelect.value = tipoDoc;
+    if (numIn) numIn.value = numDoc;
+    if (dirIn) dirIn.value = dir || '';
+    if (contIn) contIn.value = contacto || '';
+    if (telIn) telIn.value = tel || '';
+
     const modal = document.getElementById('clienteModal');
     if (modal) modal.classList.add('active');
 }
@@ -1833,6 +1984,7 @@ function closeClienteModal() {
 
 async function saveCliente(e) {
     e.preventDefault();
+    const id = document.getElementById('cliId')?.value;
     const nombre = document.getElementById('cliNombre').value.trim();
     const tipoDocumento = document.getElementById('cliTipoDoc').value;
     const numeroDocumento = document.getElementById('cliNumDoc').value.trim();
@@ -1844,17 +1996,17 @@ async function saveCliente(e) {
 
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/clientes', {
-                method: 'POST',
+            const url = id ? `${API_HOST}/api/clientes/${id}` : `${API_HOST}/api/clientes`;
+            const method = id ? 'PUT' : 'POST';
+            const res = await apiFetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar cliente');
-            alert('✅ Cliente registrado exitosamente en PostgreSQL.');
+            alert(id ? '✅ Cliente actualizado correctamente.' : '✅ Cliente registrado exitosamente en PostgreSQL.');
         } else {
-            payload.idCliente = memoryClientes.length + 1;
-            memoryClientes.push(payload);
-            alert('✅ Cliente registrado localmente.');
+            alert('✅ Cliente procesado localmente.');
         }
         closeClienteModal();
         loadClientesData();
@@ -1863,11 +2015,58 @@ async function saveCliente(e) {
     }
 }
 
-function openNewPedidoModal() {
-    const selCliente = document.getElementById('pedClienteSelect');
-    if (selCliente && memoryClientes.length > 0) {
-        selCliente.innerHTML = memoryClientes.map(c => `<option value="${c.idCliente}">${c.nombre} (${c.tipoDocumento}: ${c.numeroDocumento})</option>`).join('');
+async function deleteCliente(id, nombre) {
+    if (!confirm(`¿Estás seguro de eliminar el cliente "${nombre}" (#CLI-${id})?`)) return;
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/clientes/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || '✅ Cliente eliminado.');
+        }
+        loadClientesData();
+    } catch (err) {
+        alert('Error al eliminar cliente: ' + err.message);
     }
+}
+
+// ── Modales y operaciones de Pedidos ───────────────────────────────────────
+
+function openNewPedidoModal() {
+    const hiddenId = document.getElementById('pedId');
+    if (hiddenId) hiddenId.value = '';
+    const form = document.getElementById('pedidoForm');
+    if (form) form.reset();
+
+    const selectCli = document.getElementById('pedClienteSelect');
+    if (selectCli && memoryClientes.length > 0) {
+        selectCli.innerHTML = memoryClientes.map(c => `<option value="${c.idCliente}">${c.nombre} (${c.numeroDocumento})</option>`).join('');
+    }
+
+    const modal = document.getElementById('pedidoModal');
+    if (modal) modal.classList.add('active');
+}
+
+function openEditPedidoModal(id, idCli, material, peso, destino, prioridad, objetivo, estado) {
+    const hiddenId = document.getElementById('pedId');
+    if (hiddenId) hiddenId.value = id;
+
+    const selectCli = document.getElementById('pedClienteSelect');
+    if (selectCli && memoryClientes.length > 0) {
+        selectCli.innerHTML = memoryClientes.map(c => `<option value="${c.idCliente}" ${c.idCliente === idCli ? 'selected' : ''}>${c.nombre} (${c.numeroDocumento})</option>`).join('');
+    }
+
+    const matSelect = document.getElementById('pedMaterial');
+    const pesoIn = document.getElementById('pedPeso');
+    const destIn = document.getElementById('pedDestino');
+    const priSelect = document.getElementById('pedPrioridad');
+    const objSelect = document.getElementById('pedObjetivo');
+
+    if (matSelect) matSelect.value = material;
+    if (pesoIn) pesoIn.value = peso;
+    if (destIn) destIn.value = destino;
+    if (priSelect) priSelect.value = prioridad;
+    if (objSelect) objSelect.value = objetivo;
+
     const modal = document.getElementById('pedidoModal');
     if (modal) modal.classList.add('active');
 }
@@ -1879,6 +2078,7 @@ function closePedidoModal() {
 
 async function savePedido(e) {
     e.preventDefault();
+    const id = document.getElementById('pedId')?.value;
     const idCliente = parseInt(document.getElementById('pedClienteSelect').value);
     const tipoMaterial = document.getElementById('pedMaterial').value;
     const pesoT = parseFloat(document.getElementById('pedPeso').value);
@@ -1902,17 +2102,17 @@ async function savePedido(e) {
 
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/pedidos', {
-                method: 'POST',
+            const url = id ? `${API_HOST}/api/pedidos/${id}` : `${API_HOST}/api/pedidos`;
+            const method = id ? 'PUT' : 'POST';
+            const res = await apiFetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar pedido');
-            alert('✅ Pedido de acero registrado exitosamente en PostgreSQL.');
+            alert(id ? '✅ Pedido actualizado correctamente.' : '✅ Pedido de acero registrado en PostgreSQL.');
         } else {
-            payload.idPedido = memoryPedidos.length + 1;
-            memoryPedidos.unshift(payload);
-            alert('✅ Pedido guardado localmente.');
+            alert('✅ Pedido procesado localmente.');
         }
         closePedidoModal();
         loadClientesData();
@@ -1921,9 +2121,176 @@ async function savePedido(e) {
     }
 }
 
-/* ==========================================================================
-   GESTIÓN DE CUENTAS (PERSISTENCIA CON POSTGRESQL / REST API)
-   ========================================================================== */
+async function deletePedido(id) {
+    if (!confirm(`¿Estás seguro de eliminar el pedido #PED-${id}?`)) return;
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/pedidos/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || '✅ Pedido eliminado.');
+        }
+        loadClientesData();
+    } catch (err) {
+        alert('Error al eliminar pedido: ' + err.message);
+    }
+}
+
+async function quickChangePedidoEstado(id, nuevoEstado) {
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/pedidos/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (!res.ok) throw new Error('Error al actualizar estado del pedido');
+        }
+        loadClientesData();
+    } catch (err) {
+        alert('Error al cambiar estado: ' + err.message);
+        loadClientesData();
+    }
+}
+
+// ── 3. RUTAS GENERALES ─────────────────────────────────────────────────────
+
+async function loadRutasData() {
+    const tbody = document.getElementById('rutasTbody');
+    const badge = document.getElementById('rutasDbBadge');
+    if (!tbody) return;
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(API_HOST + '/api/rutas');
+            if (res.ok) memoryRutas = await res.json();
+
+            if (badge) {
+                badge.className = 'server-status-pill online';
+                badge.textContent = '🟢 PostgreSQL Conectado';
+            }
+        }
+    } catch (err) {
+        console.warn('Error cargando rutas desde BD:', err);
+    }
+
+    if (!memoryRutas || memoryRutas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay rutas registradas en la base de datos. Haz clic en "+ Registrar Nueva Ruta".</td></tr>`;
+    } else {
+        tbody.innerHTML = memoryRutas.map(r => {
+            const badgeClass = r.estado === 'COMPLETADA' ? 'badge-optima' : (r.estado === 'EN_EJECUCION' ? 'badge-alternativa' : 'badge-no-optima');
+            return `
+                <tr>
+                    <td style="font-weight:700; color:#64748b;">#RUT-${r.id}</td>
+                    <td>${r.fechaRuta || 'Hoy'}</td>
+                    <td><strong>${r.algoritmoUsado || 'Google OR-Tools'}</strong></td>
+                    <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:600;">V-${r.vehiculoId || 101}</span></td>
+                    <td style="font-weight:700; color:#0f172a;">${r.distanciaTotalKm || 18.5} km</td>
+                    <td>${r.tiempoEstimadoMin || 32} min</td>
+                    <td style="color:#15803d; font-weight:700;">S/ ${Number(r.costoEstimadoSoles || 85.0).toFixed(2)}</td>
+                    <td><span class="${badgeClass}">${r.estado || 'PLANIFICADA'}</span></td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn-action-edit" onclick="openEditRutaModal(${r.id}, '${(r.algoritmoUsado || '').replace(/'/g, "\'")}', ${r.distanciaTotalKm || 20}, ${r.tiempoEstimadoMin || 30}, ${r.costoEstimadoSoles || 90}, '${r.estado || 'PLANIFICADA'}')">Editar</button>
+                        <button class="btn-action-del" onclick="deleteRuta(${r.id})">Eliminar</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
+function openNewRutaModal() {
+    const hiddenId = document.getElementById('rutaId');
+    if (hiddenId) hiddenId.value = '';
+    const form = document.getElementById('rutaForm');
+    if (form) form.reset();
+
+    const title = document.getElementById('rutaModalTitle');
+    if (title) title.textContent = 'Registrar Nueva Ruta';
+
+    const modal = document.getElementById('rutaModal');
+    if (modal) modal.classList.add('active');
+}
+
+function openEditRutaModal(id, algoritmo, dist, tiempo, costo, estado) {
+    const hiddenId = document.getElementById('rutaId');
+    if (hiddenId) hiddenId.value = id;
+
+    const title = document.getElementById('rutaModalTitle');
+    if (title) title.textContent = `Editar Ruta #RUT-${id}`;
+
+    const algSelect = document.getElementById('rutaAlgoritmo');
+    const distIn = document.getElementById('rutaDistancia');
+    const tiempoIn = document.getElementById('rutaTiempo');
+    const costoIn = document.getElementById('rutaCosto');
+    const estSelect = document.getElementById('rutaEstado');
+
+    if (algSelect) algSelect.value = algoritmo;
+    if (distIn) distIn.value = dist;
+    if (tiempoIn) tiempoIn.value = tiempo;
+    if (costoIn) costoIn.value = costo;
+    if (estSelect) estSelect.value = estado;
+
+    const modal = document.getElementById('rutaModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeRutaModal() {
+    const modal = document.getElementById('rutaModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveRuta(e) {
+    e.preventDefault();
+    const id = document.getElementById('rutaId')?.value;
+    const algoritmoUsado = document.getElementById('rutaAlgoritmo').value;
+    const distanciaTotalKm = parseFloat(document.getElementById('rutaDistancia').value);
+    const tiempoEstimadoMin = parseInt(document.getElementById('rutaTiempo').value);
+    const costoEstimadoSoles = parseFloat(document.getElementById('rutaCosto').value);
+    const estado = document.getElementById('rutaEstado').value;
+
+    const payload = {
+        algoritmoUsado,
+        distanciaTotalKm,
+        tiempoEstimadoMin,
+        costoEstimadoSoles,
+        estado,
+        vehiculoId: 1
+    };
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const url = id ? `${API_HOST}/api/rutas/${id}` : `${API_HOST}/api/rutas`;
+            const method = id ? 'PUT' : 'POST';
+            const res = await apiFetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar ruta');
+            alert(id ? '✅ Ruta actualizada correctamente.' : '✅ Ruta creada exitosamente en PostgreSQL.');
+        } else {
+            alert('✅ Ruta procesada localmente.');
+        }
+        closeRutaModal();
+        loadRutasData();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function deleteRuta(id) {
+    if (!confirm(`¿Estás seguro de eliminar la ruta #RUT-${id}?`)) return;
+    try {
+        if (window.location.protocol !== 'file:') {
+            const res = await apiFetch(`${API_HOST}/api/rutas/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || '✅ Ruta eliminada.');
+        }
+        loadRutasData();
+    } catch (err) {
+        alert('Error al eliminar ruta: ' + err.message);
+    }
+}
 
 async function loadUsersFromDatabase() {
     const tbody = document.getElementById('usersTbody');
