@@ -840,9 +840,16 @@ function renderMisRutas(statusFilter = 'TODAS') {
 async function loadAsignacionesFromDatabase() {
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/asignaciones');
-            if (res.ok) {
-                const list = await res.json();
+            const [resAsig, resPed, resCli] = await Promise.all([
+                apiFetch(API_HOST + '/api/asignaciones'),
+                apiFetch(API_HOST + '/api/pedidos'),
+                apiFetch(API_HOST + '/api/clientes')
+            ]);
+            if (resPed.ok) memoryPedidos = await resPed.json();
+            if (resCli.ok) memoryClientes = await resCli.json();
+
+            if (resAsig.ok) {
+                const list = await resAsig.json();
                 if (list && list.length > 0) {
                     activeDispatches = list.map(a => ({
                         id: a.idAsignacion,
@@ -870,6 +877,78 @@ async function loadAsignacionesFromDatabase() {
         console.warn('Usando despachos locales de respaldo:', e);
     }
     renderMisRutas(currentDispatchFilter);
+    renderMisPedidosEnRuta();
+}
+
+function renderMisPedidosEnRuta() {
+    const container = document.getElementById('misPedidosEnRutaList');
+    if (!container) return;
+
+    if (!memoryPedidos || memoryPedidos.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:20px; text-align:center; color:#64748b;">
+                No hay pedidos registrados en base de datos.
+            </div>
+        `;
+        return;
+    }
+
+    const clienteMap = {};
+    if (memoryClientes && memoryClientes.length > 0) {
+        memoryClientes.forEach(c => { clienteMap[c.idCliente] = c.razonSocial; });
+    }
+
+    container.innerHTML = memoryPedidos.map(p => {
+        const est = (p.estadoPedido || 'REGISTRADO').toUpperCase();
+        const clienteNom = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+
+        let badgeBg = '#e0f2fe';
+        let badgeColor = '#0369a1';
+        let badgeBorder = '#bae6fd';
+        let actionBtnHtml = '';
+
+        if (est === 'REGISTRADO') {
+            badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; badgeBorder = '#bae6fd';
+            actionBtnHtml = `<button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#0284c7; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'EN_PROCESO')">▶ Iniciar Proceso</button>`;
+        } else if (est === 'EN_PROCESO') {
+            badgeBg = '#fef3c7'; badgeColor = '#b45309'; badgeBorder = '#fde68a';
+            actionBtnHtml = `<button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#7c3aed; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'OPTIMIZADO')">⚡ Optimizar Ruta</button>`;
+        } else if (est === 'OPTIMIZADO') {
+            badgeBg = '#f3e8ff'; badgeColor = '#6b21a8'; badgeBorder = '#e9d5ff';
+            actionBtnHtml = `<button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#ea580c; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'DESPACHADO')">🚚 Iniciar Despacho</button>`;
+        } else if (est === 'DESPACHADO') {
+            badgeBg = '#ffedd5'; badgeColor = '#c2410c'; badgeBorder = '#fed7aa';
+            actionBtnHtml = `<button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#16a34a; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'ENTREGADO')">✅ Confirmar Entrega</button>`;
+        } else if (est === 'ENTREGADO') {
+            badgeBg = '#dcfce7'; badgeColor = '#15803d'; badgeBorder = '#bbf7d0';
+            actionBtnHtml = `<span style="font-size:12px; color:#16a34a; font-weight:700;">✔ Entrega Completada</span>`;
+        } else {
+            badgeBg = '#f1f5f9'; badgeColor = '#64748b'; badgeBorder = '#cbd5e1';
+            actionBtnHtml = `<span style="font-size:12px; color:#64748b;">Cancelado</span>`;
+        }
+
+        return `
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px; box-shadow:0 1px 2px rgba(0,0,0,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <div style="font-size:13.5px; font-weight:800; color:#0f172a;">#PED-${p.idPedido} · ${p.tipoMaterial}</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:2px;">Cliente: <strong>${clienteNom}</strong></div>
+                    </div>
+                    <span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeBorder};">
+                        ● ${est}
+                    </span>
+                </div>
+                <div style="font-size:12px; color:#475569; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #f1f5f9;">
+                    <div>📍 <strong>Destino:</strong> ${p.direccionDestino}</div>
+                    <div style="margin-top:2px;">⚖️ <strong>Carga:</strong> ${p.pesoT} Tn ${p.volumenM3 ? '· ' + p.volumenM3 + ' m³' : ''}</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                    <span style="font-size:11px; color:#94a3b8;">${p.prioridad === 'ALTA' ? '🔴 Alta Prioridad' : '🟡 Prioridad Normal'}</span>
+                    <div>${actionBtnHtml}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function updateDispatchStatus(dispatchId, newStatus) {
@@ -878,20 +957,51 @@ async function updateDispatchStatus(dispatchId, newStatus) {
 
     item.estado = newStatus;
 
-    if (newStatus === 'COMPLETADA' && window.location.protocol !== 'file:') {
+    if (window.location.protocol !== 'file:') {
+        if (newStatus === 'COMPLETADA') {
+            try {
+                await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
+            } catch (e) {
+                console.warn('Error completando asignacion en servidor:', e);
+            }
+        }
+
+        // Sincronizar automáticamente el estado del pedido asociado en el ciclo de vida
         try {
-            await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
-        } catch (e) {
-            console.warn('Error completando asignacion en servidor:', e);
+            if (newStatus === 'EN_TRANSITO') {
+                const pedToDespachar = (memoryPedidos || []).find(p => p.estadoPedido === 'OPTIMIZADO' || p.estadoPedido === 'EN_PROCESO');
+                if (pedToDespachar) {
+                    await apiFetch(`${API_HOST}/api/pedidos/${pedToDespachar.idPedido}/estado`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ estado: 'DESPACHADO' })
+                    });
+                    pedToDespachar.estadoPedido = 'DESPACHADO';
+                }
+            } else if (newStatus === 'COMPLETADA') {
+                const pedToEntregar = (memoryPedidos || []).find(p => p.estadoPedido === 'DESPACHADO');
+                if (pedToEntregar) {
+                    await apiFetch(`${API_HOST}/api/pedidos/${pedToEntregar.idPedido}/estado`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ estado: 'ENTREGADO' })
+                    });
+                    pedToEntregar.estadoPedido = 'ENTREGADO';
+                    pedToEntregar.fechaEntrega = new Date().toISOString();
+                }
+            }
+        } catch (syncErr) {
+            console.warn('Advertencia al sincronizar estado de pedido en despacho:', syncErr);
         }
     }
 
     const msg = (newStatus === 'EN_TRANSITO') 
-        ? `🚚 ¡Buen viaje! Despacho ${item.codigo} marcado en tránsito hacia ${item.destino}.`
-        : `✅ ¡Entrega registrada con éxito para el despacho ${item.codigo}! (Guardado en base de datos)`;
+        ? `🚚 ¡Buen viaje! Despacho ${item.codigo} marcado en tránsito hacia ${item.destino}. Pedido vinculado marcado como DESPACHADO.`
+        : `✅ ¡Entrega registrada con éxito para el despacho ${item.codigo}! Pedido vinculado marcado como ENTREGADO en base de datos.`;
 
     alert(msg);
     renderMisRutas(currentDispatchFilter);
+    renderMisPedidosEnRuta();
 }
 
 /* ==========================================================================
@@ -2135,21 +2245,188 @@ async function deletePedido(id) {
     }
 }
 
-async function quickChangePedidoEstado(id, nuevoEstado) {
+async function advancePedidoEstado(idPedido, nuevoEstado) {
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(`${API_HOST}/api/pedidos/${id}/estado`, {
+            const res = await apiFetch(`${API_HOST}/api/pedidos/${idPedido}/estado`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ estado: nuevoEstado })
             });
-            if (!res.ok) throw new Error('Error al actualizar estado del pedido');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Error al actualizar estado del pedido');
+            }
+            const updated = await res.json();
+            if (memoryPedidos && memoryPedidos.length > 0) {
+                const idx = memoryPedidos.findIndex(p => p.idPedido === idPedido);
+                if (idx !== -1) memoryPedidos[idx] = updated;
+            }
+        } else {
+            if (memoryPedidos) {
+                const p = memoryPedidos.find(x => x.idPedido === idPedido);
+                if (p) {
+                    p.estadoPedido = nuevoEstado;
+                    if (nuevoEstado === 'ENTREGADO') p.fechaEntrega = new Date().toISOString();
+                }
+            }
         }
-        loadClientesData();
+
+        alert(`✅ Pedido #${idPedido} actualizado con éxito a: ${nuevoEstado}`);
+
+        // Refrescar vistas en tiempo real
+        if (document.getElementById('pedidosFlujoTbody')) {
+            renderPedidosFlujo(memoryPedidos, memoryClientes);
+        }
+        if (document.getElementById('pedidosTbody')) {
+            loadClientesData();
+        }
+        if (document.getElementById('misPedidosEnRutaList')) {
+            renderMisPedidosEnRuta();
+        }
     } catch (err) {
-        alert('Error al cambiar estado: ' + err.message);
-        loadClientesData();
+        alert('Error al actualizar estado del pedido: ' + err.message);
     }
+}
+
+async function quickChangePedidoEstado(id, nuevoEstado) {
+    return advancePedidoEstado(id, nuevoEstado);
+}
+
+function renderPedidosFlujo(pedidos, clientes) {
+    const tbody = document.getElementById('pedidosFlujoTbody');
+    if (!tbody) return;
+
+    if (!pedidos || pedidos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay pedidos registrados para gestionar su flujo en tiempo real.</td></tr>`;
+        return;
+    }
+
+    const clienteMap = {};
+    if (clientes && clientes.length > 0) {
+        clientes.forEach(c => { clienteMap[c.idCliente] = c.razonSocial; });
+    }
+
+    tbody.innerHTML = pedidos.map(p => {
+        const clienteNom = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+        const est = (p.estadoPedido || 'REGISTRADO').toUpperCase();
+
+        let badgeColor = '#0284c7';
+        let badgeBg = '#e0f2fe';
+        let badgeBorder = '#bae6fd';
+        let badgeIcon = '📝';
+        let stepNumber = 1;
+
+        if (est === 'REGISTRADO') {
+            badgeColor = '#0284c7'; badgeBg = '#e0f2fe'; badgeBorder = '#bae6fd'; badgeIcon = '📝'; stepNumber = 1;
+        } else if (est === 'EN_PROCESO') {
+            badgeColor = '#d97706'; badgeBg = '#fef3c7'; badgeBorder = '#fde68a'; badgeIcon = '⚙️'; stepNumber = 2;
+        } else if (est === 'OPTIMIZADO') {
+            badgeColor = '#7c3aed'; badgeBg = '#f3e8ff'; badgeBorder = '#e9d5ff'; badgeIcon = '⚡'; stepNumber = 3;
+        } else if (est === 'DESPACHADO') {
+            badgeColor = '#ea580c'; badgeBg = '#ffedd5'; badgeBorder = '#fed7aa'; badgeIcon = '🚚'; stepNumber = 4;
+        } else if (est === 'ENTREGADO') {
+            badgeColor = '#16a34a'; badgeBg = '#dcfce7'; badgeBorder = '#bbf7d0'; badgeIcon = '✅'; stepNumber = 5;
+        } else if (est === 'CANCELADO') {
+            badgeColor = '#64748b'; badgeBg = '#f1f5f9'; badgeBorder = '#cbd5e1'; badgeIcon = '❌'; stepNumber = 0;
+        }
+
+        const stepsHtml = [
+            { num: 1, label: 'REG' },
+            { num: 2, label: 'PROC' },
+            { num: 3, label: 'OPT' },
+            { num: 4, label: 'DESP' },
+            { num: 5, label: 'ENTR' }
+        ].map(s => {
+            const isCompleted = stepNumber > s.num;
+            const isCurrent = stepNumber === s.num;
+            const bg = isCurrent ? badgeColor : (isCompleted ? '#10b981' : '#e2e8f0');
+            const color = (isCurrent || isCompleted) ? '#ffffff' : '#64748b';
+            return `<span title="Paso ${s.num}: ${s.label}" style="display:inline-block; font-size:10px; font-weight:700; width:20px; height:20px; line-height:20px; text-align:center; border-radius:50%; background:${bg}; color:${color}; margin:0 1px;">${s.num}</span>`;
+        }).join('<span style="color:#cbd5e1; font-size:9px;">-</span>');
+
+        let actionBtnHtml = '';
+        if (est === 'REGISTRADO') {
+            actionBtnHtml = `
+                <button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#0284c7; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'EN_PROCESO')">
+                    ▶ Pasar a En Proceso
+                </button>
+            `;
+        } else if (est === 'EN_PROCESO') {
+            actionBtnHtml = `
+                <button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#7c3aed; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'OPTIMIZADO')">
+                    ⚡ Marcar Optimizado
+                </button>
+            `;
+        } else if (est === 'OPTIMIZADO') {
+            actionBtnHtml = `
+                <button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#ea580c; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'DESPACHADO')">
+                    🚚 Despachar Pedido
+                </button>
+            `;
+        } else if (est === 'DESPACHADO') {
+            actionBtnHtml = `
+                <button class="btn-primary" style="padding:6px 12px; font-size:12px; background:#16a34a; border:none; border-radius:6px; cursor:pointer;" onclick="advancePedidoEstado(${p.idPedido}, 'ENTREGADO')">
+                    ✅ Confirmar Entrega
+                </button>
+            `;
+        } else if (est === 'ENTREGADO') {
+            actionBtnHtml = `
+                <span style="font-size:12px; color:#16a34a; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                    ✔ Entregado con Éxito
+                </span>
+            `;
+        } else {
+            actionBtnHtml = `<span style="font-size:12px; color:#64748b;">Cancelado</span>`;
+        }
+
+        const selectHtml = `
+            <select onchange="advancePedidoEstado(${p.idPedido}, this.value)" style="margin-left:6px; padding:3px 5px; font-size:11px; border-radius:4px; border:1px solid #cbd5e1; background:#f8fafc; font-weight:600; cursor:pointer;">
+                <option value="REGISTRADO" ${est === 'REGISTRADO' ? 'selected' : ''}>1. REGISTRADO</option>
+                <option value="EN_PROCESO" ${est === 'EN_PROCESO' ? 'selected' : ''}>2. EN_PROCESO</option>
+                <option value="OPTIMIZADO" ${est === 'OPTIMIZADO' ? 'selected' : ''}>3. OPTIMIZADO</option>
+                <option value="DESPACHADO" ${est === 'DESPACHADO' ? 'selected' : ''}>4. DESPACHADO</option>
+                <option value="ENTREGADO" ${est === 'ENTREGADO' ? 'selected' : ''}>5. ENTREGADO</option>
+                <option value="CANCELADO" ${est === 'CANCELADO' ? 'selected' : ''}>CANCELADO</option>
+            </select>
+        `;
+
+        const prioBadge = p.prioridad === 'ALTA' 
+            ? '<span class="badge-no-optima">Alta</span>' 
+            : (p.prioridad === 'MEDIA' ? '<span class="badge-alternativa">Media</span>' : '<span class="badge-optima">Baja</span>');
+
+        return `
+            <tr>
+                <td style="font-weight:700; color:#0f172a; white-space:nowrap;">
+                    #PED-${p.idPedido}
+                    <div style="font-size:11px; color:#94a3b8; font-weight:400;">${p.fechaEmision ? new Date(p.fechaEmision).toLocaleDateString() : 'Hoy'}</div>
+                </td>
+                <td style="font-weight:600; color:#1e293b;">${clienteNom}</td>
+                <td>
+                    <div style="font-weight:600; color:#334155;">${p.tipoMaterial}</div>
+                    <div style="font-size:11.5px; color:#64748b;">${p.pesoT} Tn · ${p.volumenM3 || 0} m³</div>
+                </td>
+                <td style="font-size:12.5px; color:#475569;">${p.direccionDestino}</td>
+                <td>${prioBadge}</td>
+                <td>
+                    <span style="display:inline-flex; align-items:center; gap:4px; padding:4px 9px; border-radius:12px; font-size:11.5px; font-weight:700; background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeBorder};">
+                        ${badgeIcon} ${est}
+                    </span>
+                </td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <div style="display:inline-flex; align-items:center; gap:2px; padding:4px 8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px;">
+                        ${stepsHtml}
+                    </div>
+                </td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <div style="display:inline-flex; align-items:center; justify-content:flex-end;">
+                        ${actionBtnHtml}
+                        ${selectHtml}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // ── 3. RUTAS GENERALES ─────────────────────────────────────────────────────
@@ -2157,12 +2434,18 @@ async function quickChangePedidoEstado(id, nuevoEstado) {
 async function loadRutasData() {
     const tbody = document.getElementById('rutasTbody');
     const badge = document.getElementById('rutasDbBadge');
-    if (!tbody) return;
+    if (!tbody && !document.getElementById('pedidosFlujoTbody')) return;
 
     try {
         if (window.location.protocol !== 'file:') {
-            const res = await apiFetch(API_HOST + '/api/rutas');
-            if (res.ok) memoryRutas = await res.json();
+            const [resRutas, resPed, resCli] = await Promise.all([
+                apiFetch(API_HOST + '/api/rutas'),
+                apiFetch(API_HOST + '/api/pedidos'),
+                apiFetch(API_HOST + '/api/clientes')
+            ]);
+            if (resRutas.ok) memoryRutas = await resRutas.json();
+            if (resPed.ok) memoryPedidos = await resPed.json();
+            if (resCli.ok) memoryClientes = await resCli.json();
 
             if (badge) {
                 badge.className = 'server-status-pill online';
@@ -2170,32 +2453,37 @@ async function loadRutasData() {
             }
         }
     } catch (err) {
-        console.warn('Error cargando rutas desde BD:', err);
+        console.warn('Error cargando rutas y pedidos desde BD:', err);
     }
 
-    if (!memoryRutas || memoryRutas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay rutas registradas en la base de datos. Haz clic en "+ Registrar Nueva Ruta".</td></tr>`;
-    } else {
-        tbody.innerHTML = memoryRutas.map(r => {
-            const badgeClass = r.estado === 'COMPLETADA' ? 'badge-optima' : (r.estado === 'EN_EJECUCION' ? 'badge-alternativa' : 'badge-no-optima');
-            return `
-                <tr>
-                    <td style="font-weight:700; color:#64748b;">#RUT-${r.id}</td>
-                    <td>${r.fechaRuta || 'Hoy'}</td>
-                    <td><strong>${r.algoritmoUsado || 'Google OR-Tools'}</strong></td>
-                    <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:600;">V-${r.vehiculoId || 101}</span></td>
-                    <td style="font-weight:700; color:#0f172a;">${r.distanciaTotalKm || 18.5} km</td>
-                    <td>${r.tiempoEstimadoMin || 32} min</td>
-                    <td style="color:#15803d; font-weight:700;">S/ ${Number(r.costoEstimadoSoles || 85.0).toFixed(2)}</td>
-                    <td><span class="${badgeClass}">${r.estado || 'PLANIFICADA'}</span></td>
-                    <td style="text-align: right; white-space: nowrap;">
-                        <button class="btn-action-edit" onclick="openEditRutaModal(${r.id}, '${(r.algoritmoUsado || '').replace(/'/g, "\'")}', ${r.distanciaTotalKm || 20}, ${r.tiempoEstimadoMin || 30}, ${r.costoEstimadoSoles || 90}, '${r.estado || 'PLANIFICADA'}')">Editar</button>
-                        <button class="btn-action-del" onclick="deleteRuta(${r.id})">Eliminar</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+    if (tbody) {
+        if (!memoryRutas || memoryRutas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay rutas registradas en la base de datos. Haz clic en "+ Registrar Nueva Ruta".</td></tr>`;
+        } else {
+            tbody.innerHTML = memoryRutas.map(r => {
+                const badgeClass = r.estado === 'COMPLETADA' ? 'badge-optima' : (r.estado === 'EN_EJECUCION' ? 'badge-alternativa' : 'badge-no-optima');
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:#64748b;">#RUT-${r.id}</td>
+                        <td>${r.fechaRuta || 'Hoy'}</td>
+                        <td><strong>${r.algoritmoUsado || 'Google OR-Tools'}</strong></td>
+                        <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:600;">V-${r.vehiculoId || 101}</span></td>
+                        <td style="font-weight:700; color:#0f172a;">${r.distanciaTotalKm || 18.5} km</td>
+                        <td>${r.tiempoEstimadoMin || 32} min</td>
+                        <td style="color:#15803d; font-weight:700;">S/ ${Number(r.costoEstimadoSoles || 85.0).toFixed(2)}</td>
+                        <td><span class="${badgeClass}">${r.estado || 'PLANIFICADA'}</span></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="btn-action-edit" onclick="openEditRutaModal(${r.id}, '${(r.algoritmoUsado || '').replace(/'/g, "\'")}', ${r.distanciaTotalKm || 20}, ${r.tiempoEstimadoMin || 30}, ${r.costoEstimadoSoles || 90}, '${r.estado || 'PLANIFICADA'}')">Editar</button>
+                            <button class="btn-action-del" onclick="deleteRuta(${r.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
+
+    // Renderizar flujo interactivo de pedidos en tiempo real
+    renderPedidosFlujo(memoryPedidos, memoryClientes);
 }
 
 function openNewRutaModal() {

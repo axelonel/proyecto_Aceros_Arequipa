@@ -12,8 +12,29 @@
         </div>
     </div>
 
-    <!-- Lista de Tarjetas de Rutas Asignadas -->
-    <div id="misRutasList" style="display: flex; flex-direction: column; gap: 18px;">
-        <!-- Se genera dinámicamente desde dashboard.js -->
+    <!-- SECCIÓN: CONTROL Y TRANSICIÓN DE ESTADOS DE PEDIDOS EN TIEMPO REAL -->
+    <div style="margin-bottom: 24px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size: 15px; font-weight: 800; color:#0f172a; margin:0;">Control de Despachos y Entregas en Tiempo Real</h3>
+                <span style="font-size: 12px; color:#64748b;">Secuencia del transportista: <strong>OPTIMIZADO ➔ DESPACHADO ➔ ENTREGADO</strong></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="server-status-pill online" style="font-size:11.5px;">● Sincronizado con PostgreSQL</span>
+            </div>
+        </div>
+
+        <!-- Lista de tarjetas de pedidos en ruta -->
+        <div id="misPedidosEnRutaList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:14px;">
+            <!-- Generado dinámicamente desde dashboard.js -->
+        </div>
+    </div>
+
+    <!-- LISTA DE TARJETAS DE HOJA DE RUTA Y DESPACHOS -->
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Hojas de Ruta e Itinerarios Asignados</h3>
+        <div id="misRutasList" style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Se genera dinámicamente desde dashboard.js -->
+        </div>
     </div>
 </div>

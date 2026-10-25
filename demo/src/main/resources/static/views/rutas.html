@@ -4,12 +4,14 @@
             <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h2>
             <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                 <span id="rutasDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
-                <span style="font-size: 13px; color: #475569;">Puntos de acopio, plantas de producción y rutas activas de Corporación Aceros Arequipa</span>
+                <span style="font-size: 13px; color: #475569;">Puntos de acopio, plantas de producción y control de flujo de pedidos en tiempo real</span>
             </div>
         </div>
-        <button class="btn-primary" onclick="openNewRutaModal()">
-            + Registrar Nueva Ruta
-        </button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="openNewRutaModal()">
+                + Registrar Nueva Ruta
+            </button>
+        </div>
     </div>
 
     <!-- PUNTOS LOGÍSTICOS PRINCIPALES -->
@@ -48,6 +50,44 @@
                 </div>
                 <p style="font-size: 12.5px; color:#475569; margin:0;">Planta central de fundición, laminación y producción de aceros largos.</p>
             </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN: FLUJO DE ESTADOS DE PEDIDOS EN TIEMPO REAL -->
+    <div style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Flujo de Estados de Pedidos en Tiempo Real</h3>
+                <span style="font-size: 12.5px; color:#64748b;">Secuencia operativa obligatoria: REGISTRADO → EN_PROCESO → OPTIMIZADO → DESPACHADO → ENTREGADO</span>
+            </div>
+            <!-- Barra visual interactiva del ciclo de vida -->
+            <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; background:#f8fafc; padding:6px 12px; border-radius:6px; border:1px solid #cbd5e1;">
+                <span style="color:#0284c7;">1. REGISTRADO</span> ➔
+                <span style="color:#d97706;">2. EN PROCESO</span> ➔
+                <span style="color:#7c3aed;">3. OPTIMIZADO</span> ➔
+                <span style="color:#ea580c;">4. DESPACHADO</span> ➔
+                <span style="color:#16a34a;">5. ENTREGADO</span>
+            </div>
+        </div>
+
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Cliente Solicitante</th>
+                        <th>Material & Peso</th>
+                        <th>Destino de Entrega</th>
+                        <th>Prioridad</th>
+                        <th>Estado Actual</th>
+                        <th style="text-align:center;">Avance de Flujo</th>
+                        <th style="text-align:right;">Acción Inmediata</th>
+                    </tr>
+                </thead>
+                <tbody id="pedidosFlujoTbody">
+                    <!-- Filas dinámicas generadas desde dashboard.js -->
+                </tbody>
+            </table>
         </div>
     </div>
 
