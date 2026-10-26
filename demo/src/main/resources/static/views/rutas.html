@@ -1,41 +1,165 @@
-<div id="viewRutas">
-    <div class="content-header" style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h1>
-        <p style="font-size: 13.5px; color: #475569;">Puntos de acopio, plantas de producción y centros de distribución de Corporación Aceros Arequipa</p>
+<div id="viewRutas" class="users-section" style="display:block;">
+    <div class="section-header-bar" style="margin-bottom: 24px;">
+        <div>
+            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RED DE PUNTOS Y RUTAS LOGÍSTICAS</h2>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span id="rutasDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
+                <span style="font-size: 13px; color: #475569;">Puntos de acopio, plantas de producción y control de flujo de pedidos en tiempo real</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="openNewRutaModal()">
+                + Registrar Nueva Ruta
+            </button>
+        </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#2563eb;">A</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Almacén Principal Lima</h4>
-                    <span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span>
-                </div>
+        <!-- MAPA INTERACTIVO CON LEAFLET.JS (PUNTO 8) -->
+    <div style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Red Geográfica de Distribución (Leaflet.js)</h3>
+                <span style="font-size: 12.5px; color:#64748b;">Visualización en tiempo real de almacenes centrales, plantas siderúrgicas y puntos de acopio en Perú</span>
             </div>
-            <p style="font-size: 13px; color:#475569;">Punto primario de despacho de productos terminados para la región central.</p>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="server-status-pill online" style="font-size:11.5px;">● 6 Nodos Operativos</span>
+                <button class="btn-sm" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:5px 12px; border-radius:6px; font-weight:600; cursor:pointer;" onclick="recenterLogisticsMap()">Centrar Mapa</button>
+            </div>
+        </div>
+        <div id="mapaRedLogistica" style="height: 380px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 1;"></div>
+    </div>
+
+    <!-- PUNTOS LOGÍSTICOS PRINCIPALES -->
+    <div style="margin-bottom: 28px;">
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Puntos de la Red de Distribución</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#2563eb; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">A</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Almacén Principal Lima</h4>
+                        <span style="font-size: 12px; color:#64748b;">Av. Enrique Meiggs 297, Callao</span>
+                    </div>
+                </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Punto primario de despacho de productos terminados para la región central.</p>
+            </div>
+
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#16a34a; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">C</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Zona de Carga y Acopio Lurín</h4>
+                        <span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span>
+                    </div>
+                </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Consolidación de carga pesada y distribución sur.</p>
+            </div>
+
+            <div class="card-container" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                    <span class="node-circle-badge" style="background:#ef4444; color:#fff; width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">F</span>
+                    <div>
+                        <h4 style="font-size: 14.5px; font-weight: 700; color:#1e293b; margin:0;">Planta Siderúrgica Pisco</h4>
+                        <span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span>
+                    </div>
+                </div>
+                <p style="font-size: 12.5px; color:#475569; margin:0;">Planta central de fundición, laminación y producción de aceros largos.</p>
+            </div>
+        </div>
+    </div>
+
+        <!-- SECCIÓN: ASIGNACIONES DE CONDUCCIÓN FUNCIONALES (PUNTO 7) -->
+    <div style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Asignaciones de Conducción de Flota</h3>
+                <span style="font-size: 12.5px; color:#64748b;">Control interactivo: Transportista + Vehículo de Flota + Pedido Asignado</span>
+            </div>
+            <button class="btn-primary" style="background:#1e3a8a; display:flex; align-items:center; gap:6px;" onclick="openAssignRouteModal()">
+                <span>📋</span> + Asignar Conductor a Pedido
+            </button>
+        </div>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID Asig.</th>
+                        <th>Conductor Asignado</th>
+                        <th>Vehículo & Placa</th>
+                        <th>Pedido Vinculado</th>
+                        <th>Cliente & Destino</th>
+                        <th>Fecha Salida</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="asignacionesTbody">
+                    <!-- Filas dinámicas generadas desde dashboard.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECCIÓN: FLUJO DE ESTADOS DE PEDIDOS EN TIEMPO REAL -->
+    <div style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Flujo de Estados de Pedidos en Tiempo Real</h3>
+                <span style="font-size: 12.5px; color:#64748b;">Secuencia operativa obligatoria: REGISTRADO → EN_PROCESO → OPTIMIZADO → DESPACHADO → ENTREGADO</span>
+            </div>
+            <!-- Barra visual interactiva del ciclo de vida -->
+            <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; background:#f8fafc; padding:6px 12px; border-radius:6px; border:1px solid #cbd5e1;">
+                <span style="color:#0284c7;">1. REGISTRADO</span> ➔
+                <span style="color:#d97706;">2. EN PROCESO</span> ➔
+                <span style="color:#7c3aed;">3. OPTIMIZADO</span> ➔
+                <span style="color:#ea580c;">4. DESPACHADO</span> ➔
+                <span style="color:#16a34a;">5. ENTREGADO</span>
+            </div>
         </div>
 
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#16a34a;">C</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Zona de Carga y Acopio Lurín</h4>
-                    <span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span>
-                </div>
-            </div>
-            <p style="font-size: 13px; color:#475569;">Consolidación de carga pesada y distribución sur.</p>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Cliente Solicitante</th>
+                        <th>Material & Peso</th>
+                        <th>Destino de Entrega</th>
+                        <th>Prioridad</th>
+                        <th>Estado Actual</th>
+                        <th style="text-align:center;">Avance de Flujo</th>
+                        <th style="text-align:right;">Acción Inmediata</th>
+                    </tr>
+                </thead>
+                <tbody id="pedidosFlujoTbody">
+                    <!-- Filas dinámicas generadas desde dashboard.js -->
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <div class="card-container">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <span class="node-circle-badge" style="background:#ef4444;">F</span>
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Planta Siderúrgica Pisco</h4>
-                    <span style="font-size: 12px; color:#64748b;">Panamericana Sur Km 240, Paracas</span>
-                </div>
-            </div>
-            <p style="font-size: 13px; color:#475569;">Planta central de fundición, laminación y producción de aceros largos.</p>
+    <!-- TABLA DE RUTAS PROGRAMADAS -->
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Rutas Registradas en Base de Datos</h3>
+        <div class="users-table-wrap">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID Ruta</th>
+                        <th>Fecha</th>
+                        <th>Algoritmo / Estrategia</th>
+                        <th>Vehículo ID</th>
+                        <th>Distancia (km)</th>
+                        <th>Tiempo (min)</th>
+                        <th>Costo Estimado</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="rutasTbody">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
