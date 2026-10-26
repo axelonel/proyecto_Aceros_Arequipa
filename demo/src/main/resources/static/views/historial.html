@@ -1,51 +1,117 @@
 <div id="viewHistorial">
     <div class="content-header" style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">HISTORIAL DE OPTIMIZACIONES</h1>
-        <p style="font-size: 13.5px; color: #475569;">Registro de rutas calculadas y despachos programados</p>
+        <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">HISTORIAL DE OPTIMIZACIONES & DESPACHOS</h1>
+        <p style="font-size: 13.5px; color: #475569;">Registro de rutas calculadas, asignaciones y despachos programados en PostgreSQL</p>
     </div>
 
-    <div class="card-container">
-        <table class="report-table" style="margin-bottom: 0;">
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Fecha / Hora</th>
-                    <th>Origen - Destino</th>
-                    <th>Material</th>
-                    <th>Transportista</th>
-                    <th>Vehículo</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="font-weight:700;">#OPT-1092</td>
-                    <td>Hoy 14:32</td>
-                    <td>Almacén Principal → Planta Pisco</td>
-                    <td>Bobinas de acero (24 Tn)</td>
-                    <td>Manuel Quispe</td>
-                    <td>Tráiler Plataforma (V-102)</td>
-                    <td><span class="badge-optima">Completada</span></td>
-                </tr>
-                <tr>
-                    <td style="font-weight:700;">#OPT-1091</td>
-                    <td>Hoy 11:15</td>
-                    <td>Sede Lima → Distribuidora Norte</td>
-                    <td>Barras corrugadas (20 Tn)</td>
-                    <td>Carlos Mendoza</td>
-                    <td>Camión Pesado (V-105)</td>
-                    <td><span class="badge-optima">En Tránsito</span></td>
-                </tr>
-                <tr>
-                    <td style="font-weight:700;">#OPT-1090</td>
-                    <td>Ayer 16:40</td>
-                    <td>Almacén Principal → Centro Lurín</td>
-                    <td>Alambrón (18 Tn)</td>
-                    <td>Jorge Ramirez</td>
-                    <td>Furgón (V-108)</td>
-                    <td><span class="badge-optima">Completada</span></td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- 4 Métricas de Historial -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Total Despachos</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span id="kpiHistorialTotal" style="font-size: 24px; font-weight: 800; color: #0f172a;">--</span>
+                <span style="font-size: 12px; color: #2563eb; font-weight: 600;">📋 Histórico</span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Rutas generadas en el sistema</div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Rutas Óptimas</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span id="kpiHistorialOptimas" style="font-size: 24px; font-weight: 800; color: #16a34a;">--</span>
+                <span style="font-size: 12px; color: #16a34a; font-weight: 600;">⚡ Eficiencia Máxima</span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Seleccionadas para despacho</div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Flota en Ruta</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span id="kpiHistorialFlotaActiva" style="font-size: 24px; font-weight: 800; color: #f59e0b;">--</span>
+                <span style="font-size: 12px; color: #f59e0b; font-weight: 600;">🚚 Camiones</span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Unidades asignadas actualmente</div>
+        </div>
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Puntaje Promedio</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+                <span id="kpiHistorialPuntaje" style="font-size: 24px; font-weight: 800; color: #0f172a;">95.2%</span>
+                <span style="font-size: 12px; color: #16a34a; font-weight: 600;">★ Calidad</span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Score de optimización solver</div>
+        </div>
+    </div>
+
+    <!-- Barra de búsqueda y filtros con conexión a backend -->
+    <div style="background: #ffffff; border-radius: 8px 8px 0 0; border: 1px solid #e2e8f0; border-bottom: none; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="historialSearchInput" onkeyup="onHistorialSearchChange()" placeholder="Buscar por origen, destino o algoritmo..." style="height: 36px; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 280px;">
+            <select id="historialFilterEstado" onchange="onHistorialSearchChange()" style="height: 36px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #334155;">
+                <option value="TODOS">Todos los estados</option>
+                <option value="OPTIMA">Óptima</option>
+                <option value="ALTERNATIVA">Alternativa</option>
+                <option value="NO_RECOMENDADA">No recomendada</option>
+            </select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button onclick="loadHistorialData()" style="padding: 8px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <span>🔄</span> Actualizar Datos
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de Historial con scroll horizontal para móvil (Punto 12) -->
+    <div class="card-container" style="border-radius: 0 0 8px 8px;">
+        <div class="users-table-wrap">
+            <table class="report-table" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Fecha / Hora</th>
+                        <th>Origen → Destino</th>
+                        <th>Material</th>
+                        <th>Transportista</th>
+                        <th>Vehículo</th>
+                        <th>Dist. / Tiempo</th>
+                        <th>Costo (S/)</th>
+                        <th>Recomendación</th>
+                    </tr>
+                </thead>
+                <tbody id="historialTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
+                            Cargando historial desde la base de datos PostgreSQL...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CONTROLES DE PAGINACIÓN SPRING DATA (PUNTO 11) -->
+        <div class="pagination-bar" id="historialPaginationControls">
+            <div style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span id="historialPaginationInfo">Mostrando 0 a 0 de 0 registros</span>
+                <span style="color: #cbd5e1;">|</span>
+                <label for="historialPageSizeSelect" style="font-size: 12.5px; color: #475569;">Filas por página:</label>
+                <select id="historialPageSizeSelect" onchange="cambiarTamanoPaginaHistorial(this.value)" style="height: 30px; padding: 2px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; font-weight: 600; color: #1e293b; background: #fff; cursor: pointer;">
+                    <option value="5">5 registros</option>
+                    <option value="10" selected>10 registros</option>
+                    <option value="20">20 registros</option>
+                    <option value="50">50 registros</option>
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="btnHistorialPrev" class="pagination-btn" onclick="historialPrevPage()" disabled>
+                    ◀ Anterior
+                </button>
+                <span id="historialPageIndicator" style="font-size: 12.5px; font-weight: 700; color: #0f172a; padding: 0 8px;">
+                    Página 1 de 1
+                </span>
+                <button id="btnHistorialNext" class="pagination-btn" onclick="historialNextPage()" disabled>
+                    Siguiente ▶
+                </button>
+            </div>
+        </div>
     </div>
 </div>

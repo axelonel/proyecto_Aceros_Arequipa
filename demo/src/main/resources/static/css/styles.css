@@ -1229,7 +1229,8 @@ body.dashboard-body {
     font-size: 12.5px;
 }
 
-.badge-no-optima {
+.badge-no-optima,
+.badge-descartada {
     background: #fecaca;
     color: #b91c1c;
     font-weight: 700;
@@ -1436,4 +1437,320 @@ body.dashboard-body {
 
 .btn-complete-trip:hover {
     background: #15803d;
+}
+
+
+/* ==========================================================================
+   PUNTOS 8, 9, 10, 11, 12: ESTILOS RESPONSIVE, NOTIFICACIONES, MAPAS Y REPORTES
+   ========================================================================== */
+
+/* BARRA SUPERIOR MÓVIL (Punto 12) */
+.mobile-top-bar {
+    display: none;
+    height: 52px;
+    background: #0d213a;
+    color: #ffffff;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    border-bottom: 2px solid #e11d48;
+}
+
+.mobile-menu-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.mobile-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-logo-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #f8fafc;
+}
+
+.mobile-notif-bell {
+    position: relative;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 998;
+}
+
+.sidebar-backdrop.active {
+    display: block;
+}
+
+/* ENVOLTORIO CON SCROLL HORIZONTAL PARA TABLAS (Punto 12) */
+.users-table-wrap, .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.report-table, .users-table {
+    min-width: 820px;
+}
+
+/* PUSH NOTIFICATIONS & TOASTS (Punto 10) */
+.toast-notification-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 380px;
+    width: calc(100% - 48px);
+    pointer-events: none;
+}
+
+.toast-notification {
+    pointer-events: auto;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border-left: 5px solid #2563eb;
+    padding: 14px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast-notification.success { border-left-color: #16a34a; }
+.toast-notification.warning { border-left-color: #f59e0b; }
+.toast-notification.error   { border-left-color: #dc2626; }
+.toast-notification.info    { border-left-color: #2563eb; }
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 0 0 2px #0d213a;
+}
+
+/* Panel flotante de notificaciones */
+.notification-dropdown-panel {
+    position: fixed;
+    top: 56px;
+    right: 16px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    max-height: 480px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+    overflow: hidden;
+    animation: toastSlideIn 0.2s ease-out;
+}
+
+.notif-panel-header {
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-panel-body {
+    overflow-y: auto;
+    max-height: 380px;
+}
+
+.notif-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    transition: background 0.15s;
+}
+
+.notif-item:hover {
+    background: #f8fafc;
+}
+
+.notif-item-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.notif-item-msg {
+    font-size: 12px;
+    color: #475569;
+    margin-top: 2px;
+}
+
+.notif-item-time {
+    font-size: 10.5px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+/* CONTROLES DE PAGINACIÓN (Punto 11) */
+.pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 8px 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.pagination-btn {
+    padding: 6px 14px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+/* MARCADORES CUSTOM LEAFLET.JS (Punto 8) */
+.custom-leaflet-marker {
+    background: #1e3a8a;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+    text-align: center;
+}
+
+.custom-leaflet-marker.depot { background: #15803d; }
+.custom-leaflet-marker.plant { background: #b91c1c; }
+.custom-leaflet-marker.transfer { background: #d97706; }
+
+/* MEDIA QUERIES RESPONSIVE (Punto 12) */
+@media (max-width: 900px) {
+    .mobile-top-bar {
+        display: flex;
+    }
+    
+    .dashboard-container {
+        margin-top: 52px;
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 260px;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    }
+
+    .sidebar.mobile-open {
+        left: 0;
+    }
+
+    .main-content {
+        padding: 16px !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .dispatch-details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .dispatch-details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .pagination-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
