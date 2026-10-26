@@ -5,6 +5,7 @@ import com.example.demo.model.Usuario;
 import com.example.demo.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,11 +19,14 @@ public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
     private final com.example.demo.repository.TransportistaRepository transportistaRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioController(UsuarioRepository usuarioRepository,
-                             com.example.demo.repository.TransportistaRepository transportistaRepository) {
+                             com.example.demo.repository.TransportistaRepository transportistaRepository,
+                             PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.transportistaRepository = transportistaRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -59,7 +63,9 @@ public class UsuarioController {
                 .nombres(dto.getNombres())
                 .apellidos(dto.getApellidos() != null ? dto.getApellidos() : "")
                 .email(dto.getEmail().toLowerCase().trim())
-                .passwordHash(dto.getPassword() != null && !dto.getPassword().isBlank() ? dto.getPassword() : "123456")
+                .passwordHash(dto.getPassword() != null && !dto.getPassword().isBlank()
+                        ? passwordEncoder.encode(dto.getPassword())
+                        : passwordEncoder.encode("123456"))
                 .telefono(dto.getTelefono())
                 .codEmpleado(dto.getCodEmpleado())
                 .rol(dto.getRol() != null ? dto.getRol().toUpperCase() : "CONDUCTOR")
@@ -100,7 +106,7 @@ public class UsuarioController {
             if (dto.getCodEmpleado() != null) usuario.setCodEmpleado(dto.getCodEmpleado());
             if (dto.getActivo() != null) usuario.setActivo(dto.getActivo());
             if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-                usuario.setPasswordHash(dto.getPassword());
+                usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
             }
 
             Usuario actualizado = usuarioRepository.save(usuario);
