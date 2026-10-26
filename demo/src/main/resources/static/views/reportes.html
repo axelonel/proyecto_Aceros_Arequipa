@@ -1,94 +1,160 @@
 <div id="viewReportes">
-    <div class="content-header" style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">COMPARACIÓN DE ALTERNATIVAS</h1>
-        <p style="font-size: 13.5px; color: #475569;">Análisis de todas las rutas posibles</p>
+    <!-- ENCABEZADO CON BOTONES DE EXPORTACIÓN (PUNTO 9) -->
+    <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
+        <div>
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & REPORTES EJECUTIVOS</h1>
+            <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y comparación de rutas calculadas con Google OR-Tools</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-primary" style="background: #dc2626; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(220,38,38,0.25);" onclick="exportarReportePDF()" title="Generar y descargar documento PDF formal">
+                <span>📄</span> Descargar Reporte PDF
+            </button>
+            <button class="btn-primary" style="background: #16a34a; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.25);" onclick="exportarReporteExcel()" title="Descargar datos en hoja de cálculo Excel">
+                <span>📊</span> Exportar a Excel (XLSX)
+            </button>
+        </div>
     </div>
 
-    <!-- Tabla Comparativa -->
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th>Ruta</th>
-                <th>Trayecto</th>
-                <th>Tiempo (min)</th>
-                <th>Distancia (km)</th>
-                <th>Costo (S/)</th>
-                <th>Puntaje</th>
-                <th>Recomendación</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td style="font-weight: 700;">1</td>
-                <td style="font-weight: 600;">A - C - E - F</td>
-                <td>32</td>
-                <td>18.5</td>
-                <td>85.00</td>
-                <td style="font-weight: 700;">92%</td>
-                <td><span class="badge-optima">Óptima</span></td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700;">2</td>
-                <td style="font-weight: 600;">A - B - D - F</td>
-                <td>41</td>
-                <td>22.3</td>
-                <td>72.00</td>
-                <td style="font-weight: 700;">84%</td>
-                <td><span class="badge-alternativa">Alternativa</span></td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700;">3</td>
-                <td style="font-weight: 600;">A - D - E - F</td>
-                <td>38</td>
-                <td>20.1</td>
-                <td>88.00</td>
-                <td style="font-weight: 700;">79%</td>
-                <td><span class="badge-alternativa">Alternativa</span></td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700;">4</td>
-                <td style="font-weight: 600;">A - B - E - F</td>
-                <td>55</td>
-                <td>26.8</td>
-                <td>110.00</td>
-                <td style="font-weight: 700;">61%</td>
-                <td><span class="badge-no-optima">No recomendada</span></td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- ÁREA DE IMPRESIÓN Y EXPORTACIÓN PDF FORMATEADA -->
+    <div id="reportePrintArea">
+        <!-- Banner corporativo visible en exportación PDF -->
+        <div class="pdf-export-header" style="display: none; background: #0f172a; color: #fff; padding: 18px 24px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="font-size: 18px; font-weight: 800; margin: 0; color: #fff; letter-spacing: 0.5px;">CORPORACIÓN ACEROS AREQUIPA S.A.</h2>
+                    <p style="font-size: 12px; color: #94a3b8; margin: 2px 0 0 0;">Sistema Experto de Optimización y Ruteo Logístico</p>
+                </div>
+                <div style="text-align: right; font-size: 11.5px; color: #cbd5e1;">
+                    <div>Fecha de Emisión: <strong id="pdfReportDate">--</strong></div>
+                    <div>Base de Datos: <strong>Supabase Cloud (PostgreSQL)</strong></div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Fila Inferior: Gráfico Comparativo + Nota Conclusión -->
-    <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
-        
-        <!-- Tarjeta Gráfico Visual -->
-        <div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="font-size: 15px; font-weight: 700; color: #1e293b;">Comparación visual</h3>
-                <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 600; color: #475569;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb;"></span>
-                        <span>Tiempo (min)</span>
+        <!-- 4 Tarjetas de Métricas KPI Reales -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Toneladas Movilizadas</div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span id="kpiReporteToneladas" style="font-size: 24px; font-weight: 800; color: #0f172a;">96.0 Tn</span>
+                    <span style="font-size: 12px; color: #16a34a; font-weight: 600;">📦 Registrado</span>
+                </div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Volumen siderúrgico total</div>
+            </div>
+
+            <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Rutas Optimizadas</div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span id="kpiReporteRutas" style="font-size: 24px; font-weight: 800; color: #2563eb;">12</span>
+                    <span style="font-size: 12px; color: #2563eb; font-weight: 600;">🛣️ Google OR-Tools</span>
+                </div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Corredores activos calculados</div>
+            </div>
+
+            <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Tiempo Promedio</div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span id="kpiReporteTiempo" style="font-size: 24px; font-weight: 800; color: #0f172a;">32 min</span>
+                    <span style="font-size: 12px; color: #16a34a; font-weight: 600;">⚡ -24% tiempo</span>
+                </div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Por ciclo de entrega urbana</div>
+            </div>
+
+            <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Ahorro Logístico Est.</div>
+                <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span id="kpiReporteAhorro" style="font-size: 24px; font-weight: 800; color: #16a34a;">S/ 510.00</span>
+                    <span style="font-size: 12px; color: #16a34a; font-weight: 600;">💰 Fletes</span>
+                </div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Comparado con rutas no óptimas</div>
+            </div>
+        </div>
+
+        <!-- Tabla Comparativa de Alternativas -->
+        <div style="background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Comparación de Alternativas de Ruta</h3>
+                <span style="font-size: 12px; color: #64748b;">Datos sincronizados en tiempo real con Supabase PostgreSQL</span>
+            </div>
+            <div class="users-table-wrap">
+                <table class="report-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Ruta</th>
+                            <th>Trayecto de Paradas</th>
+                            <th>Tiempo (min)</th>
+                            <th>Distancia (km)</th>
+                            <th>Costo Estimado</th>
+                            <th>Puntaje</th>
+                            <th>Recomendación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportesTableBody">
+                        <tr>
+                            <td style="font-weight: 700;">1</td>
+                            <td style="font-weight: 600;">A → C → E → F</td>
+                            <td>32</td>
+                            <td>18.5</td>
+                            <td>S/ 85.00</td>
+                            <td style="font-weight: 700;">96%</td>
+                            <td><span class="badge-optima">Óptima (OR-Tools)</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 700;">2</td>
+                            <td style="font-weight: 600;">A → B → D → F</td>
+                            <td>41</td>
+                            <td>22.2</td>
+                            <td>S/ 97.75</td>
+                            <td style="font-weight: 700;">84%</td>
+                            <td><span class="badge-alternativa">Alternativa</span></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 700;">3</td>
+                            <td style="font-weight: 600;">A → D → E → F</td>
+                            <td>53</td>
+                            <td>28.7</td>
+                            <td>S/ 125.80</td>
+                            <td style="font-weight: 700;">68%</td>
+                            <td><span class="badge-descartada">No recomendada</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fila Inferior: Gráfico Comparativo + Nota Conclusión -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+            <!-- Tarjeta Gráfico Visual -->
+            <div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <h3 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Comparación visual de Tiempos y Costos</h3>
+                    <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 600; color: #475569;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb;"></span>
+                            <span>Tiempo (min)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span>
+                            <span>Costo (S/)</span>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a;"></span>
-                        <span>Costo (S/)</span>
-                    </div>
+                </div>
+
+                <div style="width: 100%; height: 230px;">
+                    <canvas id="reportBarChart" width="460" height="230" style="width: 100%; height: 100%; display: block;"></canvas>
                 </div>
             </div>
 
-            <div style="width: 100%; height: 230px;">
-                <canvas id="reportBarChart" width="460" height="230" style="width: 100%; height: 100%; display: block;"></canvas>
+            <!-- Tarjeta Post-It Conclusión -->
+            <div class="conclusion-sticky-card">
+                <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión del Sistema Experto</h2>
+                <p id="reporteConclusionTexto" style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">
+                    La ruta 1 es la mejor opción porque ofrece el menor tiempo con un costo aceptable logrando el mejor equilibrio según los criterios seleccionados por el algoritmo de optimización Google OR-Tools.
+                </p>
+                <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.1); font-size: 12px; color: #64748b;">
+                    Certificado de optimización logística emitido para Aceros Arequipa S.A.
+                </div>
             </div>
         </div>
-
-        <!-- Tarjeta Post-It Conclusión -->
-        <div class="conclusion-sticky-card">
-            <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión</h2>
-            <p style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">
-                La ruta 1 (A-C-E-F) es la mejor opcion por que ofrece el menor tiempo con un costo aceptable logrando el mejor equilibrio segun los criterios seleccionados.
-            </p>
-        </div>
-
     </div>
-
 </div>
