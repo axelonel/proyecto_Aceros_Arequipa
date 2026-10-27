@@ -43,6 +43,18 @@ function requireAuth() {
 
 // ─── Fin JWT Helpers ───────────────────────────────────────────────────────────
 
+/** Escapa caracteres HTML para prevenir inyecciones y errores de renderizado */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
 
 // Caché de vistas HTML cargadas
 const viewCache = {};
@@ -1696,10 +1708,6 @@ function resetOptimizationWizard() {
 }
 
 /* ==========================================================================
-   GRÁFICO SEMANAL DE RENDIMIENTO – INICIO
-   ========================================================================== */
-
-/* ==========================================================================
    MÉTRICAS REALES Y GRÁFICO DINÁMICO – PANEL PRINCIPAL (INICIO)
    ========================================================================== */
 
@@ -1747,52 +1755,60 @@ async function loadDashboardInicioMetrics(silent = false) {
 
         // 4. Últimas Optimizaciones en la tarjeta lateral
         if (listOpt) {
-            const ultimas = data.ultimasOptimizaciones || [];
-            const badgeCount = document.getElementById('ultimasOptCountBadge');
-            if (badgeCount) badgeCount.textContent = `${ultimas.length} Registros`;
+            try {
+                const ultimas = data.ultimasOptimizaciones || [];
+                const badgeCount = document.getElementById('ultimasOptCountBadge');
+                if (badgeCount) badgeCount.textContent = `${ultimas.length} Registros`;
 
-            if (ultimas.length === 0) {
-                listOpt.innerHTML = `
-                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8; font-size: 13px;">
-                        <span style="font-size: 26px; display: block; margin-bottom: 8px;">🚛</span>
-                        Aún no hay rutas analizadas.<br>
-                        <a href="#" onclick="navigateTo('optimizar'); return false;" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
-                            Realizar la primera optimización
-                        </a>
-                    </div>
-                `;
-            } else {
-                listOpt.innerHTML = ultimas.map(opt => {
-                    const trayecto = escapeHtml(opt.trayecto || (opt.origen + ' → ' + opt.destino));
-                    const costoStr = opt.costo != null ? ('S/ ' + Number(opt.costo).toLocaleString('es-PE', { minimumFractionDigits: 2 })) : '';
-                    const tiempoStr = opt.tiempoMin != null ? (Math.round(opt.tiempoMin) + ' min') : '';
-                    const metaDetalle = [costoStr, tiempoStr].filter(Boolean).join(' • ');
-
-                    return `
-                        <div class="opt-item" style="transition: all 0.2s; cursor: pointer;" onclick="verDetalleOptInicio(${opt.idRuta || 0})" title="Ver detalles de esta ruta en Historial">
-                            <div class="opt-info" style="flex: 1; min-width: 0;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 11px; font-weight: 700; color: #1e3a8a; background: #dbeafe; padding: 1px 6px; border-radius: 4px;">
-                                        ${escapeHtml(opt.codigo || '#OPT')}
-                                    </span>
-                                    <span class="opt-route" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;" title="${trayecto}">
-                                        ${trayecto}
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 3px;">
-                                    <span class="opt-time" style="font-size: 11px; color: #64748b;">${escapeHtml(opt.fechaHora || 'Hoy')}</span>
-                                    <span style="font-size: 11px; font-weight: 600; color: #047857;">${metaDetalle}</span>
-                                </div>
-                            </div>
-                            <span class="opt-badge" style="margin-left: 8px; flex-shrink: 0;">OPTIMO</span>
+                if (ultimas.length === 0) {
+                    listOpt.innerHTML = `
+                        <div style="text-align: center; padding: 40px 10px; color: #94a3b8; font-size: 13px;">
+                            <span style="font-size: 26px; display: block; margin-bottom: 8px;">🚛</span>
+                            Aún no hay rutas analizadas.<br>
+                            <a href="#" onclick="navigateTo('optimizar'); return false;" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
+                                Realizar la primera optimización
+                            </a>
                         </div>
                     `;
-                }).join('');
+                } else {
+                    listOpt.innerHTML = ultimas.map(opt => {
+                        const trayecto = escapeHtml(opt.trayecto || ((opt.origen || 'Origen') + ' → ' + (opt.destino || 'Destino')));
+                        const costoStr = opt.costo != null ? ('S/ ' + Number(opt.costo).toLocaleString('es-PE', { minimumFractionDigits: 2 })) : '';
+                        const tiempoStr = opt.tiempoMin != null ? (Math.round(opt.tiempoMin) + ' min') : '';
+                        const metaDetalle = [costoStr, tiempoStr].filter(Boolean).join(' • ');
+
+                        return `
+                            <div class="opt-item" style="transition: all 0.2s; cursor: pointer;" onclick="verDetalleOptInicio(${opt.idRuta || 0})" title="Ver detalles de esta ruta en Historial">
+                                <div class="opt-info" style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 11px; font-weight: 700; color: #1e3a8a; background: #dbeafe; padding: 1px 6px; border-radius: 4px;">
+                                            ${escapeHtml(opt.codigo || '#OPT')}
+                                        </span>
+                                        <span class="opt-route" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;" title="${trayecto}">
+                                            ${trayecto}
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 3px;">
+                                        <span class="opt-time" style="font-size: 11px; color: #64748b;">${escapeHtml(opt.fechaHora || 'Hoy')}</span>
+                                        <span style="font-size: 11px; font-weight: 600; color: #047857;">${metaDetalle}</span>
+                                    </div>
+                                </div>
+                                <span class="opt-badge" style="margin-left: 8px; flex-shrink: 0;">OPTIMO</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (errList) {
+                console.warn('Error al renderizar lista de últimas optimizaciones:', errList);
             }
         }
 
         // 5. Gráfico Canvas con datos reales
-        drawChart(data.puntosGrafico || []);
+        try {
+            drawChart(data.puntosGrafico || []);
+        } catch (errChart) {
+            console.warn('Error al renderizar gráfico Canvas:', errChart);
+        }
 
         if (silent) {
             console.log('🔄 Panel Principal sincronizado con la base de datos:', data);
@@ -1823,6 +1839,11 @@ function drawChart(puntos) {
     const canvas = document.getElementById('performanceChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+
+    // Auto-ajustar ancho del canvas al contenedor si está disponible
+    if (canvas.parentElement && canvas.parentElement.clientWidth > 150) {
+        canvas.width = canvas.parentElement.clientWidth;
+    }
     const w = canvas.width || 550;
     const h = canvas.height || 230;
 
