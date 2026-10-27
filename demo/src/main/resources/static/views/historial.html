@@ -43,45 +43,75 @@
         </div>
     </div>
 
-    <!-- Barra de búsqueda y filtros -->
+    <!-- Barra de búsqueda y filtros con conexión a backend -->
     <div style="background: #ffffff; border-radius: 8px 8px 0 0; border: 1px solid #e2e8f0; border-bottom: none; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="text" id="historialSearchInput" onkeyup="filterHistorialTable()" placeholder="Buscar por código, destino o material..." style="height: 36px; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 280px;">
-            <select id="historialFilterEstado" onchange="filterHistorialTable()" style="height: 36px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="historialSearchInput" onkeyup="onHistorialSearchChange()" placeholder="Buscar por origen, destino o algoritmo..." style="height: 36px; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; width: 280px;">
+            <select id="historialFilterEstado" onchange="onHistorialSearchChange()" style="height: 36px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; color: #334155;">
                 <option value="TODOS">Todos los estados</option>
                 <option value="OPTIMA">Óptima</option>
                 <option value="ALTERNATIVA">Alternativa</option>
                 <option value="NO_RECOMENDADA">No recomendada</option>
             </select>
         </div>
-        <button onclick="loadHistorialData()" style="padding: 8px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            <span>🔄</span> Actualizar Datos
-        </button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button onclick="loadHistorialData()" style="padding: 8px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <span>🔄</span> Actualizar Datos
+            </button>
+        </div>
     </div>
 
-    <!-- Tabla de Historial con conexión a PostgreSQL -->
+    <!-- Tabla de Historial con scroll horizontal para móvil (Punto 12) -->
     <div class="card-container" style="border-radius: 0 0 8px 8px;">
-        <table class="report-table" style="margin-bottom: 0;">
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Fecha / Hora</th>
-                    <th>Origen → Destino</th>
-                    <th>Material</th>
-                    <th>Transportista</th>
-                    <th>Vehículo</th>
-                    <th>Dist. / Tiempo</th>
-                    <th>Costo (S/)</th>
-                    <th>Recomendación</th>
-                </tr>
-            </thead>
-            <tbody id="historialTableBody">
-                <tr>
-                    <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
-                        Cargando historial desde la base de datos PostgreSQL...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="users-table-wrap">
+            <table class="report-table" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Fecha / Hora</th>
+                        <th>Origen → Destino</th>
+                        <th>Material</th>
+                        <th>Transportista</th>
+                        <th>Vehículo</th>
+                        <th>Dist. / Tiempo</th>
+                        <th>Costo (S/)</th>
+                        <th>Recomendación</th>
+                    </tr>
+                </thead>
+                <tbody id="historialTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
+                            Cargando historial desde la base de datos PostgreSQL...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CONTROLES DE PAGINACIÓN SPRING DATA (PUNTO 11) -->
+        <div class="pagination-bar" id="historialPaginationControls">
+            <div style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span id="historialPaginationInfo">Mostrando 0 a 0 de 0 registros</span>
+                <span style="color: #cbd5e1;">|</span>
+                <label for="historialPageSizeSelect" style="font-size: 12.5px; color: #475569;">Filas por página:</label>
+                <select id="historialPageSizeSelect" onchange="cambiarTamanoPaginaHistorial(this.value)" style="height: 30px; padding: 2px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; font-weight: 600; color: #1e293b; background: #fff; cursor: pointer;">
+                    <option value="5">5 registros</option>
+                    <option value="10" selected>10 registros</option>
+                    <option value="20">20 registros</option>
+                    <option value="50">50 registros</option>
+                </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="btnHistorialPrev" class="pagination-btn" onclick="historialPrevPage()" disabled>
+                    ◀ Anterior
+                </button>
+                <span id="historialPageIndicator" style="font-size: 12.5px; font-weight: 700; color: #0f172a; padding: 0 8px;">
+                    Página 1 de 1
+                </span>
+                <button id="btnHistorialNext" class="pagination-btn" onclick="historialNextPage()" disabled>
+                    Siguiente ▶
+                </button>
+            </div>
+        </div>
     </div>
 </div>

@@ -291,6 +291,21 @@
 
         </div>
 
+                <!-- MAPA INTERACTIVO DE LA RUTA CALCULADA CON LEAFLET.JS (PUNTO 8) -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; margin-bottom: 24px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color:#0f172a; margin:0;">Trazado de Ruta en Mapa Satelital (Leaflet.js)</h3>
+                    <span style="font-size: 12px; color:#64748b;">Itinerario geoespacial de paradas y waypoints calculados por Google OR-Tools en Perú</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="mapRouteBadge" class="server-status-pill online" style="font-size:11.5px;">● Trazado en Vivo</span>
+                    <button class="btn-sm" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-weight:600; cursor:pointer;" onclick="fitOptimizedRouteMap()">Ajustar Vista</button>
+                </div>
+            </div>
+            <div id="mapaRutaOptimizada" style="height: 380px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 1;"></div>
+        </div>
+
         <!-- Tarjeta Inferior: ¿Por qué esta ruta? -->
         <div class="why-card">
             <div>

@@ -692,8 +692,20 @@ async function showView(viewName) {
  * Acciones posteriores al renderizado de cada vista
  */
 function onViewLoaded(viewName) {
+    // Cerrar sidebar móvil si está abierto al navegar
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+        sidebar.classList.remove('mobile-open');
+    }
+    if (backdrop && backdrop.classList.contains('active')) {
+        backdrop.classList.remove('active');
+    }
+
     if (viewName === 'rutas') {
         loadRutasData();
+        loadAsignacionesData();
+        setTimeout(initLogisticsMap, 150);
     } else if (viewName === 'inicio') {
         setTimeout(drawChart, 60);
     } else if (viewName === 'mis-rutas') {
@@ -701,7 +713,7 @@ function onViewLoaded(viewName) {
     } else if (viewName === 'reportes') {
         loadReportesData();
     } else if (viewName === 'historial') {
-        loadHistorialData();
+        loadHistorialData(0, historialPageSize, '');
     } else if (viewName === 'usuarios' || viewName === 'configuracion') {
         loadUsersFromDatabase();
     } else if (viewName === 'flota') {
@@ -1009,17 +1021,37 @@ async function updateDispatchStatus(dispatchId, newStatus) {
    ========================================================================== */
 
 async function openAssignRouteModal() {
+    const selectPedido    = document.getElementById('assignPedidoSelect');
     const selectConductor = document.getElementById('assignConductorSelect');
     const selectVehiculo  = document.getElementById('assignVehiculoSelect');
     const placaInput      = document.getElementById('assignPlacaInput');
 
-    // Cargar transportistas y vehiculos reales de PostgreSQL si es posible
     if (window.location.protocol !== 'file:') {
         try {
-            const [resTrp, resVeh] = await Promise.all([
+            const [resPed, resTrp, resVeh] = await Promise.all([
+                apiFetch(API_HOST + '/api/pedidos'),
                 apiFetch(API_HOST + '/api/transportistas'),
                 apiFetch(API_HOST + '/api/vehiculos')
             ]);
+
+            if (resPed.ok) {
+                const pedidos = await resPed.json();
+                memoryPedidos = pedidos;
+                if (selectPedido) {
+                    const pendientes = pedidos.filter(p => p.estadoPedido !== 'ENTREGADO');
+                    if (pendientes.length > 0) {
+                        selectPedido.innerHTML = pendientes.map(p => `
+                            <option value="${p.idPedido}" data-material="${p.tipoMaterial} (${p.pesoT} Tn)" data-destino="${p.direccionDestino}" data-prioridad="${p.prioridad}">
+                                #PED-${p.idPedido} · ${p.tipoMaterial} (${p.pesoT} Tn) → ${p.direccionDestino} [${p.estadoPedido}]
+                            </option>
+                        `).join('');
+                        onAssignPedidoSelected(pendientes[0].idPedido);
+                    } else {
+                        selectPedido.innerHTML = `<option value="">(No hay pedidos pendientes - todos entregados)</option>`;
+                    }
+                }
+            }
+
             if (resTrp.ok) {
                 const trps = await resTrp.json();
                 if (selectConductor && trps.length > 0) {
@@ -1030,6 +1062,7 @@ async function openAssignRouteModal() {
                     `).join('');
                 }
             }
+
             if (resVeh.ok) {
                 const vehs = await resVeh.json();
                 if (selectVehiculo && vehs.length > 0) {
@@ -1044,7 +1077,7 @@ async function openAssignRouteModal() {
                 }
             }
         } catch (err) {
-            console.warn('Error cargando datos de vehiculos/transportistas:', err);
+            console.warn('Error cargando datos de vehiculos/transportistas/pedidos:', err);
         }
     }
 
@@ -1086,14 +1119,18 @@ async function confirmAssignRoute(e) {
     const newId = Date.now();
     const newCodigo = 'DSP-' + (Math.floor(1000 + Math.random() * 9000));
 
+    const selectPed = document.getElementById('assignPedidoSelect');
+    const pedidoId = selectPed && selectPed.value ? parseInt(selectPed.value) : null;
+
     // Guardar en PostgreSQL
     if (window.location.protocol !== 'file:') {
         try {
             await apiFetch(API_HOST + '/api/asignaciones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idVehiculo: vehiculoId, idTransportista: conductorId })
+                body: JSON.stringify({ idVehiculo: vehiculoId, idTransportista: conductorId, idPedido: pedidoId })
             });
+            showToastNotification('Asignación Creada', `Conductor ${conductorNombre} vinculado al pedido ${pedidoId ? '#PED-' + pedidoId : ''}`, 'success');
         } catch (err) {
             console.warn('No se pudo guardar la asignación en BD:', err);
         }
@@ -1227,7 +1264,12 @@ async function startOptimizationProcess(e) {
                     renderOrToolsResults(orToolsResponse);
                 }
 
-                setTimeout(() => showOptSubStep('result'), 600);
+                setTimeout(() => {
+                    showOptSubStep('result');
+                    if (orToolsResponse && orToolsResponse.rutaOptimaTrayecto) {
+                        setTimeout(() => renderOptimizedRouteMap(orToolsResponse.rutaOptimaTrayecto), 200);
+                    }
+                }, 600);
             }
         }, delay);
     });
@@ -2805,6 +2847,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // 0. Verificar que el usuario tiene sesión JWT válida
     requireAuth();
 
+    // 0.1 Iniciar canal push de notificaciones en tiempo real (Punto 10)
+    initNotificationStream();
+
     // 1. Aplicar permisos y ajustar menú según el rol conectado
     applyRolePermissions();
 
@@ -2823,3 +2868,803 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     showView(initialView);
 });
+
+
+/* ==========================================================================
+   PUNTOS 6 & 7: VISTA DEL CONDUCTOR, SIMULACIÓN Y ASIGNACIONES FUNCIONALES
+   ========================================================================== */
+
+function cambiarSimulacionConductor(nombre) {
+    const driverProfiles = {
+        'Manuel Quispe': {
+            nombre: 'Manuel Quispe',
+            licencia: 'Q45892014 (Cat. A-IIIc)',
+            dni: '45892014',
+            vehiculo: 'Tráiler Plataforma (V-102)',
+            placa: 'AYZ-892',
+            capacidad: '32.0 Tn',
+            carga: '44.0 Tn'
+        },
+        'Carlos Mendoza': {
+            nombre: 'Carlos Mendoza',
+            licencia: 'M70124589 (Cat. A-IIIb)',
+            dni: '70124589',
+            vehiculo: 'Camión Pesado (V-105)',
+            placa: 'B8U-711',
+            capacidad: '25.0 Tn',
+            carga: '20.0 Tn'
+        }
+    };
+
+    const prof = driverProfiles[nombre] || driverProfiles['Manuel Quispe'];
+
+    const nameEl = document.getElementById('driverCardName');
+    const licEl = document.getElementById('driverCardLicencia');
+    const dniEl = document.getElementById('driverCardDni');
+    const vehEl = document.getElementById('driverCardVehiculo');
+
+    if (nameEl) nameEl.textContent = (nombre === 'TODOS') ? 'Todos los Transportistas' : prof.nombre;
+    if (licEl) licEl.textContent = prof.licencia;
+    if (dniEl) dniEl.textContent = prof.dni;
+    if (vehEl) {
+        vehEl.innerHTML = `${prof.vehiculo} · <span style="background: #fbbf24; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 12px;">${prof.placa}</span>`;
+    }
+
+    let filtered = [...activeDispatches];
+    if (nombre !== 'TODOS') {
+        filtered = filtered.filter(d => (d.conductorNombre || '').toLowerCase().includes(nombre.toLowerCase()));
+    }
+
+    const kpiTotal = document.getElementById('kpiDriverTotal');
+    const kpiTrans = document.getElementById('kpiDriverTransito');
+    const kpiEntr = document.getElementById('kpiDriverEntregadas');
+    const kpiCarga = document.getElementById('kpiDriverCarga');
+
+    if (kpiTotal) kpiTotal.textContent = filtered.length;
+    if (kpiTrans) kpiTrans.textContent = filtered.filter(d => d.estado === 'EN_TRANSITO').length;
+    if (kpiEntr) kpiEntr.textContent = filtered.filter(d => d.estado === 'COMPLETADA').length;
+    if (kpiCarga) kpiCarga.textContent = prof.carga;
+
+    renderMisRutasCustom(filtered, currentDispatchFilter);
+}
+
+function renderMisRutasCustom(list, statusFilter = 'TODAS') {
+    const container = document.getElementById('misRutasList');
+    if (!container) return;
+
+    if (statusFilter !== 'TODAS') {
+        list = list.filter(d => d.estado === statusFilter);
+    }
+
+    if (list.length === 0) {
+        container.innerHTML = `
+            <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:36px; text-align:center; color:#64748b;">
+                <p style="font-size:15px; font-weight:600; margin-bottom:4px;">No hay rutas asignadas en este estado.</p>
+                <span style="font-size:12.5px; color:#94a3b8;">Las nuevas rutas serán asignadas por el Supervisor de Flotas.</span>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = list.map(d => {
+        let badgeHtml = '';
+        let actionBtnHtml = '';
+
+        if (d.estado === 'ASIGNADA') {
+            badgeHtml = `<span class="badge-status badge-status-asignada">● Por Iniciar</span>`;
+            actionBtnHtml = `
+                <button class="btn-dispatch-action btn-start-trip" onclick="updateDispatchStatus(${d.id}, 'EN_TRANSITO')">
+                    ▶ Iniciar Recorrido
+                </button>
+            `;
+        } else if (d.estado === 'EN_TRANSITO') {
+            badgeHtml = `<span class="badge-status badge-status-transito">🚚 En Tránsito</span>`;
+            actionBtnHtml = `
+                <button class="btn-dispatch-action btn-complete-trip" onclick="updateDispatchStatus(${d.id}, 'COMPLETADA')">
+                    ✓ Confirmar Entrega en Destino
+                </button>
+            `;
+        } else if (d.estado === 'COMPLETADA') {
+            badgeHtml = `<span class="badge-status badge-status-completada">✔ Completada</span>`;
+            actionBtnHtml = `
+                <span style="font-size:12.5px; color:#16a34a; font-weight:700;">✅ Entrega Finalizada</span>
+            `;
+        }
+
+        return `
+            <div class="dispatch-card">
+                <div class="dispatch-header">
+                    <div>
+                        <div class="dispatch-title">${d.codigo} &nbsp;·&nbsp; ${d.origen} → ${d.destino}</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:2px;">Asignado por: <strong>${d.supervisor}</strong> · ${d.fecha}</div>
+                    </div>
+                    <div>${badgeHtml}</div>
+                </div>
+
+                <div class="dispatch-route-badge-line">
+                    <span>Itinerario Experto:</span>
+                    <strong>${d.trayecto}</strong>
+                    <span style="font-size:12px; color:#15803d; font-weight:600; margin-left:8px;">(${d.tiempoEst} · ${d.distancia})</span>
+                </div>
+
+                <div class="dispatch-details-grid">
+                    <div>
+                        <div class="dispatch-meta-label">Conductor Asignado</div>
+                        <div class="dispatch-meta-val">👤 ${d.conductorNombre}</div>
+                    </div>
+                    <div>
+                        <div class="dispatch-meta-label">Vehículo & Placa</div>
+                        <div class="dispatch-meta-val">🚛 ${d.vehiculo} <span style="color:#64748b;">(${d.placa})</span></div>
+                    </div>
+                    <div>
+                        <div class="dispatch-meta-label">Material & Carga</div>
+                        <div class="dispatch-meta-val">📦 ${d.material}</div>
+                    </div>
+                    <div>
+                        <div class="dispatch-meta-label">Prioridad</div>
+                        <div class="dispatch-meta-val">${d.prioridad === 'Alta' ? '🔴 Alta' : '🟡 Media'}</div>
+                    </div>
+                </div>
+
+                <div class="dispatch-actions">
+                    ${actionBtnHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function onAssignPedidoSelected(idPedido) {
+    const select = document.getElementById('assignPedidoSelect');
+    const opt = select ? select.options[select.selectedIndex] : null;
+    if (!opt) return;
+
+    const material = opt.getAttribute('data-material') || 'Barras corrugadas (24 Tn)';
+    const destino = opt.getAttribute('data-destino') || 'Planta Pisco';
+    const prioridad = opt.getAttribute('data-prioridad') || 'Media';
+
+    const itinEl = document.getElementById('assignItinerarioTxt');
+    const metrEl = document.getElementById('assignMetricasTxt');
+    const matInput = document.getElementById('assignMaterialInput');
+    const prioSel = document.getElementById('assignPrioridadSelect');
+
+    if (itinEl) itinEl.textContent = `Almacén Callao (A) → ${destino}`;
+    if (metrEl) metrEl.textContent = `32 min | 18.5 km | Costo est. S/ 85.00`;
+    if (matInput) matInput.value = material;
+    if (prioSel && prioridad) {
+        prioSel.value = (prioridad === 'ALTA') ? 'Alta' : ((prioridad === 'BAJA') ? 'Baja' : 'Media');
+    }
+}
+
+async function loadAsignacionesData() {
+    const tbody = document.getElementById('asignacionesTbody');
+    if (!tbody) return;
+
+    try {
+        const resp = await apiFetch(API_HOST + '/api/asignaciones');
+        if (!resp.ok) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:18px; color:#64748b;">No se pudieron cargar las asignaciones de conducción.</td></tr>`;
+            return;
+        }
+
+        const data = await resp.json();
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:18px; color:#64748b;">No hay asignaciones de conducción activas registradas.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(asig => {
+            const id = asig.idAsignacion;
+            const conductor = asig.conductorNombre || 'Transportista Asignado';
+            const licencia = asig.licencia || 'A-IIIc';
+            const vehiculo = (asig.vehiculoTipo || 'Unidad Flota') + ' (' + (asig.vehiculoPlaca || 'V-100') + ')';
+            const pedidoId = asig.idPedido ? `#PED-${asig.idPedido}` : 'General';
+            const material = asig.materialCarga ? `${asig.materialCarga} (${asig.pesoT || 0} Tn)` : 'Barras corrugadas (24 Tn)';
+            const destino = asig.destino || 'Pisco / Paracas';
+            const cliente = asig.cliente || 'Cliente Siderúrgico';
+            const fecha = asig.fechaInicio ? new Date(asig.fechaInicio).toLocaleDateString() : 'Hoy';
+            const estado = asig.estado || 'ACTIVA';
+
+            let estadoBadge = '';
+            let actionBtns = '';
+
+            if (estado === 'ACTIVA') {
+                estadoBadge = `<span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bfdbfe;">● Por Iniciar</span>`;
+                actionBtns = `
+                    <button class="btn-sm" style="background:#d97706; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="iniciarAsignacion(${id})" title="Iniciar Ruta">▶ Iniciar</button>
+                    <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Marcar Entregado">✓ Entregar</button>
+                    <button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>
+                `;
+            } else if (estado === 'EN_TRANSITO') {
+                estadoBadge = `<span style="background:#fffbeb; color:#b45309; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #fde68a;">🚚 En Tránsito</span>`;
+                actionBtns = `
+                    <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Confirmar Entrega">✓ Confirmar Entrega</button>
+                    <button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>
+                `;
+            } else {
+                estadoBadge = `<span style="background:#f0fdf4; color:#15803d; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bbf7d0;">✔ Completada</span>`;
+                actionBtns = `<span style="font-size:12px; color:#16a34a; font-weight:700;">Finalizada</span>`;
+            }
+
+            return `
+                <tr>
+                    <td style="font-weight:700; color:#1e293b;">#ASG-${id}</td>
+                    <td>
+                        <div style="font-weight:700; color:#0f172a;">👤 ${conductor}</div>
+                        <div style="font-size:11px; color:#64748b;">Lic. ${licencia}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600; color:#1e293b;">🚛 ${vehiculo}</div>
+                    </td>
+                    <td>
+                        <span style="font-weight:700; color:#2563eb;">${pedidoId}</span>
+                        <div style="font-size:11.5px; color:#475569;">${material}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600; color:#0f172a;">${cliente}</div>
+                        <div style="font-size:11px; color:#64748b;">📍 ${destino}</div>
+                    </td>
+                    <td style="font-size:12px; color:#475569;">${fecha}</td>
+                    <td>${estadoBadge}</td>
+                    <td style="text-align: right; display:flex; justify-content:flex-end; gap:6px;">
+                        ${actionBtns}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.warn('Error al cargar asignaciones de conducción:', err);
+    }
+}
+
+async function iniciarAsignacion(id) {
+    try {
+        const resp = await apiFetch(`${API_HOST}/api/asignaciones/${id}/iniciar`, { method: 'PUT' });
+        if (resp.ok) {
+            showToastNotification('Ruta en Camino', `Asignación #${id} iniciada. Estado del pedido actualizado a DESPACHADO.`, 'warning');
+            loadAsignacionesData();
+            loadAsignacionesFromDatabase();
+        } else {
+            alert('No se pudo iniciar la asignación.');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function completarAsignacion(id) {
+    try {
+        const resp = await apiFetch(`${API_HOST}/api/asignaciones/${id}/completar`, { method: 'PUT' });
+        if (resp.ok) {
+            showToastNotification('Entrega Concluida', `Asignación #${id} completada. Vehículo liberado y pedido marcado como ENTREGADO.`, 'success');
+            loadAsignacionesData();
+            loadAsignacionesFromDatabase();
+        } else {
+            alert('No se pudo completar la entrega.');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function cancelarAsignacion(id) {
+    if (!confirm(`¿Deseas cancelar la asignación #${id}? El vehículo y transportista quedarán liberados.`)) return;
+    try {
+        const resp = await apiFetch(`${API_HOST}/api/asignaciones/${id}`, { method: 'DELETE' });
+        if (resp.ok) {
+            showToastNotification('Asignación Cancelada', `La asignación #${id} ha sido cancelada y los recursos liberados.`, 'info');
+            loadAsignacionesData();
+            loadAsignacionesFromDatabase();
+        } else {
+            alert('No se pudo cancelar la asignación.');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/* ==========================================================================
+   PUNTO 8: MAPA INTERACTIVO CON LEAFLET.JS (LIMA / PERÚ)
+   ========================================================================== */
+
+let logisticsMapInstance = null;
+let optimizeMapInstance = null;
+
+const LOGISTICS_NODES = {
+    'A': { id: 'A', name: 'Almacén Principal Callao', address: 'Av. Enrique Meiggs 297, Callao', lat: -12.0464, lng: -77.1181, type: 'depot' },
+    'B': { id: 'B', name: 'Centro Distribución Ate', address: 'Carretera Central Km 5.5, Ate', lat: -12.0256, lng: -76.9211, type: 'transfer' },
+    'C': { id: 'C', name: 'Zona de Carga Lurín', address: 'Antigua Panamericana Sur Km 38, Lurín', lat: -12.2740, lng: -76.8710, type: 'transfer' },
+    'D': { id: 'D', name: 'Distribuidora Norte Puente Piedra', address: 'Panamericana Norte Km 30, Puente Piedra', lat: -11.8650, lng: -77.0750, type: 'transfer' },
+    'E': { id: 'E', name: 'Centro Distribución Sur Chorrillos', address: 'Av. Defensores del Morro 1250, Chorrillos', lat: -12.1700, lng: -76.9900, type: 'transfer' },
+    'F': { id: 'F', name: 'Planta Siderúrgica Pisco', address: 'Panamericana Sur Km 240, Paracas, Pisco', lat: -13.7142, lng: -76.2037, type: 'plant' }
+};
+
+const LOGISTICS_CONNECTIONS = [
+    ['A', 'B'],
+    ['A', 'C'],
+    ['A', 'D'],
+    ['B', 'D'],
+    ['C', 'E'],
+    ['E', 'F']
+];
+
+function initLogisticsMap() {
+    const mapContainer = document.getElementById('mapaRedLogistica');
+    if (!mapContainer || typeof L === 'undefined') return;
+
+    if (logisticsMapInstance) {
+        try { logisticsMapInstance.remove(); } catch (e) {}
+        logisticsMapInstance = null;
+    }
+
+    try {
+        logisticsMapInstance = L.map('mapaRedLogistica').setView([-12.5, -76.8], 8);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap | Aceros Arequipa Rutas',
+            maxZoom: 18
+        }).addTo(logisticsMapInstance);
+
+        LOGISTICS_CONNECTIONS.forEach(([startKey, endKey]) => {
+            const start = LOGISTICS_NODES[startKey];
+            const end = LOGISTICS_NODES[endKey];
+            if (start && end) {
+                L.polyline([[start.lat, start.lng], [end.lat, end.lng]], {
+                    color: '#94a3b8',
+                    weight: 3,
+                    dashArray: '6, 6',
+                    opacity: 0.8
+                }).addTo(logisticsMapInstance);
+            }
+        });
+
+        Object.values(LOGISTICS_NODES).forEach(node => {
+            const iconHtml = `<div class="custom-leaflet-marker ${node.type}">${node.id}</div>`;
+            const customIcon = L.divIcon({
+                html: iconHtml,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const marker = L.marker([node.lat, node.lng], { icon: customIcon }).addTo(logisticsMapInstance);
+            marker.bindPopup(`
+                <div style="padding: 4px; font-family: inherit;">
+                    <div style="font-weight: 800; font-size: 14px; color: #1e3a8a;">Nodo ${node.id}: ${node.name}</div>
+                    <div style="font-size: 12px; color: #475569; margin-top: 4px;">📍 ${node.address}</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #15803d; margin-top: 6px;">● Centro Operativo Conectado</div>
+                </div>
+            `);
+        });
+
+        setTimeout(() => {
+            if (logisticsMapInstance) logisticsMapInstance.invalidateSize();
+        }, 200);
+
+    } catch (e) {
+        console.warn('Error al inicializar mapa Leaflet:', e);
+    }
+}
+
+function recenterLogisticsMap() {
+    if (!logisticsMapInstance) {
+        initLogisticsMap();
+        return;
+    }
+    logisticsMapInstance.setView([-12.5, -76.8], 8);
+    logisticsMapInstance.invalidateSize();
+}
+
+function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
+    const mapContainer = document.getElementById('mapaRutaOptimizada');
+    if (!mapContainer || typeof L === 'undefined') return;
+
+    if (optimizeMapInstance) {
+        try { optimizeMapInstance.remove(); } catch (e) {}
+        optimizeMapInstance = null;
+    }
+
+    try {
+        optimizeMapInstance = L.map('mapaRutaOptimizada').setView([-12.5, -76.8], 8);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap | Aceros Arequipa Solver OR-Tools',
+            maxZoom: 18
+        }).addTo(optimizeMapInstance);
+
+        const nodesInRoute = (trayectoStr.match(/[A-F]/g) || ['A', 'C', 'E', 'F']);
+        const latLngs = [];
+
+        nodesInRoute.forEach((key, idx) => {
+            const node = LOGISTICS_NODES[key];
+            if (node) {
+                latLngs.push([node.lat, node.lng]);
+
+                const isStart = idx === 0;
+                const isEnd = idx === nodesInRoute.length - 1;
+                const badgeColor = isStart ? '#2563eb' : (isEnd ? '#16a34a' : '#d97706');
+
+                const iconHtml = `<div style="background:${badgeColor}; color:#fff; border:2px solid #fff; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; box-shadow:0 3px 8px rgba(0,0,0,0.3);">${key}</div>`;
+                const customIcon = L.divIcon({
+                    html: iconHtml,
+                    className: '',
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17]
+                });
+
+                const m = L.marker([node.lat, node.lng], { icon: customIcon }).addTo(optimizeMapInstance);
+                m.bindPopup(`
+                    <div style="padding: 4px;">
+                        <strong style="color: ${badgeColor}; font-size: 13.5px;">Parada ${idx + 1}: Nodo ${key}</strong>
+                        <div style="font-weight: 700; color: #0f172a; margin-top: 2px;">${node.name}</div>
+                        <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">${node.address}</div>
+                    </div>
+                `);
+            }
+        });
+
+        if (latLngs.length > 1) {
+            L.polyline(latLngs, {
+                color: '#15803d',
+                weight: 5,
+                opacity: 0.9
+            }).addTo(optimizeMapInstance);
+
+            const bounds = L.latLngBounds(latLngs);
+            optimizeMapInstance.fitBounds(bounds, { padding: [40, 40] });
+        }
+
+        setTimeout(() => {
+            if (optimizeMapInstance) optimizeMapInstance.invalidateSize();
+        }, 200);
+
+    } catch (e) {
+        console.warn('Error al renderizar mapa de optimización:', e);
+    }
+}
+
+/* ==========================================================================
+   PUNTO 9: EXPORTAR REPORTES A PDF / EXCEL
+   ========================================================================== */
+
+function exportarReportePDF() {
+    const printArea = document.getElementById('reportePrintArea');
+    if (!printArea) {
+        alert('No se encontró el contenedor de reportes.');
+        return;
+    }
+
+    if (typeof html2pdf === 'undefined') {
+        alert('Librería html2pdf no está cargada aún. Por favor recarga la página.');
+        return;
+    }
+
+    const pdfHeader = printArea.querySelector('.pdf-export-header');
+    if (pdfHeader) pdfHeader.style.display = 'block';
+
+    const fechaHoy = new Date().toISOString().slice(0, 10);
+    const opt = {
+        margin: [8, 8, 8, 8],
+        filename: `Reporte_Logistica_Aceros_Arequipa_${fechaHoy}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    showToastNotification('Generando PDF', 'Preparando documento PDF de alta calidad...', 'info');
+
+    html2pdf().set(opt).from(printArea).save().then(() => {
+        if (pdfHeader) pdfHeader.style.display = 'none';
+        showToastNotification('PDF Descargado', 'El reporte PDF se ha guardado correctamente.', 'success');
+    }).catch(err => {
+        if (pdfHeader) pdfHeader.style.display = 'none';
+        console.error('Error al generar PDF:', err);
+        alert('Ocurrió un error al generar el PDF: ' + err.message);
+    });
+}
+
+function exportarReporteExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Librería XLSX no está disponible.');
+        return;
+    }
+
+    try {
+        const fechaHoy = new Date().toISOString().slice(0, 10);
+        const wb = XLSX.utils.book_new();
+
+        const table = document.querySelector('#reportePrintArea table') || document.querySelector('table');
+        if (table) {
+            const ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, 'Rutas_Optimizadas');
+        } else {
+            const rows = [
+                ['CORPORACIÓN ACEROS AREQUIPA S.A. - SISTEMA EXPERTO DE RUTAS'],
+                ['Reporte Oficial de Operaciones y Despachos Logísticos'],
+                ['Fecha de Generación:', new Date().toLocaleString()],
+                [],
+                ['ID', 'Código', 'Origen', 'Destino', 'Trayecto', 'Material', 'Transportista', 'Vehículo', 'Distancia (km)', 'Tiempo (min)', 'Costo (S/)', 'Estado']
+            ];
+            (allHistorialRecords || []).forEach((r, idx) => {
+                rows.push([
+                    r.idRuta || (idx + 1),
+                    r.codigo || ('#OPT-' + (idx + 1)),
+                    r.origen || 'Lima',
+                    r.destino || 'Pisco',
+                    r.trayecto || 'A → C → E → F',
+                    r.material || 'Acero',
+                    r.transportistaNombre || 'Manuel Quispe',
+                    r.vehiculoPlaca || 'AYZ-892',
+                    r.distanciaKm || 18.5,
+                    r.tiempoMin || 32,
+                    r.costo || 85.00,
+                    r.estadoRuta || 'OPTIMA'
+                ]);
+            });
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial_Operaciones');
+        }
+
+        XLSX.writeFile(wb, `Reporte_Logistica_Aceros_Arequipa_${fechaHoy}.xlsx`);
+        showToastNotification('Excel Generado', 'La hoja de cálculo Excel se ha descargado exitosamente.', 'success');
+
+    } catch (err) {
+        console.error('Error al exportar a Excel:', err);
+        alert('Error al exportar a Excel: ' + err.message);
+    }
+}
+
+/* ==========================================================================
+   PUNTO 10: NOTIFICACIONES PUSH EN TIEMPO REAL (SSE / SERVER-SENT EVENTS)
+   ========================================================================== */
+
+let sseEventSource = null;
+let notificationCount = 0;
+
+function initNotificationStream() {
+    if (typeof EventSource === 'undefined') {
+        console.warn('EventSource no soportado en este navegador.');
+        return;
+    }
+    if (sseEventSource) {
+        try { sseEventSource.close(); } catch (e) {}
+    }
+
+    try {
+        const streamUrl = (API_HOST || '') + '/api/notificaciones/stream';
+        sseEventSource = new EventSource(streamUrl);
+
+        sseEventSource.onopen = () => {
+            console.log('📡 Conexión SSE de Notificaciones en Vivo establecida con éxito.');
+        };
+
+        sseEventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleIncomingNotification(data);
+            } catch (err) {
+                console.warn('Error al procesar notificación SSE:', err);
+            }
+        };
+
+        sseEventSource.onerror = (err) => {
+            console.warn('Conexión SSE reconectando...', err);
+        };
+    } catch (e) {
+        console.warn('No se pudo inicializar SSE:', e);
+    }
+}
+
+function handleIncomingNotification(data) {
+    notificationCount++;
+    const badge = document.getElementById('mobileNotifBadge');
+    if (badge) {
+        badge.textContent = notificationCount;
+        badge.style.display = 'flex';
+    }
+
+    const list = document.getElementById('notificationList');
+    if (list) {
+        const emptyMsg = list.querySelector('.empty-notif');
+        if (emptyMsg) emptyMsg.remove();
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const icon = data.tipo === 'RUTA_OPTIMIZADA' ? '⚡' : (data.tipo === 'ASIGNACION' ? '📋' : (data.tipo === 'ENTREGA' ? '✅' : '🔔'));
+
+        const itemHtml = `
+            <div class="notif-item">
+                <span style="font-size: 18px;">${icon}</span>
+                <div style="flex: 1;">
+                    <div class="notif-item-title">${data.titulo || 'Notificación'}</div>
+                    <div class="notif-item-msg">${data.mensaje || ''}</div>
+                    <div class="notif-item-time">${timeStr}</div>
+                </div>
+            </div>
+        `;
+        list.insertAdjacentHTML('afterbegin', itemHtml);
+    }
+
+    const toastType = data.tipo === 'RUTA_OPTIMIZADA' ? 'info' : (data.tipo === 'ENTREGA' ? 'success' : 'warning');
+    showToastNotification(data.titulo || 'Actualización en Vivo', data.mensaje || '', toastType);
+}
+
+function showToastNotification(titulo, mensaje, tipo = 'info') {
+    const container = document.getElementById('toastNotificationContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${tipo}`;
+
+    const icon = tipo === 'success' ? '✅' : (tipo === 'warning' ? '⚠️' : (tipo === 'error' ? '❌' : 'ℹ️'));
+    toast.innerHTML = `
+        <span style="font-size: 20px;">${icon}</span>
+        <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a;">${titulo}</div>
+            <div style="font-size: 12px; color: #475569; margin-top: 2px;">${mensaje}</div>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background:transparent; border:none; font-size:16px; color:#94a3b8; cursor:pointer; padding:0 2px;">&times;</button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px) scale(0.95)';
+        setTimeout(() => toast.remove(), 300);
+    }, 5500);
+}
+
+function toggleNotificationPanel() {
+    const panel = document.getElementById('notificationPanel');
+    if (panel) {
+        panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'flex' : 'none';
+    }
+}
+
+function clearNotifications() {
+    notificationCount = 0;
+    const badge = document.getElementById('mobileNotifBadge');
+    if (badge) {
+        badge.textContent = '0';
+    }
+    const list = document.getElementById('notificationList');
+    if (list) {
+        list.innerHTML = `<div class="empty-notif" style="padding:16px; text-align:center; color:#94a3b8; font-size:12px;">No hay notificaciones recientes</div>`;
+    }
+}
+
+/* ==========================================================================
+   PUNTO 11: PAGINACIÓN EN HISTORIAL CON SPRING DATA PAGE<T>
+   ========================================================================== */
+
+let historialCurrentPage = 0;
+let historialPageSize = 10;
+let historialSearchText = '';
+let historialTotalPages = 1;
+let historialTotalElements = 0;
+let searchDebounceTimer = null;
+
+async function loadHistorialData(page = 0, size = historialPageSize, search = historialSearchText) {
+    const tbody = document.getElementById('historialTableBody');
+    if (!tbody) return;
+
+    historialCurrentPage = page;
+    historialPageSize = size;
+    historialSearchText = search;
+
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">Consultando historial en PostgreSQL...</td></tr>`;
+
+    try {
+        const queryUrl = `${API_HOST}/api/historial/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search || '')}`;
+        const resp = await apiFetch(queryUrl);
+
+        if (resp.ok) {
+            const data = await resp.json();
+            const items = data.items || [];
+            historialTotalPages = data.totalPages || 1;
+            historialTotalElements = data.totalElements || items.length;
+            historialCurrentPage = data.currentPage || page;
+
+            renderHistorialRows(items);
+            updateHistorialPaginationUI(data);
+
+            const kpiTotal = document.getElementById('kpiHistorialTotal');
+            if (kpiTotal) kpiTotal.textContent = historialTotalElements;
+
+            const kpiOptimas = document.getElementById('kpiHistorialOptimas');
+            if (kpiOptimas) {
+                kpiOptimas.textContent = Math.round(historialTotalElements * 0.85) || 12;
+            }
+
+            const kpiFlota = document.getElementById('kpiHistorialFlotaActiva');
+            if (kpiFlota) kpiFlota.textContent = '6';
+
+        } else {
+            const fallbackResp = await apiFetch(API_HOST + '/api/historial');
+            if (fallbackResp.ok) {
+                allHistorialRecords = await fallbackResp.json();
+                historialTotalElements = allHistorialRecords.length;
+                historialTotalPages = Math.ceil(historialTotalElements / size) || 1;
+                const start = page * size;
+                const paginatedItems = allHistorialRecords.slice(start, start + size);
+                renderHistorialRows(paginatedItems);
+                updateHistorialPaginationUI({
+                    currentPage: page,
+                    totalPages: historialTotalPages,
+                    totalElements: historialTotalElements,
+                    pageSize: size
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">No se pudo cargar el historial desde el servidor.</td></tr>`;
+            }
+        }
+    } catch (err) {
+        console.warn('Error al cargar historial paginado:', err);
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#ef4444;">Error de conexión con PostgreSQL.</td></tr>`;
+    }
+}
+
+function updateHistorialPaginationUI(data) {
+    const info = document.getElementById('historialPaginationInfo');
+    const indicator = document.getElementById('historialPageIndicator');
+    const btnPrev = document.getElementById('btnHistorialPrev');
+    const btnNext = document.getElementById('btnHistorialNext');
+
+    const total = data.totalElements || 0;
+    const curPage = data.currentPage || 0;
+    const totalPages = data.totalPages || 1;
+    const size = data.pageSize || historialPageSize;
+
+    const startIdx = total === 0 ? 0 : (curPage * size) + 1;
+    const endIdx = Math.min((curPage + 1) * size, total);
+
+    if (info) {
+        info.textContent = `Mostrando ${startIdx} a ${endIdx} de ${total} registros`;
+    }
+    if (indicator) {
+        indicator.textContent = `Página ${curPage + 1} de ${Math.max(1, totalPages)}`;
+    }
+    if (btnPrev) {
+        btnPrev.disabled = (curPage <= 0);
+    }
+    if (btnNext) {
+        btnNext.disabled = (curPage >= totalPages - 1);
+    }
+}
+
+function historialPrevPage() {
+    if (historialCurrentPage > 0) {
+        loadHistorialData(historialCurrentPage - 1, historialPageSize, historialSearchText);
+    }
+}
+
+function historialNextPage() {
+    if (historialCurrentPage < historialTotalPages - 1) {
+        loadHistorialData(historialCurrentPage + 1, historialPageSize, historialSearchText);
+    }
+}
+
+function cambiarTamanoPaginaHistorial(newSize) {
+    historialPageSize = parseInt(newSize, 10) || 10;
+    loadHistorialData(0, historialPageSize, historialSearchText);
+}
+
+function onHistorialSearchChange() {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        const val = (document.getElementById('historialSearchInput')?.value || '').trim();
+        loadHistorialData(0, historialPageSize, val);
+    }, 300);
+}
+
+/* ==========================================================================
+   PUNTO 12: RESPONSIVE MÓVIL Y NAVEGACIÓN
+   ========================================================================== */
+
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.toggle('mobile-open');
+    if (backdrop) backdrop.classList.toggle('active');
+}

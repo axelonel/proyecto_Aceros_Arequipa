@@ -8,6 +8,14 @@ import com.example.demo.service.RutaOptimizationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,6 +27,49 @@ import java.util.*;
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class LogisticaController {
+    // ==========================================
+    // SISTEMA DE NOTIFICACIONES PUSH EN TIEMPO REAL (SSE)
+    // ==========================================
+    private final List<SseEmitter> sseEmitters = new CopyOnWriteArrayList<>();
+
+    @GetMapping(value = "/notificaciones/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamNotificaciones() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        sseEmitters.add(emitter);
+
+        emitter.onCompletion(() -> sseEmitters.remove(emitter));
+        emitter.onTimeout(() -> sseEmitters.remove(emitter));
+        emitter.onError((e) -> sseEmitters.remove(emitter));
+
+        try {
+            emitter.send(SseEmitter.event()
+                    .name("CONNECTED")
+                    .data(Map.of("mensaje", "Conexión en tiempo real con Aceros Arequipa establecida.")));
+        } catch (Exception ex) {
+            sseEmitters.remove(emitter);
+        }
+        return emitter;
+    }
+
+    public void emitirNotificacion(String tipo, String titulo, String mensaje, Object extra) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tipo", tipo);
+        payload.put("titulo", titulo);
+        payload.put("mensaje", mensaje);
+        payload.put("fecha", LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        if (extra != null) payload.put("data", extra);
+
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+        for (SseEmitter emitter : sseEmitters) {
+            try {
+                emitter.send(SseEmitter.event().name(tipo).data(payload));
+            } catch (Exception ex) {
+                deadEmitters.add(emitter);
+            }
+        }
+        sseEmitters.removeAll(deadEmitters);
+    }
+
 
     private final ClienteRepository clienteRepository;
     private final FlotaRepository flotaRepository;
@@ -260,7 +311,7 @@ public class LogisticaController {
             response.add(map);
         }
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
     }
 
     @PostMapping("/pedidos")
@@ -323,7 +374,7 @@ public class LogisticaController {
     }
 
     // ==========================================
-    // 6. ASIGNACIONES DE CONDUCCIÓN
+    // 6. ASIGNACIONES DE CONDUCCIÓN FUNCIONALES (PUNTO 7)
     // ==========================================
     @GetMapping("/asignaciones")
     public ResponseEntity<List<Map<String, Object>>> listarAsignaciones() {
@@ -335,6 +386,7 @@ public class LogisticaController {
             map.put("idAsignacion", a.getIdAsignacion());
             map.put("idVehiculo", a.getIdVehiculo());
             map.put("idTransportista", a.getIdTransportista());
+            map.put("idPedido", a.getIdPedido());
             map.put("fechaInicio", a.getFechaInicio());
             map.put("fechaFin", a.getFechaFin());
             map.put("estado", a.getEstado());
@@ -350,7 +402,21 @@ public class LogisticaController {
                 map.put("conductorNombre", t.getNombres() + " " + t.getApellidos());
                 map.put("conductorDni", t.getDni());
                 map.put("conductorLicencia", t.getLicenciaConducir());
+                map.put("conductorCategoria", t.getCategoriaLicencia());
             });
+
+            if (a.getIdPedido() != null) {
+                pedidoRepository.findById(a.getIdPedido()).ifPresent(p -> {
+                    map.put("pedidoMaterial", p.getTipoMaterial());
+                    map.put("pedidoPeso", p.getPesoT());
+                    map.put("pedidoDestino", p.getDireccionDestino());
+                    map.put("pedidoPrioridad", p.getPrioridad());
+                    map.put("pedidoEstado", p.getEstadoPedido());
+                    clienteRepository.findById(p.getIdCliente()).ifPresent(c -> {
+                        map.put("clienteNombre", c.getNombre());
+                    });
+                });
+            }
 
             result.add(map);
         }
@@ -363,9 +429,13 @@ public class LogisticaController {
         try {
             Long idVehiculo = Long.valueOf(body.get("idVehiculo").toString());
             Long idTransportista = Long.valueOf(body.get("idTransportista").toString());
+            Long idPedido = null;
+            if (body.get("idPedido") != null && !body.get("idPedido").toString().isBlank()) {
+                idPedido = Long.valueOf(body.get("idPedido").toString());
+            }
 
             AsignacionConduccion asignacion = new AsignacionConduccion(
-                null, idVehiculo, idTransportista, LocalDateTime.now(), null, "ACTIVA"
+                null, idVehiculo, idTransportista, idPedido, LocalDateTime.now(), null, "ACTIVA"
             );
 
             AsignacionConduccion guardada = asignacionRepository.save(asignacion);
@@ -376,10 +446,39 @@ public class LogisticaController {
                 vehiculoRepository.save(v);
             });
 
+            // Si hay pedido asociado, actualizar su estado a EN_PROCESO
+            if (idPedido != null) {
+                pedidoRepository.findById(idPedido).ifPresent(p -> {
+                    p.setEstadoPedido("EN_PROCESO");
+                    pedidoRepository.save(p);
+                });
+            }
+
+            emitirNotificacion("ASIGNACION_CREADA", "Nueva Asignación de Conducción",
+                    "Transportista y vehículo asignados para el despacho", guardada);
+
             return ResponseEntity.status(HttpStatus.CREATED).body(guardada);
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(Map.of("error", "Error al crear la asignación: " + ex.getMessage()));
         }
+    }
+
+    @PutMapping("/asignaciones/{id}/iniciar")
+    public ResponseEntity<?> iniciarAsignacion(@PathVariable Long id) {
+        return asignacionRepository.findById(id).map(a -> {
+            a.setEstado("EN_TRANSITO");
+            asignacionRepository.save(a);
+
+            if (a.getIdPedido() != null) {
+                pedidoRepository.findById(a.getIdPedido()).ifPresent(p -> {
+                    p.setEstadoPedido("DESPACHADO");
+                    pedidoRepository.save(p);
+                });
+            }
+
+            emitirNotificacion("ASIGNACION_INICIADA", "Viaje en Tránsito", "Despacho #" + id + " ha iniciado recorrido.", a);
+            return ResponseEntity.ok(Map.of("message", "Ruta iniciada en tránsito exitosamente.", "asignacion", a));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/asignaciones/{id}/completar")
@@ -395,14 +494,46 @@ public class LogisticaController {
                 vehiculoRepository.save(v);
             });
 
+            // Completar pedido vinculado
+            if (a.getIdPedido() != null) {
+                pedidoRepository.findById(a.getIdPedido()).ifPresent(p -> {
+                    p.setEstadoPedido("ENTREGADO");
+                    p.setFechaEntrega(LocalDateTime.now());
+                    pedidoRepository.save(p);
+                });
+            }
+
+            emitirNotificacion("ASIGNACION_COMPLETADA", "Entrega Finalizada", "Despacho #" + id + " completado y vehículo liberado.", a);
             return ResponseEntity.ok(Map.of("message", "Asignación completada y vehículo liberado exitosamente."));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ==========================================
-    // 7. OPTIMIZACIÓN DE RUTAS CON GOOGLE OR-TOOLS
-    // ==========================================
-        // ==========================================
+    @DeleteMapping("/asignaciones/{id}")
+    public ResponseEntity<?> cancelarAsignacion(@PathVariable Long id) {
+        return asignacionRepository.findById(id).map(a -> {
+            a.setEstado("CANCELADA");
+            a.setFechaFin(LocalDateTime.now());
+            asignacionRepository.save(a);
+
+            vehiculoRepository.findById(a.getIdVehiculo()).ifPresent(v -> {
+                v.setEstadoOperativo("DISPONIBLE");
+                vehiculoRepository.save(v);
+            });
+
+            if (a.getIdPedido() != null) {
+                pedidoRepository.findById(a.getIdPedido()).ifPresent(p -> {
+                    if ("EN_PROCESO".equals(p.getEstadoPedido()) || "DESPACHADO".equals(p.getEstadoPedido())) {
+                        p.setEstadoPedido("REGISTRADO");
+                        pedidoRepository.save(p);
+                    }
+                });
+            }
+
+            emitirNotificacion("ASIGNACION_CANCELADA", "Asignación Cancelada", "Despacho #" + id + " cancelado.", a);
+            return ResponseEntity.ok(Map.of("message", "Asignación cancelada y recursos liberados."));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     // 7. RUTAS PROGRAMADAS (CRUD) Y OPTIMIZACIÓN
     // ==========================================
     @GetMapping("/rutas")
@@ -477,6 +608,7 @@ public class LogisticaController {
     public ResponseEntity<?> optimizarConOrTools(@RequestBody OptimizacionRequestDto request) {
         try {
             OptimizacionResponseDto response = rutaOptimizationService.optimizarYPersistir(request);
+            emitirNotificacion("RUTA_OPTIMIZADA", "Nueva Ruta Optimizada", "Ruta calculada: " + response.getRutaOptimaTrayecto() + " (" + response.getDistanciaKm() + " km)", response);
             return ResponseEntity.ok(response);
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -515,6 +647,78 @@ public class LogisticaController {
     // ==========================================
     // 8. HISTORIAL DE OPTIMIZACIONES Y RUTAS
     // ==========================================
+    @GetMapping("/historial/paginado")
+    public ResponseEntity<Map<String, Object>> obtenerHistorialPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String search) {
+
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by("idRuta").descending());
+        Page<RutaOptimizada> pageResult;
+
+        if (search != null && !search.trim().isEmpty()) {
+            String q = search.trim();
+            pageResult = rutaOptimizadaRepository.findByOrigenContainingIgnoreCaseOrDestinoContainingIgnoreCaseOrAlgoritmoUtilizadoContainingIgnoreCase(q, q, q, pageable);
+        } else {
+            pageResult = rutaOptimizadaRepository.findAll(pageable);
+        }
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        List<Map<String, Object>> items = new ArrayList<>();
+
+        for (RutaOptimizada r : pageResult.getContent()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("idRuta", r.getIdRuta());
+            map.put("codigo", "#OPT-" + (1000 + r.getIdRuta()));
+            map.put("origen", r.getOrigen());
+            map.put("destino", r.getDestino());
+            map.put("trayecto", r.getSecuenciaParadas());
+            map.put("distanciaKm", r.getDistanciaKm());
+            map.put("tiempoMin", r.getTiempoEstimadoMin());
+            map.put("costo", r.getCostoOperativo());
+            map.put("puntaje", r.getPuntaje() != null ? r.getPuntaje() + "%" : "90%");
+            map.put("estadoRuta", r.getEstadoRuta());
+            map.put("algoritmo", r.getAlgoritmoUtilizado());
+
+            LocalDateTime fecha = r.getFechaCalculo() != null ? r.getFechaCalculo() : LocalDateTime.now();
+            map.put("fechaHora", fecha.format(dtf));
+
+            if (r.getIdPedido() != null) {
+                pedidoRepository.findById(r.getIdPedido()).ifPresent(p -> {
+                    map.put("material", p.getTipoMaterial());
+                    map.put("pesoT", p.getPesoT());
+                    map.put("prioridad", p.getPrioridad());
+                    map.put("estadoPedido", p.getEstadoPedido());
+                });
+            } else {
+                map.put("material", "Bobinas de acero (24 Tn)");
+                map.put("pesoT", new BigDecimal("24.00"));
+                map.put("estadoPedido", "OPTIMIZADO");
+            }
+
+            if (r.getIdVehiculo() != null) {
+                vehiculoRepository.findById(r.getIdVehiculo()).ifPresent(v -> {
+                    map.put("vehiculoPlaca", v.getPlaca());
+                    map.put("vehiculoModelo", v.getModelo());
+                    map.put("tipoCamion", v.getTipoCamion());
+                });
+            }
+
+            items.add(map);
+        }
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("items", items);
+        res.put("currentPage", pageResult.getNumber());
+        res.put("totalPages", pageResult.getTotalPages());
+        res.put("totalElements", pageResult.getTotalElements());
+        res.put("size", pageResult.getSize());
+        res.put("hasNext", pageResult.hasNext());
+        res.put("hasPrevious", pageResult.hasPrevious());
+
+        return ResponseEntity.ok(res);
+    }
+
     @GetMapping("/historial")
     public ResponseEntity<List<Map<String, Object>>> obtenerHistorialOptimizaciones() {
         List<RutaOptimizada> optimizadas = rutaOptimizadaRepository.findAll();
@@ -581,7 +785,7 @@ public class LogisticaController {
 
         // Ordenar del más reciente al más antiguo
         Collections.reverse(response);
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
     }
 
     // ==========================================

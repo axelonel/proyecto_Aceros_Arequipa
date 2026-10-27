@@ -1,9 +1,92 @@
 <div id="viewMisRutas">
-    <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+    <!-- ENCABEZADO Y PERFIL DEL CONDUCTOR (PUNTO 6) -->
+    <div class="content-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
         <div>
-            <h1 id="rutasHeaderTitle" style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RUTAS ASIGNADAS</h1>
-            <p id="rutasHeaderSubtitle" style="font-size: 13.5px; color: #475569;">Monitoreo, trazabilidad y control de despachos asignados a transportistas</p>
+            <h1 id="rutasHeaderTitle" style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">PANEL DE CONTROL DEL CONDUCTOR</h1>
+            <p id="rutasHeaderSubtitle" style="font-size: 13.5px; color: #475569;">Hoja de ruta diaria, trazabilidad vehicular y registro de entregas en tiempo real</p>
         </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- Selector para supervisores/admins para auditar o probar vista de cualquier conductor -->
+            <div id="conductorSelectorWrapper" style="display: flex; align-items: center; gap: 6px; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                <span style="font-size: 12px; font-weight: 700; color: #475569;">👤 Conductor:</span>
+                <select id="simularConductorSelect" onchange="cambiarSimulacionConductor(this.value)" style="border: none; background: transparent; font-weight: 700; font-size: 12.5px; color: #1e3a8a; cursor: pointer; outline: none;">
+                    <option value="TODOS">Todos los Conductores</option>
+                    <option value="Manuel Quispe">Manuel Quispe (Tráiler V-102)</option>
+                    <option value="Carlos Mendoza">Carlos Mendoza (Camión V-105)</option>
+                </select>
+            </div>
+            <!-- Botón para crear nueva asignación funcional (Punto 7) -->
+            <button class="btn-primary" style="background: #1e3a8a; display: flex; align-items: center; gap: 6px;" onclick="openAssignRouteModal()">
+                <span>📋</span> + Asignar Conducción a Pedido
+            </button>
+        </div>
+    </div>
+
+    <!-- TARJETA DE PERFIL Y ESTADO OPERATIVO DEL CONDUCTOR ACTIVO -->
+    <div id="driverProfileCard" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 26px;">
+                    🚛
+                </div>
+                <div>
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #93c5fd; font-weight: 700;">Transportista Autorizado · Aceros Arequipa</div>
+                    <div id="driverCardName" style="font-size: 19px; font-weight: 800; color: #ffffff;">Manuel Quispe</div>
+                    <div style="font-size: 12.5px; color: #bfdbfe; margin-top: 2px;">
+                        Licencia: <strong id="driverCardLicencia">Q45892014 (Cat. A-IIIc)</strong> &nbsp;|&nbsp; 
+                        DNI: <strong id="driverCardDni">45892014</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos de la Unidad Vehicular Asignada -->
+            <div style="background: rgba(255,255,255,0.12); padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                <div style="font-size: 11px; color: #cbd5e1; text-transform: uppercase; font-weight: 700;">Unidad Asignada</div>
+                <div id="driverCardVehiculo" style="font-size: 15px; font-weight: 800; color: #ffffff; margin-top: 2px;">
+                    Tráiler Plataforma (V-102) · <span style="background: #fbbf24; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 12px;" id="driverCardPlaca">AYZ-892</span>
+                </div>
+                <div style="font-size: 11.5px; color: #93c5fd; margin-top: 2px;">
+                    Capacidad: <strong>32.0 Tn</strong> &nbsp;·&nbsp; Estado: <span style="color: #4ade80; font-weight: 700;">● En Ruta</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 MÉTRICAS RÁPIDAS DEL DÍA PARA EL CONDUCTOR -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 24px;">
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Rutas Asignadas Hoy</div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+                <span id="kpiDriverTotal" style="font-size: 22px; font-weight: 800; color: #0f172a;">2</span>
+                <span style="font-size: 11.5px; color: #2563eb; font-weight: 600;">📋 Programadas</span>
+            </div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">En Tránsito</div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+                <span id="kpiDriverTransito" style="font-size: 22px; font-weight: 800; color: #d97706;">1</span>
+                <span style="font-size: 11.5px; color: #d97706; font-weight: 600;">🚚 En Camino</span>
+            </div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Entregas Concluidas</div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+                <span id="kpiDriverEntregadas" style="font-size: 22px; font-weight: 800; color: #16a34a;">1</span>
+                <span style="font-size: 11.5px; color: #16a34a; font-weight: 600;">✅ Finalizadas</span>
+            </div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Carga Total a Entregar</div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+                <span id="kpiDriverCarga" style="font-size: 22px; font-weight: 800; color: #0f172a;">44.0 Tn</span>
+                <span style="font-size: 11.5px; color: #64748b; font-weight: 600;">⚖️ Acero Arequipa</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑAS DE FILTRO POR ESTADO DE RUTA -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0;">Itinerarios y Despachos Asignados</h3>
         <div style="display: flex; gap: 8px;">
             <button class="filter-tab active" onclick="filterDispatches('TODAS', this)">Todas</button>
             <button class="filter-tab" onclick="filterDispatches('ASIGNADA', this)">Por Iniciar</button>
@@ -12,29 +95,8 @@
         </div>
     </div>
 
-    <!-- SECCIÓN: CONTROL Y TRANSICIÓN DE ESTADOS DE PEDIDOS EN TIEMPO REAL -->
-    <div style="margin-bottom: 24px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-            <div>
-                <h3 style="font-size: 15px; font-weight: 800; color:#0f172a; margin:0;">Control de Despachos y Entregas en Tiempo Real</h3>
-                <span style="font-size: 12px; color:#64748b;">Secuencia del transportista: <strong>OPTIMIZADO ➔ DESPACHADO ➔ ENTREGADO</strong></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="server-status-pill online" style="font-size:11.5px;">● Sincronizado con PostgreSQL</span>
-            </div>
-        </div>
-
-        <!-- Lista de tarjetas de pedidos en ruta -->
-        <div id="misPedidosEnRutaList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(310px, 1fr)); gap:14px;">
-            <!-- Generado dinámicamente desde dashboard.js -->
-        </div>
-    </div>
-
-    <!-- LISTA DE TARJETAS DE HOJA DE RUTA Y DESPACHOS -->
-    <div>
-        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Hojas de Ruta e Itinerarios Asignados</h3>
-        <div id="misRutasList" style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Se genera dinámicamente desde dashboard.js -->
-        </div>
+    <!-- LISTA DE TARJETAS DE HOJA DE RUTA Y DESPACHOS DEL CONDUCTOR -->
+    <div id="misRutasList" style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 28px;">
+        <!-- Se genera dinámicamente desde dashboard.js -->
     </div>
 </div>

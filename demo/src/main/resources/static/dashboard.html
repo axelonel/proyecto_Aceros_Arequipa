@@ -3,10 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Experto de Rutas - Panel Principal</title>
+    <title>Sistema Experto de Rutas - Panel Principal | Aceros Arequipa</title>
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Leaflet.js para mapas interactivos (Punto 8) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- html2pdf.js y SheetJS (XLSX) para exportación a PDF y Excel (Punto 9) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="dashboard-body">
+
+    <!-- BARRA SUPERIOR PARA DISPOSITIVOS MÓVILES (PUNTO 12) -->
+    <header class="mobile-top-bar">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Abrir Menú de Navegación">☰</button>
+        <div class="mobile-logo-title">ACEROS AREQUIPA · RUTAS</div>
+        <div class="mobile-notif-bell" onclick="toggleNotificationPanel()" title="Ver notificaciones en tiempo real">
+            🔔<span id="mobileNotifBadge" class="notif-badge">0</span>
+        </div>
+    </header>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMobileSidebar()"></div>
+
+    <!-- CONTENEDOR FLOTANTE DE NOTIFICACIONES PUSH EN TIEMPO REAL (PUNTO 10) -->
+    <div id="toastNotificationContainer" class="toast-notification-container"></div>
+
+    <!-- PANEL FLOTANTE DE HISTORIAL DE NOTIFICACIONES -->
+    <div id="notificationPanel" class="notification-dropdown-panel" style="display:none;">
+        <div class="notif-panel-header">
+            <span style="font-weight: 700; font-size: 13.5px; color:#0f172a;">🔔 Notificaciones Push en Vivo</span>
+            <button onclick="clearNotifications()" style="background:transparent; border:none; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer;">Limpiar</button>
+        </div>
+        <div id="notificationList" class="notif-panel-body">
+            <div class="empty-notif" style="padding:16px; text-align:center; color:#94a3b8; font-size:12px;">No hay notificaciones recientes</div>
+        </div>
+    </div>
+
 
     <div class="dashboard-container">
         <!-- SIDEBAR LATERAL AZUL -->
@@ -169,10 +202,18 @@
             </div>
             <div class="edit-modal-body">
                 <form id="assignRouteForm" onsubmit="confirmAssignRoute(event)">
-                    <!-- Detalle de la ruta -->
+                    <!-- Selección de Pedido Pendiente (Punto 7) -->
+                    <div class="form-field" style="margin-bottom: 14px;">
+                        <label>Pedido a Asignar *</label>
+                        <select id="assignPedidoSelect" onchange="onAssignPedidoSelected(this.value)" required>
+                            <!-- Llenado dinámicamente con pedidos pendientes -->
+                        </select>
+                    </div>
+
+                    <!-- Detalle de la ruta e itinerario -->
                     <div style="background: #f1f5f9; padding: 12px 14px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #cbd5e1;">
-                        <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Itinerario Calculado</div>
-                        <div style="font-size: 16px; font-weight: 800; color: #15803d; margin: 4px 0;" id="assignItinerarioTxt">A → C → E → F (Lima → Pisco)</div>
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 700; text-transform: uppercase;">Itinerario de Distribución</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #15803d; margin: 4px 0;" id="assignItinerarioTxt">A → C → E → F (Lima → Pisco)</div>
                         <div style="font-size: 12px; color: #475569;" id="assignMetricasTxt">32 min | 18.5 km | Costo est. S/ 85.00</div>
                     </div>
 

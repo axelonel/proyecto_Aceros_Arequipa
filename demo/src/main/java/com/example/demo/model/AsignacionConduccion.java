@@ -24,6 +24,9 @@ public class AsignacionConduccion {
     @Column(name = "id_transportista", nullable = false)
     private Long idTransportista;
 
+    @Column(name = "id_pedido")
+    private Long idPedido;
+
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDateTime fechaInicio;
 
@@ -31,18 +34,25 @@ public class AsignacionConduccion {
     private LocalDateTime fechaFin;
 
     @Column(nullable = false, length = 15)
-    private String estado; // ACTIVA, FINALIZADA
+    private String estado; // ACTIVA, EN_TRANSITO, FINALIZADA, CANCELADA
 
     public AsignacionConduccion() {
     }
 
-    public AsignacionConduccion(Long idAsignacion, Long idVehiculo, Long idTransportista,
+    public AsignacionConduccion(Long idAsignacion, Long idVehiculo, Long idTransportista, Long idPedido,
                                 LocalDateTime fechaInicio, LocalDateTime fechaFin, String estado) {
         this.idAsignacion = idAsignacion;
         this.idVehiculo = idVehiculo;
         this.idTransportista = idTransportista;
+        this.idPedido = idPedido;
         this.fechaInicio = fechaInicio != null ? fechaInicio : LocalDateTime.now();
         this.fechaFin = fechaFin;
         this.estado = estado != null ? estado : "ACTIVA";
+    }
+
+    // Sobrecarga para compatibilidad previa
+    public AsignacionConduccion(Long idAsignacion, Long idVehiculo, Long idTransportista,
+                                LocalDateTime fechaInicio, LocalDateTime fechaFin, String estado) {
+        this(idAsignacion, idVehiculo, idTransportista, null, fechaInicio, fechaFin, estado);
     }
 }
