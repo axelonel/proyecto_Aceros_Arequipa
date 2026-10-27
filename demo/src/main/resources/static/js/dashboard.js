@@ -251,47 +251,58 @@ function applyRolePermissions() {
 const FALLBACK_VIEWS = {
     'inicio': `
         <div id="viewInicio">
-            <div class="content-header" style="margin-bottom: 24px;">
-                <h1>PANEL PRINCIPAL</h1>
-                <p>Resumen general del sistema logístico</p>
+            <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h1>PANEL PRINCIPAL</h1>
+                    <p>Resumen general del sistema y métricas reales de optimización</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="indicadorEnVivoInicio" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: #ecfdf5; color: #047857; padding: 4px 12px; border-radius: 12px; font-weight: 600; border: 1px solid #a7f3d0;">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Métricas en Vivo
+                    </span>
+                    <button onclick="loadDashboardInicioMetrics(true)" class="btn-refresh" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-weight: 600; color: #1e293b; cursor: pointer; transition: all 0.2s;" title="Actualizar métricas reales">
+                        <span>🔄</span> <span>Actualizar</span>
+                    </button>
+                </div>
             </div>
             <div class="kpi-row">
                 <div class="kpi-card blue">
                     <div class="kpi-title">Rutas analizadas</div>
-                    <div class="kpi-value" id="kpiRutas">125</div>
-                    <div class="kpi-subtitle">total de análisis</div>
+                    <div class="kpi-value" id="kpiRutas">--</div>
+                    <div class="kpi-subtitle">total de análisis real</div>
                 </div>
                 <div class="kpi-card green">
                     <div class="kpi-title">Ahorro estimado</div>
-                    <div class="kpi-value" id="kpiAhorro">S./ 4250</div>
-                    <div class="kpi-subtitle">Este mes</div>
+                    <div class="kpi-value" id="kpiAhorro">S./ --</div>
+                    <div class="kpi-subtitle">acumulado por optimizaciones</div>
                 </div>
                 <div class="kpi-card yellow">
                     <div class="kpi-title">Tiempo reducido</div>
-                    <div class="kpi-value" id="kpiTiempo">18%</div>
-                    <div class="kpi-subtitle">Promedio</div>
+                    <div class="kpi-value" id="kpiTiempo">--%</div>
+                    <div class="kpi-subtitle">Promedio real</div>
                 </div>
             </div>
             <div class="bottom-row" style="margin-top: 24px;">
-                <div class="card-container">
-                    <div class="card-header-row">
-                        <div class="card-title">Resumen de rendimiento</div>
-                        <div class="chart-legend">
-                            <div class="legend-item"><span class="legend-dot blue"></span><span>Tiempo (min)</span></div>
-                            <div class="legend-item"><span class="legend-dot green"></span><span>Costo (S/)</span></div>
+                <div class="card-container" style="flex: 1.4; min-width: 320px;">
+                    <div class="card-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="card-title">Resumen de rendimiento real</div>
+                        <div class="chart-legend" style="display: flex; gap: 14px;">
+                            <div class="legend-item" style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span class="legend-dot blue" style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb; display: inline-block;"></span><span style="color: #475569; font-weight: 500;">Tiempo (min)</span></div>
+                            <div class="legend-item" style="display: flex; align-items: center; gap: 6px; font-size: 12px;"><span class="legend-dot green" style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a; display: inline-block;"></span><span style="color: #475569; font-weight: 500;">Costo (S/)</span></div>
                         </div>
                     </div>
-                    <div class="chart-wrapper">
-                        <canvas id="performanceChart" width="550" height="230"></canvas>
+                    <div class="chart-wrapper" style="position: relative; width: 100%; height: 230px;">
+                        <canvas id="performanceChart" width="550" height="230" style="max-width: 100%;"></canvas>
                     </div>
+                    <div id="chartSubtitleInfo" style="margin-top: 8px; font-size: 11px; color: #64748b; text-align: center;">Valores calculados por el motor de optimización matemática Google OR-Tools</div>
                 </div>
-                <div class="card-container optimizations-card">
-                    <div class="card-title" style="color: #374151;">Ultimas Optimizaciones</div>
-                    <div class="opt-list">
-                        <div class="opt-item"><div class="opt-info"><span class="opt-route">Ruta A-B-D</span><span class="opt-time">Hoy, 09:15AM</span></div><span class="opt-badge">OPTIMO</span></div>
-                        <div class="opt-item"><div class="opt-info"><span class="opt-route">Ruta C-E-F</span><span class="opt-time">Hoy, 08:45AM</span></div><span class="opt-badge">OPTIMO</span></div>
-                        <div class="opt-item"><div class="opt-info"><span class="opt-route">Ruta A-C -F</span><span class="opt-time">Ayer, 05:30 PM</span></div><span class="opt-badge">OPTIMO</span></div>
-                        <div class="opt-item"><div class="opt-info"><span class="opt-route">Ruta B-D-E</span><span class="opt-time">Ayer, 04:20 PM</span></div><span class="opt-badge">OPTIMO</span></div>
+                <div class="card-container optimizations-card" style="flex: 1; min-width: 300px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="card-title" style="color: #374151; margin: 0;">Últimas Optimizaciones</div>
+                        <span id="ultimasOptCountBadge" style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 10px; font-weight: 600;">En Vivo</span>
+                    </div>
+                    <div class="opt-list" id="ultimasOptimizacionesInicioList">
+                        <div style="text-align: center; padding: 40px 10px; color: #94a3b8; font-size: 13px;">Cargando optimizaciones reales...</div>
                     </div>
                 </div>
             </div>
@@ -707,7 +718,7 @@ function onViewLoaded(viewName) {
         loadAsignacionesData();
         setTimeout(initLogisticsMap, 150);
     } else if (viewName === 'inicio') {
-        setTimeout(drawChart, 60);
+        loadDashboardInicioMetrics();
     } else if (viewName === 'mis-rutas') {
         loadAsignacionesFromDatabase();
     } else if (viewName === 'reportes') {
@@ -1277,6 +1288,9 @@ async function startOptimizationProcess(e) {
 
                 setTimeout(() => {
                     showOptSubStep('result');
+    if (typeof loadDashboardInicioMetrics === 'function') {
+        loadDashboardInicioMetrics(true);
+    }
                     if (orToolsResponse && orToolsResponse.rutaOptimaTrayecto) {
                         setTimeout(() => renderOptimizedRouteMap(orToolsResponse.rutaOptimaTrayecto), 200);
                     }
@@ -1685,85 +1699,260 @@ function resetOptimizationWizard() {
    GRÁFICO SEMANAL DE RENDIMIENTO – INICIO
    ========================================================================== */
 
-function drawChart() {
+/* ==========================================================================
+   MÉTRICAS REALES Y GRÁFICO DINÁMICO – PANEL PRINCIPAL (INICIO)
+   ========================================================================== */
+
+let cachedDashboardMetrics = null;
+
+/**
+ * Carga las métricas reales y últimas optimizaciones desde /api/dashboard/resumen
+ */
+async function loadDashboardInicioMetrics(silent = false) {
+    const kpiRutas  = document.getElementById('kpiRutas');
+    const kpiAhorro = document.getElementById('kpiAhorro');
+    const kpiTiempo = document.getElementById('kpiTiempo');
+    const listOpt   = document.getElementById('ultimasOptimizacionesInicioList');
+
+    if (!kpiRutas && !listOpt) return;
+
+    if (!silent && kpiRutas && (kpiRutas.textContent === '--' || kpiRutas.textContent === '125')) {
+        kpiRutas.textContent = '...';
+        if (kpiAhorro) kpiAhorro.textContent = '...';
+        if (kpiTiempo) kpiTiempo.textContent = '...';
+    }
+
+    try {
+        const resp = await apiFetch('/api/dashboard/resumen');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        cachedDashboardMetrics = data;
+
+        // 1. KPI Rutas analizadas real
+        if (kpiRutas) {
+            kpiRutas.textContent = Number(data.totalAnalisis || 0).toLocaleString();
+        }
+
+        // 2. KPI Ahorro estimado real
+        if (kpiAhorro) {
+            const ahorro = Number(data.ahorroEstimadoSoles || 0);
+            kpiAhorro.textContent = 'S./ ' + ahorro.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // 3. KPI Tiempo reducido promedio real
+        if (kpiTiempo) {
+            const pct = Number(data.tiempoReducidoPromedio || 0);
+            kpiTiempo.textContent = Math.round(pct) + '%';
+        }
+
+        // 4. Últimas Optimizaciones en la tarjeta lateral
+        if (listOpt) {
+            const ultimas = data.ultimasOptimizaciones || [];
+            const badgeCount = document.getElementById('ultimasOptCountBadge');
+            if (badgeCount) badgeCount.textContent = `${ultimas.length} Registros`;
+
+            if (ultimas.length === 0) {
+                listOpt.innerHTML = `
+                    <div style="text-align: center; padding: 40px 10px; color: #94a3b8; font-size: 13px;">
+                        <span style="font-size: 26px; display: block; margin-bottom: 8px;">🚛</span>
+                        Aún no hay rutas analizadas.<br>
+                        <a href="#" onclick="navigateTo('optimizar'); return false;" style="color: #2563eb; font-weight: 600; text-decoration: underline;">
+                            Realizar la primera optimización
+                        </a>
+                    </div>
+                `;
+            } else {
+                listOpt.innerHTML = ultimas.map(opt => {
+                    const trayecto = escapeHtml(opt.trayecto || (opt.origen + ' → ' + opt.destino));
+                    const costoStr = opt.costo != null ? ('S/ ' + Number(opt.costo).toLocaleString('es-PE', { minimumFractionDigits: 2 })) : '';
+                    const tiempoStr = opt.tiempoMin != null ? (Math.round(opt.tiempoMin) + ' min') : '';
+                    const metaDetalle = [costoStr, tiempoStr].filter(Boolean).join(' • ');
+
+                    return `
+                        <div class="opt-item" style="transition: all 0.2s; cursor: pointer;" onclick="verDetalleOptInicio(${opt.idRuta || 0})" title="Ver detalles de esta ruta en Historial">
+                            <div class="opt-info" style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 11px; font-weight: 700; color: #1e3a8a; background: #dbeafe; padding: 1px 6px; border-radius: 4px;">
+                                        ${escapeHtml(opt.codigo || '#OPT')}
+                                    </span>
+                                    <span class="opt-route" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;" title="${trayecto}">
+                                        ${trayecto}
+                                    </span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 3px;">
+                                    <span class="opt-time" style="font-size: 11px; color: #64748b;">${escapeHtml(opt.fechaHora || 'Hoy')}</span>
+                                    <span style="font-size: 11px; font-weight: 600; color: #047857;">${metaDetalle}</span>
+                                </div>
+                            </div>
+                            <span class="opt-badge" style="margin-left: 8px; flex-shrink: 0;">OPTIMO</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 5. Gráfico Canvas con datos reales
+        drawChart(data.puntosGrafico || []);
+
+        if (silent) {
+            console.log('🔄 Panel Principal sincronizado con la base de datos:', data);
+        }
+    } catch (err) {
+        console.warn('Error al cargar métricas del Panel Principal:', err);
+    }
+}
+
+/**
+ * Permite hacer clic en cualquier optimización del panel de inicio para verla en Historial
+ */
+function verDetalleOptInicio(idRuta) {
+    navigateTo('historial');
+    setTimeout(() => {
+        const searchInput = document.getElementById('historialSearchInput');
+        if (searchInput && idRuta) {
+            searchInput.value = '#OPT-' + (1000 + idRuta);
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }, 200);
+}
+
+/**
+ * Dibuja el gráfico de rendimiento con los tiempos y costos reales de las optimizaciones
+ */
+function drawChart(puntos) {
     const canvas = document.getElementById('performanceChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
+    const w = canvas.width || 550;
+    const h = canvas.height || 230;
 
     ctx.clearRect(0, 0, w, h);
 
-    const padL = 40, padB = 30, padT = 20, padR = 20;
+    const padL = 48, padR = 48, padT = 25, padB = 35;
     const chartW = w - padL - padR;
     const chartH = h - padT - padB;
 
-    const yLabels = [0, 20, 40, 60, 80];
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#64748b';
-    ctx.font = '11px Segoe UI, sans-serif';
+    const dataPoints = (Array.isArray(puntos) && puntos.length > 0)
+        ? puntos
+        : (cachedDashboardMetrics && Array.isArray(cachedDashboardMetrics.puntosGrafico) && cachedDashboardMetrics.puntosGrafico.length > 0)
+            ? cachedDashboardMetrics.puntosGrafico
+            : [];
 
-    yLabels.forEach((val, i) => {
-        const y = padT + chartH - (i * (chartH / (yLabels.length - 1)));
+    if (dataPoints.length === 0) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '13px Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sin rutas optimizadas registradas aún en la base de datos.', w / 2, h / 2);
+        return;
+    }
+
+    const count = dataPoints.length;
+    const tiempos = dataPoints.map(p => Number(p.tiempo || 0));
+    const costos  = dataPoints.map(p => Number(p.costo || 0));
+
+    let maxT = Math.max(...tiempos, 10);
+    maxT = Math.ceil(maxT * 1.15);
+
+    let maxC = Math.max(...costos, 10);
+    maxC = Math.ceil(maxC * 1.15);
+
+    const stepsY = 4;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.font = '10px Segoe UI, sans-serif';
+
+    // Cuadrícula y escalas Y
+    for (let i = 0; i <= stepsY; i++) {
+        const y = padT + chartH - (i * (chartH / stepsY));
         ctx.beginPath();
         ctx.moveTo(padL, y);
         ctx.lineTo(w - padR, y);
         ctx.stroke();
-        ctx.fillText(val, 15, y + 4);
-    });
 
-    const xLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const stepX = chartW / (xLabels.length - 1);
+        // Eje izquierdo: Tiempo (min) - Azul
+        ctx.fillStyle = '#2563eb';
+        ctx.textAlign = 'right';
+        const valT = Math.round((maxT / stepsY) * i);
+        ctx.fillText(valT + 'm', padL - 8, y + 3);
 
-    xLabels.forEach((day, i) => {
-        const x = padL + (i * stepX);
-        ctx.fillText(day, x - 10, h - 8);
-    });
-
-    const tiempoData = [45, 61, 61, 50, 61, 50, 63];
-    const costoData  = [32, 36, 31, 26, 31, 26, 40];
-
-    function getYCoord(val) {
-        return padT + chartH - ((val / 80) * chartH);
+        // Eje derecho: Costo (S/) - Verde
+        ctx.fillStyle = '#16a34a';
+        ctx.textAlign = 'left';
+        const valC = Math.round((maxC / stepsY) * i);
+        ctx.fillText('S/' + valC, w - padR + 8, y + 3);
     }
 
-    // Línea Tiempo (Azul)
+    // Coordenadas X
+    const stepX = count > 1 ? (chartW / (count - 1)) : (chartW / 2);
+
+    dataPoints.forEach((p, i) => {
+        const x = count > 1 ? (padL + (i * stepX)) : (padL + chartW / 2);
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'center';
+        ctx.font = '10px Segoe UI, sans-serif';
+        const lbl = p.codigo || p.label || ('#' + (i + 1));
+        const shortLbl = lbl.length > 12 ? lbl.substring(0, 10) + '..' : lbl;
+        ctx.fillText(shortLbl, x, h - 10);
+    });
+
+    function getYTiempo(val) {
+        return padT + chartH - ((val / maxT) * chartH);
+    }
+
+    function getYCosto(val) {
+        return padT + chartH - ((val / maxC) * chartH);
+    }
+
+    // 1. Línea Tiempo (Azul)
     ctx.beginPath();
     ctx.strokeStyle = '#2563eb';
     ctx.lineWidth = 2.5;
-    tiempoData.forEach((val, i) => {
-        const x = padL + (i * stepX);
-        const y = getYCoord(val);
+    dataPoints.forEach((p, i) => {
+        const x = count > 1 ? (padL + (i * stepX)) : (padL + chartW / 2);
+        const y = getYTiempo(p.tiempo);
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
 
+    // Puntos Tiempo
     ctx.fillStyle = '#2563eb';
-    tiempoData.forEach((val, i) => {
-        const x = padL + (i * stepX);
+    dataPoints.forEach((p, i) => {
+        const x = count > 1 ? (padL + (i * stepX)) : (padL + chartW / 2);
+        const y = getYTiempo(p.tiempo);
         ctx.beginPath();
-        ctx.arc(x, getYCoord(val), 4, 0, Math.PI * 2);
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2563eb';
     });
 
-    // Línea Costo (Verde)
+    // 2. Línea Costo (Verde)
     ctx.beginPath();
     ctx.strokeStyle = '#16a34a';
     ctx.lineWidth = 2.5;
-    costoData.forEach((val, i) => {
-        const x = padL + (i * stepX);
-        const y = getYCoord(val);
+    dataPoints.forEach((p, i) => {
+        const x = count > 1 ? (padL + (i * stepX)) : (padL + chartW / 2);
+        const y = getYCosto(p.costo);
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
 
+    // Puntos Costo
     ctx.fillStyle = '#16a34a';
-    costoData.forEach((val, i) => {
-        const x = padL + (i * stepX);
+    dataPoints.forEach((p, i) => {
+        const x = count > 1 ? (padL + (i * stepX)) : (padL + chartW / 2);
+        const y = getYCosto(p.costo);
         ctx.beginPath();
-        ctx.arc(x, getYCoord(val), 4, 0, Math.PI * 2);
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#16a34a';
     });
 }
 
@@ -3586,6 +3775,11 @@ function handleIncomingNotification(data) {
         list.insertAdjacentHTML('afterbegin', itemHtml);
     }
 
+    if (data.tipo === 'RUTA_OPTIMIZADA' || data.tipo === 'ASIGNACION_COMPLETADA') {
+        if (typeof loadDashboardInicioMetrics === 'function' && document.getElementById('viewInicio')) {
+            loadDashboardInicioMetrics(true);
+        }
+    }
     const toastType = data.tipo === 'RUTA_OPTIMIZADA' ? 'info' : (data.tipo === 'ENTREGA' ? 'success' : 'warning');
     showToastNotification(data.titulo || 'Actualización en Vivo', data.mensaje || '', toastType);
 }

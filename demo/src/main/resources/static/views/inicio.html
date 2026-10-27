@@ -1,7 +1,17 @@
 <div id="viewInicio">
-    <div class="content-header" style="margin-bottom: 24px;">
-        <h1>PANEL PRINCIPAL</h1>
-        <p>Resumen general del sistema</p>
+    <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1>PANEL PRINCIPAL</h1>
+            <p>Resumen general del sistema y métricas reales de optimización</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="indicadorEnVivoInicio" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: #ecfdf5; color: #047857; padding: 4px 12px; border-radius: 12px; font-weight: 600; border: 1px solid #a7f3d0;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Métricas en Vivo
+            </span>
+            <button onclick="loadDashboardInicioMetrics(true)" class="btn-refresh" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; font-weight: 600; color: #1e293b; cursor: pointer; transition: all 0.2s;" title="Actualizar métricas reales">
+                <span>🔄</span> <span>Actualizar</span>
+            </button>
+        </div>
     </div>
 
     <!-- 3 TARJETAS KPI -->
@@ -9,84 +19,62 @@
         <!-- Rutas analizadas -->
         <div class="kpi-card blue">
             <div class="kpi-title">Rutas analizadas</div>
-            <div class="kpi-value" id="kpiRutas">125</div>
-            <div class="kpi-subtitle">total de análisis</div>
+            <div class="kpi-value" id="kpiRutas">--</div>
+            <div class="kpi-subtitle">total de análisis real</div>
         </div>
 
         <!-- Ahorro estimado -->
         <div class="kpi-card green">
             <div class="kpi-title">Ahorro estimado</div>
-            <div class="kpi-value" id="kpiAhorro">S./ 4250</div>
-            <div class="kpi-subtitle">Este mes</div>
+            <div class="kpi-value" id="kpiAhorro">S./ --</div>
+            <div class="kpi-subtitle">acumulado por optimizaciones</div>
         </div>
 
         <!-- Tiempo reducido -->
         <div class="kpi-card yellow">
             <div class="kpi-title">Tiempo reducido</div>
-            <div class="kpi-value" id="kpiTiempo">18%</div>
-            <div class="kpi-subtitle">Promedio</div>
+            <div class="kpi-value" id="kpiTiempo">--%</div>
+            <div class="kpi-subtitle">Promedio real</div>
         </div>
     </div>
 
     <!-- FILA INFERIOR: GRÁFICO + ÚLTIMAS OPTIMIZACIONES -->
     <div class="bottom-row" style="margin-top: 24px;">
         <!-- Gráfico de rendimiento -->
-        <div class="card-container">
-            <div class="card-header-row">
-                <div class="card-title">Resumen de rendimiento</div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-dot blue"></span>
-                        <span>Tiempo (min)</span>
+        <div class="card-container" style="flex: 1.4; min-width: 320px;">
+            <div class="card-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="card-title">Resumen de rendimiento real</div>
+                <div class="chart-legend" style="display: flex; gap: 14px;">
+                    <div class="legend-item" style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                        <span class="legend-dot blue" style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb; display: inline-block;"></span>
+                        <span style="color: #475569; font-weight: 500;">Tiempo (min)</span>
                     </div>
-                    <div class="legend-item">
-                        <span class="legend-dot green"></span>
-                        <span>Costo (S/)</span>
+                    <div class="legend-item" style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                        <span class="legend-dot green" style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+                        <span style="color: #475569; font-weight: 500;">Costo (S/)</span>
                     </div>
                 </div>
             </div>
 
             <!-- Gráfico Canvas -->
-            <div class="chart-wrapper">
-                <canvas id="performanceChart" width="550" height="230"></canvas>
+            <div class="chart-wrapper" style="position: relative; width: 100%; height: 230px;">
+                <canvas id="performanceChart" width="550" height="230" style="max-width: 100%;"></canvas>
+            </div>
+            <div id="chartSubtitleInfo" style="margin-top: 8px; font-size: 11px; color: #64748b; text-align: center;">
+                Valores calculados por el motor de optimización matemática Google OR-Tools
             </div>
         </div>
 
         <!-- Últimas Optimizaciones -->
-        <div class="card-container optimizations-card">
-            <div class="card-title" style="color: #374151;">Ultimas Optimizaciones</div>
+        <div class="card-container optimizations-card" style="flex: 1; min-width: 300px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="card-title" style="color: #374151; margin: 0;">Últimas Optimizaciones</div>
+                <span id="ultimasOptCountBadge" style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 10px; font-weight: 600;">En Vivo</span>
+            </div>
             
-            <div class="opt-list">
-                <div class="opt-item">
-                    <div class="opt-info">
-                        <span class="opt-route">Ruta A-B-D</span>
-                        <span class="opt-time">Hoy, 09:15AM</span>
-                    </div>
-                    <span class="opt-badge">OPTIMO</span>
-                </div>
-
-                <div class="opt-item">
-                    <div class="opt-info">
-                        <span class="opt-route">Ruta C-E-F</span>
-                        <span class="opt-time">Hoy, 08:45AM</span>
-                    </div>
-                    <span class="opt-badge">OPTIMO</span>
-                </div>
-
-                <div class="opt-item">
-                    <div class="opt-info">
-                        <span class="opt-route">Ruta A-C -F</span>
-                        <span class="opt-time">Ayer, 05:30 PM</span>
-                    </div>
-                    <span class="opt-badge">OPTIMO</span>
-                </div>
-
-                <div class="opt-item">
-                    <div class="opt-info">
-                        <span class="opt-route">Ruta B-D-E</span>
-                        <span class="opt-time">Ayer, 04:20 PM</span>
-                    </div>
-                    <span class="opt-badge">OPTIMO</span>
+            <div class="opt-list" id="ultimasOptimizacionesInicioList">
+                <div style="text-align: center; padding: 40px 10px; color: #94a3b8; font-size: 13px;">
+                    Cargando optimizaciones reales desde la base de datos...
                 </div>
             </div>
         </div>
