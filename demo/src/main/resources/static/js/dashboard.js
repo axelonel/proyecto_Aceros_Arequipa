@@ -722,6 +722,7 @@ function onViewLoaded(viewName) {
         loadClientesData();
     } else if (viewName === 'optimizar') {
         showOptSubStep('form');
+        cargarListaPedidosParaOptimizar();
     }
 }
 
@@ -1204,6 +1205,10 @@ async function startOptimizationProcess(e) {
         if (r.checked) { objetivo = r.value; break; }
     }
 
+    const optPedIdInput = document.getElementById('optPedidoId');
+    const selectedPedidoId = (optPedIdInput && optPedIdInput.value) ? parseInt(optPedIdInput.value) : null;
+    window.currentOptimizedPedidoId = selectedPedidoId;
+
     const payload = {
         origen: origenSel ? origenSel.value : "A",
         destino: destinoSel ? destinoSel.value : "F",
@@ -1213,7 +1218,8 @@ async function startOptimizationProcess(e) {
         tipoTransporte: transporteSel ? transporteSel.value : "camion",
         objetivo: objetivo,
         evitarTrafico: traficoCheck ? traficoCheck.checked : false,
-        evitarMantenimiento: mantCheck ? mantCheck.checked : false
+        evitarMantenimiento: mantCheck ? mantCheck.checked : false,
+        idPedido: selectedPedidoId
     };
 
     // Disparar en paralelo la llamada al backend con Google OR-Tools
@@ -1262,6 +1268,11 @@ async function startOptimizationProcess(e) {
                 // Renderizar métricas reales de Google OR-Tools
                 if (orToolsResponse && orToolsResponse.exito) {
                     renderOrToolsResults(orToolsResponse);
+                }
+
+                // Si se optimizó un pedido realizado, sincronizar su estado a OPTIMIZADO
+                if (selectedPedidoId) {
+                    syncPedidoOptimizado(selectedPedidoId);
                 }
 
                 setTimeout(() => {
@@ -3769,4 +3780,224 @@ function openAssignFromPedido(idPedido) {
             onAssignPedidoSelected(idPedido);
         }
     }, 250);
+}
+
+
+/* ==========================================================================
+   OPTIMIZACIÓN DE PEDIDOS REALIZADOS (GOOGLE OR-TOOLS)
+   ========================================================================== */
+
+let windowOptimizedPedidoId = null;
+
+async function cargarListaPedidosParaOptimizar() {
+    const select = document.getElementById('selectPedidoAOptimizar');
+    const tbody = document.getElementById('pedidosPendientesOptimizarTbody');
+    const badge = document.getElementById('badgePedidosPendientesCount');
+
+    try {
+        if (window.location.protocol !== 'file:') {
+            const [resPed, resCli] = await Promise.all([
+                apiFetch(API_HOST + '/api/pedidos'),
+                apiFetch(API_HOST + '/api/clientes')
+            ]);
+            if (resPed.ok) memoryPedidos = await resPed.json();
+            if (resCli.ok) memoryClientes = await resCli.json();
+        }
+    } catch (e) {
+        console.warn('Error al cargar pedidos para optimizar:', e);
+    }
+
+    const clienteMap = {};
+    (memoryClientes || []).forEach(c => { clienteMap[c.idCliente] = c.nombre; });
+
+    const pedidosPendientes = (memoryPedidos || []).filter(p => p.estadoPedido !== 'ENTREGADO');
+
+    if (badge) {
+        const countReg = pedidosPendientes.filter(p => p.estadoPedido === 'REGISTRADO' || p.estadoPedido === 'EN_PROCESO').length;
+        badge.textContent = `${countReg} pendientes`;
+    }
+
+    if (select) {
+        select.innerHTML = '<option value="">-- Seleccionar un Pedido Registrado --</option>' +
+            pedidosPendientes.map(p => {
+                const cliente = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+                return `<option value="${p.idPedido}">#PED-${p.idPedido} · ${cliente} - ${p.tipoMaterial} (${p.pesoT} Tn) [${p.estadoPedido}]</option>`;
+            }).join('');
+    }
+
+    if (tbody) {
+        if (pedidosPendientes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:18px; color:#64748b;">No hay pedidos pendientes de optimizar. Todos han sido entregados.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pedidosPendientes.map(p => {
+            const cliente = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+            const badgeClass = p.prioridad === 'ALTA' ? 'badge-no-optima' : (p.prioridad === 'MEDIA' ? 'badge-alternativa' : 'badge-optima');
+            const estadoBadge = p.estadoPedido === 'OPTIMIZADO' 
+                ? '<span style="background:#f3e8ff; color:#6b21a8; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #e9d5ff;">● OPTIMIZADO</span>'
+                : (p.estadoPedido === 'EN_PROCESO'
+                    ? '<span style="background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #fde68a;">● EN PROCESO</span>'
+                    : '<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bae6fd;">● REGISTRADO</span>');
+
+            return `
+                <tr>
+                    <td style="font-weight:700; color:#1e293b;">#PED-${p.idPedido}</td>
+                    <td><strong>${cliente}</strong></td>
+                    <td style="color:#0f172a; font-weight:600;">📦 ${p.tipoMaterial}</td>
+                    <td><strong style="color:#15803d;">${p.pesoT} Tn</strong></td>
+                    <td>📍 ${p.direccionDestino}</td>
+                    <td><span class="${badgeClass}">${p.prioridad}</span></td>
+                    <td>${estadoBadge}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn-sm" style="background:#2563eb; color:#fff; border:none; padding:5px 12px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" onclick="cargarDatosDePedido(${p.idPedido})">
+                            <span>⚡</span> Optimizar Pedido
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
+function cargarDatosDePedido(idPedido) {
+    if (!idPedido) {
+        limpiarPedidoSeleccionado();
+        return;
+    }
+
+    const p = (memoryPedidos || []).find(x => Number(x.idPedido) === Number(idPedido));
+    if (!p) return;
+
+    // 1. Guardar en input oculto
+    const hiddenInput = document.getElementById('optPedidoId');
+    if (hiddenInput) hiddenInput.value = p.idPedido;
+
+    // 2. Establecer Origen fijo en Almacén Callao
+    const origSel = document.getElementById('optOrigen');
+    if (origSel) origSel.value = 'A';
+
+    // 3. Mapear Destino según la dirección del pedido
+    const destSel = document.getElementById('optDestino');
+    if (destSel) {
+        const d = (p.direccionDestino || '').toLowerCase();
+        if (d.includes('pisco') || d.includes('paracas')) destSel.value = 'F';
+        else if (d.includes('arequipa') || d.includes('chorrillos') || d.includes('sur')) destSel.value = 'E';
+        else if (d.includes('chiclayo') || d.includes('puente piedra') || d.includes('norte')) destSel.value = 'D';
+        else if (d.includes('lurin') || d.includes('lurín')) destSel.value = 'C';
+        else if (d.includes('ate') || d.includes('vitarte')) destSel.value = 'B';
+        else destSel.value = 'F';
+    }
+
+    // 4. Mapear Material
+    const matSel = document.getElementById('optMaterial');
+    if (matSel) {
+        const m = (p.tipoMaterial || '').toLowerCase();
+        if (m.includes('bobina')) matSel.value = 'bobinas';
+        else if (m.includes('barra') || m.includes('corrugad')) matSel.value = 'barras';
+        else if (m.includes('alambron') || m.includes('alambrón')) matSel.value = 'alambron';
+        else if (m.includes('plancha')) matSel.value = 'planchas';
+        else matSel.value = 'perfiles';
+    }
+
+    // 5. Prioridad
+    const prioSel = document.getElementById('optPrioridad');
+    if (prioSel) {
+        const pr = (p.prioridad || 'ALTA').toUpperCase();
+        prioSel.value = (pr === 'MEDIA') ? 'Media' : ((pr === 'BAJA') ? 'Baja' : 'Alta');
+    }
+
+    // 6. Peso y Tipo de Transporte según capacidad
+    const pesoInput = document.getElementById('restPesoVal');
+    const transpSel = document.getElementById('optTransporte');
+    const pesoVal = Number(p.pesoT) || 24;
+    if (pesoInput) pesoInput.value = pesoVal;
+    if (transpSel) {
+        transpSel.value = pesoVal > 22 ? 'trailer' : (pesoVal > 15 ? 'camion' : 'furgon');
+    }
+
+    // 7. Objetivo de Optimización
+    const objRadios = document.getElementsByName('optObjetivo');
+    const objVal = (p.objetivoOptimizacion || 'EQUILIBRIO').toLowerCase();
+    for (const r of objRadios) {
+        if (objVal.includes(r.value)) { r.checked = true; break; }
+    }
+
+    // 8. Restricciones
+    const restTraf = document.getElementById('restTrafico');
+    const restMant = document.getElementById('restMantenimiento');
+    if (restTraf) restTraf.checked = p.evitarTraficoPesado === true;
+    if (restMant) restMant.checked = p.evitarZonasMantenimiento === true;
+
+    // 9. Mostrar Banner y actualizar selector
+    const banner = document.getElementById('bannerPedidoSeleccionado');
+    const textoBanner = document.getElementById('textoBannerPedido');
+    if (banner) banner.style.display = 'flex';
+    if (textoBanner) {
+        textoBanner.textContent = `Vinculado al Pedido #PED-${p.idPedido}: ${p.tipoMaterial} (${p.pesoT} Tn) → ${p.direccionDestino}`;
+    }
+
+    const select = document.getElementById('selectPedidoAOptimizar');
+    if (select) select.value = p.idPedido;
+
+    const btnAnalizar = document.getElementById('btnAnalizarRuta');
+    if (btnAnalizar) {
+        btnAnalizar.textContent = `⚡ Optimizar Pedido #PED-${p.idPedido} con Google OR-Tools`;
+    }
+
+    // Scroll suave hacia el formulario
+    const formCard = document.querySelector('.form-opt-card');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth' });
+}
+
+function limpiarPedidoSeleccionado() {
+    const hiddenInput = document.getElementById('optPedidoId');
+    if (hiddenInput) hiddenInput.value = '';
+
+    const banner = document.getElementById('bannerPedidoSeleccionado');
+    if (banner) banner.style.display = 'none';
+
+    const select = document.getElementById('selectPedidoAOptimizar');
+    if (select) select.value = '';
+
+    const btnAnalizar = document.getElementById('btnAnalizarRuta');
+    if (btnAnalizar) {
+        btnAnalizar.textContent = '⚡ Analizar y Optimizar con Google OR-Tools';
+    }
+}
+
+async function syncPedidoOptimizado(idPedido) {
+    try {
+        if (window.location.protocol !== 'file:') {
+            await apiFetch(`${API_HOST}/api/pedidos/${idPedido}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: 'OPTIMIZADO' })
+            });
+            showToastNotification('Pedido Optimizado', `El pedido #PED-${idPedido} fue marcado como OPTIMIZADO en PostgreSQL.`, 'success');
+        }
+
+        const banner = document.getElementById('resultPedidoLinkedBanner');
+        const title = document.getElementById('resultPedidoLinkedTitle');
+        if (banner) banner.style.display = 'flex';
+        if (title) {
+            title.textContent = `✅ Pedido #PED-${idPedido} marcado como OPTIMIZADO en base de datos PostgreSQL`;
+        }
+    } catch (e) {
+        console.warn('Error al sincronizar estado de pedido optimizado:', e);
+    }
+}
+
+function asignarPedidoOptimizadoActual() {
+    const pedId = window.currentOptimizedPedidoId;
+    openAssignRouteModal();
+    if (pedId) {
+        setTimeout(() => {
+            const sel = document.getElementById('assignPedidoSelect');
+            if (sel) {
+                sel.value = pedId;
+                onAssignPedidoSelected(pedId);
+            }
+        }, 150);
+    }
 }

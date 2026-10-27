@@ -14,6 +14,7 @@ public class OptimizacionRequestDto implements Serializable {
     private Boolean evitarMantenimiento;
     private Long idVehiculo;
     private Long idCliente;
+    private Long idPedido;
 
     public OptimizacionRequestDto() {}
 
@@ -66,4 +67,7 @@ public class OptimizacionRequestDto implements Serializable {
 
     public Long getIdCliente() { return idCliente; }
     public void setIdCliente(Long idCliente) { this.idCliente = idCliente; }
+
+    public Long getIdPedido() { return idPedido; }
+    public void setIdPedido(Long idPedido) { this.idPedido = idPedido; }
 }

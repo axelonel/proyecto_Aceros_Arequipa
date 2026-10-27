@@ -146,25 +146,40 @@ public class RutaOptimizationService {
         }
 
         // 5. Persistir en PostgreSQL (Pedido, Ruta y Rutas Optimizadas)
-        Cliente cliente = selectCliente(request.getIdCliente());
-        Pedido pedido = new Pedido(
-            null,
-            cliente.getIdCliente(),
-            1L,
-            request.getMaterial() != null ? request.getMaterial() : "Bobinas de acero (24 Tn)",
-            BigDecimal.valueOf(peso),
-            BigDecimal.valueOf(peso * 1.35).setScale(2, RoundingMode.HALF_UP),
-            NOMBRES_NODOS[endNode],
-            prioridadDb,
-            objetivoDb,
-            evitarTrafico,
-            evitarMantenimiento,
-            "OPTIMIZADO",
-            null,
-            null,
-            null
-        );
-        Pedido pedidoGuardado = pedidoRepository.save(pedido);
+        Pedido pedidoGuardado = null;
+        if (request.getIdPedido() != null) {
+            java.util.Optional<Pedido> optP = pedidoRepository.findById(request.getIdPedido());
+            if (optP.isPresent()) {
+                Pedido p = optP.get();
+                p.setEstadoPedido("OPTIMIZADO");
+                p.setObjetivoOptimizacion(objetivoDb);
+                p.setPrioridad(prioridadDb);
+                p.setEvitarTraficoPesado(evitarTrafico);
+                p.setEvitarZonasMantenimiento(evitarMantenimiento);
+                pedidoGuardado = pedidoRepository.save(p);
+            }
+        }
+        if (pedidoGuardado == null) {
+            Cliente cliente = selectCliente(request.getIdCliente());
+            Pedido pedido = new Pedido(
+                null,
+                cliente.getIdCliente(),
+                1L,
+                request.getMaterial() != null ? request.getMaterial() : "Bobinas de acero (24 Tn)",
+                BigDecimal.valueOf(peso),
+                BigDecimal.valueOf(peso * 1.35).setScale(2, RoundingMode.HALF_UP),
+                NOMBRES_NODOS[endNode],
+                prioridadDb,
+                objetivoDb,
+                evitarTrafico,
+                evitarMantenimiento,
+                "OPTIMIZADO",
+                null,
+                null,
+                null
+            );
+            pedidoGuardado = pedidoRepository.save(pedido);
+        }
 
         Ruta ruta = new Ruta(
             null,
