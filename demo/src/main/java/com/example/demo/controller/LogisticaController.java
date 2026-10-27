@@ -241,7 +241,9 @@ public class LogisticaController {
     // ==========================================
     @GetMapping("/transportistas")
     public ResponseEntity<List<Transportista>> listarTransportistas() {
-        return ResponseEntity.ok(transportistaRepository.findAll());
+        return ResponseEntity.ok(transportistaRepository.findAll().stream()
+            .filter(t -> t.getActivo() == null || Boolean.TRUE.equals(t.getActivo()))
+            .toList());
     }
 
     @PostMapping("/transportistas")
@@ -273,8 +275,14 @@ public class LogisticaController {
     public ResponseEntity<?> eliminarTransportista(@PathVariable Long id) {
         return transportistaRepository.findById(id).map(t -> {
             try {
+                List<AsignacionConduccion> asignaciones = asignacionRepository.findAll().stream()
+                    .filter(a -> Objects.equals(a.getIdTransportista(), id))
+                    .toList();
+                if (!asignaciones.isEmpty()) {
+                    asignacionRepository.deleteAll(asignaciones);
+                }
                 transportistaRepository.delete(t);
-                return ResponseEntity.ok(Map.of("message", "Transportista eliminado correctamente."));
+                return ResponseEntity.ok(Map.of("message", "Transportista eliminado correctamente de la base de datos."));
             } catch (Exception ex) {
                 t.setActivo(false);
                 transportistaRepository.save(t);
