@@ -1775,7 +1775,7 @@ let memoryRutas = [];
 
 async function loadFlotaData() {
     const grid = document.getElementById('flotasCardsGrid');
-    const tbody = document.getElementById('vehiculosTbody');
+    const selFiltro = document.getElementById('filtroVehiculoFlota');
     const badge = document.getElementById('flotaDbBadge');
 
     try {
@@ -1796,53 +1796,120 @@ async function loadFlotaData() {
         console.warn('Error cargando flotas/vehículos desde BD:', err);
     }
 
+    // Mapa de flotas por id
+    const flotaMap = {};
+    (memoryFlotas || []).forEach(f => { flotaMap[f.idFlota] = f.nombreFlota; });
+
+    // Renderizar tarjetas de flotas con resumen de vehículos asignados
     if (grid) {
         if (!memoryFlotas || memoryFlotas.length === 0) {
             grid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:6px; color:#64748b; text-align:center;">No hay flotas registradas. Haz clic en "+ Nueva Flota".</div>`;
         } else {
-            grid.innerHTML = memoryFlotas.map(f => `
-                <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:11.5px; color:#0284c7; font-weight:700; text-transform:uppercase;">Flota #${f.idFlota}</span>
-                            <span class="${f.activo !== false ? 'badge-optima' : 'badge-no-optima'}" style="font-size:10px;">${f.activo !== false ? 'ACTIVA' : 'INACTIVA'}</span>
-                        </div>
-                        <div style="font-size:15px; font-weight:800; color:#0f172a; margin:6px 0 4px;">${f.nombreFlota}</div>
-                        <p style="font-size:12.5px; color:#64748b; margin:0 0 12px;">${f.descripcion || 'Flota activa de transporte de acero'}</p>
-                    </div>
-                    <div style="border-top:1px solid #f1f5f9; padding-top:10px; display:flex; justify-content:flex-end; gap:6px;">
-                        <button class="btn-action-edit" onclick="openEditFlotaModal(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}', '${(f.descripcion || '').replace(/'/g, "\'")}')">Editar</button>
-                        <button class="btn-action-del" onclick="deleteFlota(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}')">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
+            grid.innerHTML = memoryFlotas.map(f => {
+                const vehsDeFlota = (memoryVehiculos || []).filter(v => Number(v.idFlota) === Number(f.idFlota));
+                const capTotal = vehsDeFlota.reduce((acc, v) => acc + (Number(v.capacidadMaxTon) || 0), 0);
+                const placasHtml = vehsDeFlota.length > 0 
+                    ? vehsDeFlota.map(v => `<span style="background:#eff6ff; color:#1d4ed8; padding:2px 6px; border-radius:4px; font-weight:700; border:1px solid #bfdbfe; font-size:11px; margin-right:4px;">${v.placa}</span>`).join('')
+                    : '<span style="color:#94a3b8; font-size:11px;">(Sin unidades asignadas aún)</span>';
 
-    if (tbody) {
-        if (!memoryVehiculos || memoryVehiculos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados. Haz clic en "+ Nuevo Vehículo".</td></tr>`;
-        } else {
-            tbody.innerHTML = memoryVehiculos.map(v => {
-                const badgeStatus = v.estadoOperativo === 'DISPONIBLE' ? 'badge-optima' : (v.estadoOperativo === 'EN_RUTA' ? 'badge-alternativa' : 'badge-no-optima');
                 return `
-                    <tr>
-                        <td style="font-weight:700; color:#64748b;">#${v.idVehiculo}</td>
-                        <td style="font-weight:700; color:#1e293b;"><span style="background:#f1f5f9; padding:2px 8px; border-radius:4px; border:1px solid #cbd5e1;">${v.placa}</span></td>
-                        <td>${v.tipoCamion || 'Plataforma'}</td>
-                        <td><strong>${v.modelo || 'Volvo FH 540'}</strong></td>
-                        <td style="color:#15803d; font-weight:700;">${v.capacidadMaxTon || 24} Tn</td>
-                        <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '32 m³'}</td>
-                        <td><span class="${badgeStatus}">${v.estadoOperativo || 'DISPONIBLE'}</span></td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            <button class="btn-action-edit" onclick="openEditVehiculoModal(${v.idVehiculo}, '${v.placa}', '${v.tipoCamion || ''}', '${(v.modelo || '').replace(/'/g, "\'")}', ${v.capacidadMaxTon || 24}, ${v.volumenMaxM3 || 32}, '${v.estadoOperativo || 'DISPONIBLE'}', ${v.idFlota || 1})">Editar</button>
-                            <button class="btn-action-del" onclick="deleteVehiculo(${v.idVehiculo}, '${v.placa}')">Eliminar</button>
-                        </td>
-                    </tr>
+                    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; box-shadow:0 2px 6px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:11.5px; color:#0284c7; font-weight:800; text-transform:uppercase;">Flota #${f.idFlota}</span>
+                                <span class="${f.activo !== false ? 'badge-optima' : 'badge-no-optima'}" style="font-size:10px;">${f.activo !== false ? 'ACTIVA' : 'INACTIVA'}</span>
+                            </div>
+                            <div style="font-size:16px; font-weight:800; color:#0f172a; margin:6px 0 4px;">${f.nombreFlota}</div>
+                            <p style="font-size:12.5px; color:#64748b; margin:0 0 12px;">${f.descripcion || 'Flota activa de transporte de acero'}</p>
+
+                            <!-- Cuadro de Unidades en esta Flota -->
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                    <span style="font-size:11.5px; font-weight:700; color:#475569;">🚚 Unidades Asignadas:</span>
+                                    <strong style="font-size:12.5px; color:#0f172a;">${vehsDeFlota.length} vehículos</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                    <span style="font-size:11.5px; font-weight:700; color:#475569;">⚖️ Capacidad Total:</span>
+                                    <strong style="font-size:12.5px; color:#15803d;">${capTotal.toFixed(1)} Tn</strong>
+                                </div>
+                                <div style="margin-top: 6px; display:flex; flex-wrap:wrap; gap:4px;">
+                                    ${placasHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid #f1f5f9; padding-top:12px; display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <button class="btn-sm" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:4px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" onclick="openNewVehiculoModal(${f.idFlota})">
+                                <span>+</span> Agregar Vehículo a esta Flota
+                            </button>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-action-edit" onclick="openEditFlotaModal(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}', '${(f.descripcion || '').replace(/'/g, "\'")}')">Editar</button>
+                                <button class="btn-action-del" onclick="deleteFlota(${f.idFlota}, '${f.nombreFlota.replace(/'/g, "\'")}')">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
                 `;
             }).join('');
         }
     }
+
+    // Actualizar selector de filtro de flota
+    if (selFiltro && memoryFlotas) {
+        selFiltro.innerHTML = '<option value="TODAS">Todas las Flotas</option>' + 
+            memoryFlotas.map(f => `<option value="${f.idFlota}">Flota #${f.idFlota} - ${f.nombreFlota}</option>`).join('') +
+            '<option value="SIN_FLOTA">⚠️ Sin Flota Asignada</option>';
+    }
+
+    renderVehiculosTable(memoryVehiculos || []);
+}
+
+function filterVehiculosByFlota(flotaId) {
+    if (!memoryVehiculos) return;
+    let list = [...memoryVehiculos];
+    if (flotaId === 'SIN_FLOTA') {
+        list = list.filter(v => !v.idFlota);
+    } else if (flotaId !== 'TODAS') {
+        list = list.filter(v => Number(v.idFlota) === Number(flotaId));
+    }
+    renderVehiculosTable(list);
+}
+
+function renderVehiculosTable(list) {
+    const tbody = document.getElementById('vehiculosTbody');
+    if (!tbody) return;
+
+    const flotaMap = {};
+    (memoryFlotas || []).forEach(f => { flotaMap[f.idFlota] = f.nombreFlota; });
+
+    if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#64748b;">No hay vehículos registrados para esta flota.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(v => {
+        const badgeStatus = v.estadoOperativo === 'DISPONIBLE' ? 'badge-optima' : (v.estadoOperativo === 'EN_RUTA' ? 'badge-alternativa' : 'badge-no-optima');
+        const nombreFlota = flotaMap[v.idFlota];
+        const flotaHtml = nombreFlota 
+            ? `<span style="background:#f0fdf4; color:#15803d; padding:3px 8px; border-radius:12px; font-weight:700; font-size:11.5px; border:1px solid #bbf7d0;">🏢 ${nombreFlota}</span>`
+            : `<span style="background:#fef2f2; color:#dc2626; padding:3px 8px; border-radius:12px; font-weight:700; font-size:11px; border:1px solid #fecaca;">⚠️ Sin Flota</span>`;
+
+        return `
+            <tr>
+                <td style="font-weight:700; color:#64748b;">#${v.idVehiculo}</td>
+                <td style="font-weight:700; color:#1e293b;"><span style="background:#f1f5f9; padding:2px 8px; border-radius:4px; border:1px solid #cbd5e1;">${v.placa}</span></td>
+                <td>${flotaHtml}</td>
+                <td>${v.tipoCamion || 'Plataforma'}</td>
+                <td><strong>${v.modelo || 'Volvo FH 540'}</strong></td>
+                <td style="color:#15803d; font-weight:700;">${v.capacidadMaxTon || 24} Tn</td>
+                <td>${v.volumenMaxM3 ? v.volumenMaxM3 + ' m³' : '32 m³'}</td>
+                <td><span class="${badgeStatus}">${v.estadoOperativo || 'DISPONIBLE'}</span></td>
+                <td style="text-align: right; white-space: nowrap;">
+                    <button class="btn-action-edit" onclick="openEditVehiculoModal(${v.idVehiculo}, '${v.placa}', '${v.tipoCamion || ''}', '${(v.modelo || '').replace(/'/g, "\'")}', ${v.capacidadMaxTon || 24}, ${v.volumenMaxM3 || 32}, '${v.estadoOperativo || 'DISPONIBLE'}', ${v.idFlota || 1})">Editar</button>
+                    <button class="btn-action-del" onclick="deleteVehiculo(${v.idVehiculo}, '${v.placa}')">Eliminar</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // ── Modales y operaciones de Flotas ────────────────────────────────────────
@@ -1920,15 +1987,31 @@ async function deleteFlota(id, nombre) {
 
 // ── Modales y operaciones de Vehículos ─────────────────────────────────────
 
-function openNewVehiculoModal() {
+async function openNewVehiculoModal(preselectedFlotaId = null) {
     const hiddenId = document.getElementById('vehId');
     if (hiddenId) hiddenId.value = '';
     const form = document.getElementById('vehiculoForm');
     if (form) form.reset();
 
+    if (!memoryFlotas || memoryFlotas.length === 0) {
+        try {
+            const res = await apiFetch(API_HOST + '/api/flotas');
+            if (res.ok) memoryFlotas = await res.json();
+        } catch (e) {
+            console.warn(e);
+        }
+    }
+
     const sel = document.getElementById('vehFlotaSelect');
-    if (sel && memoryFlotas.length > 0) {
-        sel.innerHTML = memoryFlotas.map(f => `<option value="${f.idFlota}">${f.nombreFlota}</option>`).join('');
+    if (sel && memoryFlotas && memoryFlotas.length > 0) {
+        sel.innerHTML = memoryFlotas.map(f => `
+            <option value="${f.idFlota}" ${preselectedFlotaId && Number(f.idFlota) === Number(preselectedFlotaId) ? 'selected' : ''}>
+                Flota #${f.idFlota} - ${f.nombreFlota}
+            </option>
+        `).join('');
+        if (preselectedFlotaId) {
+            sel.value = preselectedFlotaId;
+        }
     }
 
     const modal = document.getElementById('vehiculoModal');
@@ -2043,6 +2126,13 @@ async function loadClientesData() {
         } else {
             tbodyPed.innerHTML = memoryPedidos.map(p => {
                 const badgeClass = p.prioridad === 'ALTA' ? 'badge-no-optima' : (p.prioridad === 'MEDIA' ? 'badge-alternativa' : 'badge-optima');
+                
+                // Buscar si tiene asignación de vehículo o despacho activo
+                const dispatch = (activeDispatches || []).find(d => Number(d.idPedido) === Number(p.idPedido) || (d.material && d.material.includes(p.tipoMaterial)));
+                const asignacionHtml = dispatch
+                    ? `<span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:12px; font-weight:700; font-size:11px; border:1px solid #bfdbfe;">🚛 ${dispatch.placa} (${dispatch.vehiculo})</span>`
+                    : `<button class="btn-sm" style="background:#1e3a8a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" onclick="openAssignFromPedido(${p.idPedido})"><span>📋</span> + Asignar Flota</button>`;
+
                 return `
                     <tr>
                         <td style="font-weight:700; color:#64748b;">#PED-${p.idPedido}</td>
@@ -2050,8 +2140,8 @@ async function loadClientesData() {
                         <td style="color:#0f172a; font-weight:600;">📦 ${p.tipoMaterial}</td>
                         <td><strong style="color:#15803d; font-size:13.5px;">${p.pesoT} Tn</strong></td>
                         <td>${p.direccionDestino}</td>
+                        <td>${asignacionHtml}</td>
                         <td><span class="${badgeClass}">${p.prioridad}</span></td>
-                        <td><small style="color:#0284c7; font-weight:600;">${p.objetivoOptimizacion}</small></td>
                         <td>
                             <select onchange="quickChangePedidoEstado(${p.idPedido}, this.value)" style="padding:3px 6px; font-size:11.5px; border-radius:4px; font-weight:600; border:1px solid #cbd5e1; background:#f8fafc;">
                                 <option value="REGISTRADO" ${p.estadoPedido === 'REGISTRADO' ? 'selected' : ''}>REGISTRADO</option>
@@ -3667,4 +3757,16 @@ function toggleMobileSidebar() {
     const backdrop = document.getElementById('sidebarBackdrop');
     if (sidebar) sidebar.classList.toggle('mobile-open');
     if (backdrop) backdrop.classList.toggle('active');
+}
+
+function openAssignFromPedido(idPedido) {
+    showView('rutas');
+    setTimeout(async () => {
+        await openAssignRouteModal();
+        const sel = document.getElementById('assignPedidoSelect');
+        if (sel) {
+            sel.value = idPedido;
+            onAssignPedidoSelected(idPedido);
+        }
+    }, 250);
 }
