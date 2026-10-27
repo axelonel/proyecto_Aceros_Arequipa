@@ -4,10 +4,10 @@
             <h2 style="font-size: 20px; font-weight: 700; color:#0f172a;">Control de Flotas y Parque Vehicular</h2>
             <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                 <span id="flotaDbBadge" class="server-status-pill online">● PostgreSQL Conectado</span>
-                <span style="font-size: 12.5px; color:#64748b;">Gestión de unidades de transporte pesado y capacidades de carga</span>
+                <span style="font-size: 12.5px; color:#64748b;">Gestión de unidades de transporte pesado, asignación de flotas y capacidades de carga</span>
             </div>
         </div>
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button class="btn-primary" onclick="openNewFlotaModal()" style="background:#0284c7; border-color:#0284c7;">
                 + Nueva Flota
             </button>
@@ -18,27 +18,40 @@
     </div>
 
     <!-- RESUMEN DE FLOTAS -->
-    <div style="margin-bottom: 24px;">
-        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Flotas Registradas</h3>
-        <div id="flotasCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
-            <!-- Cargado dinámicamente -->
+    <div style="margin-bottom: 28px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin:0;">Flotas Registradas</h3>
+            <span style="font-size: 12px; color:#64748b;">Agrega y organiza unidades vehiculares dentro de cada flota de transporte</span>
+        </div>
+        <div id="flotasCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+            <!-- Cargado dinámicamente desde dashboard.js -->
         </div>
     </div>
 
     <!-- TABLA DE VEHÍCULOS -->
     <div>
-        <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Unidades de Transporte (Vehículos y Capacidad en Toneladas)</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin: 0;">Unidades de Transporte (Vehículos y Flota Asignada)</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="filtroVehiculoFlota" style="font-size: 12.5px; color: #475569; font-weight: 600;">Filtrar por Flota:</label>
+                <select id="filtroVehiculoFlota" onchange="filterVehiculosByFlota(this.value)" style="height: 32px; padding: 2px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12.5px; background: #fff; color: #1e293b; font-weight: 600; cursor: pointer;">
+                    <option value="TODAS">Todas las Flotas</option>
+                </select>
+            </div>
+        </div>
         <div class="users-table-wrap">
             <table class="users-table">
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Placa</th>
+                        <th>Flota Asignada</th>
                         <th>Tipo de Unidad</th>
                         <th>Marca y Modelo</th>
                         <th>Capacidad Máx. (Tn)</th>
                         <th>Volumen (m³)</th>
                         <th>Estado Operativo</th>
+                        <th style="text-align: right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="vehiculosTbody">

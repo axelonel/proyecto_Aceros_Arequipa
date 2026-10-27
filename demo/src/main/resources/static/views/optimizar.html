@@ -1,39 +1,68 @@
 <div id="viewOptimizar">
     
-    <!-- PASO 1: FORMULARIO DE NUEVA OPTIMIZACIÓN (Imagen 1) -->
+    <!-- PASO 1: FORMULARIO DE NUEVA OPTIMIZACIÓN -->
     <div id="optSubForm">
         <div class="content-header" style="margin-bottom: 24px;">
             <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">NUEVA OPTIMIZACIÓN DE RUTA</h1>
-            <p style="font-size: 13.5px; color: #475569;">Ingrese los datos para encontras la mejor ruta</p>
+            <p style="font-size: 13.5px; color: #475569;">Optimiza rutas manuales o selecciona un pedido realizado por clientes para resolverlo con Google OR-Tools</p>
+        </div>
+
+        <!-- BARRA: SELECCIÓN DE PEDIDO REALIZADO A OPTIMIZAR -->
+        <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 26px;">📦</span>
+                <div>
+                    <div style="font-size: 14px; font-weight: 800; color: #1e3a8a;">Optimizar Pedido Realizado en Base de Datos</div>
+                    <div style="font-size: 12px; color: #475569;">Carga los datos reales de un pedido de cliente para resolver su ruta con Google OR-Tools</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 480px; justify-content: flex-end;">
+                <select id="selectPedidoAOptimizar" onchange="cargarDatosDePedido(this.value)" style="height: 38px; width: 100%; max-width: 400px; padding: 4px 12px; border: 1.5px solid #2563eb; border-radius: 6px; font-size: 13px; font-weight: 700; color: #0f172a; background: #fff; cursor: pointer; outline: none;">
+                    <option value="">-- Seleccionar Pedido a Optimizar --</option>
+                </select>
+                <button type="button" onclick="cargarListaPedidosParaOptimizar()" style="height: 38px; padding: 0 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 14px;" title="Actualizar lista de pedidos">🔄</button>
+            </div>
+        </div>
+
+        <!-- BANNER DE PEDIDO VINCULADO -->
+        <div id="bannerPedidoSeleccionado" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px 16px; margin-bottom: 18px; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: #16a34a; font-size: 18px;">✔</span>
+                <span id="textoBannerPedido" style="font-size: 13px; color: #15803d; font-weight: 700;">Vinculado al Pedido #PED-1: Bobinas de acero (24 Tn)</span>
+            </div>
+            <button type="button" onclick="limpiarPedidoSeleccionado()" style="background: transparent; border: none; color: #dc2626; font-size: 12px; font-weight: 700; cursor: pointer;">✕ Desvincular Pedido</button>
         </div>
 
         <div class="form-opt-card">
             <form id="formOptimizacion" onsubmit="startOptimizationProcess(event)">
+                <input type="hidden" id="optPedidoId" value="">
+                
                 <div class="form-opt-grid">
                     
                     <!-- Columna Izquierda -->
                     <div>
                         <div style="margin-bottom: 20px;">
-                            <label class="form-opt-label">Origen</label>
+                            <label class="form-opt-label">Origen (Almacén / Planta)</label>
                             <select id="optOrigen" class="form-opt-select" required>
-                                <option value="A">Almacén Principal (A)</option>
-                                <option value="B">Planta Siderúrgica Pisco (B)</option>
-                                <option value="C">Centro Logístico Lurín (C)</option>
+                                <option value="A">Almacén Principal Callao (A)</option>
+                                <option value="B">Centro Distribución Ate (B)</option>
+                                <option value="C">Zona de Carga Lurín (C)</option>
                             </select>
                         </div>
 
                         <div style="margin-bottom: 20px;">
-                            <label class="form-opt-label">Material</label>
+                            <label class="form-opt-label">Material de Acero</label>
                             <select id="optMaterial" class="form-opt-select" required>
                                 <option value="bobinas">Bobinas de acero</option>
                                 <option value="barras">Barras de construcción</option>
                                 <option value="alambron">Alambrón</option>
                                 <option value="planchas">Planchas laminadas</option>
+                                <option value="perfiles">Perfiles y vigas estructurales</option>
                             </select>
                         </div>
 
                         <div>
-                            <label class="form-opt-label">Prioridad</label>
+                            <label class="form-opt-label">Prioridad de Despacho</label>
                             <select id="optPrioridad" class="form-opt-select" required>
                                 <option value="Alta">Alta</option>
                                 <option value="Media">Media</option>
@@ -45,25 +74,27 @@
                     <!-- Columna Derecha -->
                     <div>
                         <div style="margin-bottom: 20px;">
-                            <label class="form-opt-label">Destino</label>
+                            <label class="form-opt-label">Destino de Entrega</label>
                             <select id="optDestino" class="form-opt-select" required>
-                                <option value="F">Planta de produccion (F)</option>
-                                <option value="E">Centro de Distribución Arequipa (E)</option>
-                                <option value="D">Distribuidora Norte Chiclayo (D)</option>
+                                <option value="F">Planta Siderúrgica Pisco (F)</option>
+                                <option value="E">Centro Distribución Sur Chorrillos (E)</option>
+                                <option value="D">Distribuidora Norte Puente Piedra (D)</option>
+                                <option value="C">Zona de Carga Lurín (C)</option>
+                                <option value="B">Centro Distribución Ate (B)</option>
                             </select>
                         </div>
 
                         <div style="margin-bottom: 20px;">
-                            <label class="form-opt-label">Tipo de transporte</label>
+                            <label class="form-opt-label">Tipo de Transporte Recomendado</label>
                             <select id="optTransporte" class="form-opt-select" required>
-                                <option value="camion">Camion</option>
-                                <option value="trailer">Trailer</option>
-                                <option value="furgon">Furgón</option>
+                                <option value="trailer">Tráiler Plataforma (24 a 32 Tn)</option>
+                                <option value="camion">Camión Pesado (20 a 28 Tn)</option>
+                                <option value="furgon">Furgón Cerrado (15 a 22 Tn)</option>
                             </select>
                         </div>
 
                         <div>
-                            <label class="form-opt-label">Objetivo de optimizacion</label>
+                            <label class="form-opt-label">Objetivo de Optimización (Función Objetivo)</label>
                             <div class="radio-opt-group">
                                 <label class="radio-opt-label">
                                     <input type="radio" name="optObjetivo" value="tiempo">
@@ -75,7 +106,7 @@
                                 </label>
                                 <label class="radio-opt-label" style="font-weight: 600;">
                                     <input type="radio" name="optObjetivo" value="equilibrio" checked>
-                                    Equilibrio tiempo/ costo
+                                    Equilibrio tiempo / costo
                                 </label>
                             </div>
                         </div>
@@ -86,11 +117,11 @@
                 <!-- Fila Inferior: Restricciones y Botón Analizar -->
                 <div class="opt-bottom-actions">
                     <div>
-                        <label class="form-opt-label">Restricciones(opcional)</label>
+                        <label class="form-opt-label">Restricciones de Ruta (Opcional)</label>
                         <div class="opt-restrictions-group">
                             <label class="opt-check-label">
                                 <input type="checkbox" id="restTrafico">
-                                Evitar trafico pesado
+                                Evitar tráfico pesado
                             </label>
                             <label class="opt-check-label">
                                 <input type="checkbox" id="restMantenimiento">
@@ -98,161 +129,137 @@
                             </label>
                             <label class="opt-check-label">
                                 <input type="checkbox" id="restPesoCheck" checked>
-                                <span>Peso maximo (ton)</span>
-                                <input type="number" id="restPesoVal" value="25" style="width: 58px; height: 32px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13.5px; text-align: center; margin-left: 20px;">
+                                Validar capacidad de carga (Tn):
+                                <input type="number" id="restPesoVal" class="opt-mini-input" value="24" min="1" max="40" step="0.5">
                             </label>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-analizar-rutas">
-                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                        Analizar Rutas
-                    </button>
+                    <div>
+                        <button type="submit" id="btnAnalizarRuta" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight: 700; background: #0047ff; box-shadow: 0 4px 12px rgba(0,71,255,0.25);">
+                            ⚡ Analizar y Optimizar con Google OR-Tools
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
+
+        <!-- TABLA: PEDIDOS PENDIENTES DE OPTIMIZACIÓN -->
+        <div style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0;">Pedidos Pendientes de Optimización</h3>
+                    <span style="font-size: 12px; color: #64748b;">Haz clic en "⚡ Optimizar Pedido" para cargar automáticamente sus especificaciones en el solver</span>
+                </div>
+                <span id="badgePedidosPendientesCount" style="background: #fef3c7; color: #b45309; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 700; border: 1px solid #fde68a;">0 pendientes</span>
+            </div>
+            <div class="users-table-wrap">
+                <table class="users-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>ID Pedido</th>
+                            <th>Cliente</th>
+                            <th>Material</th>
+                            <th>Peso (Tn)</th>
+                            <th>Destino de Entrega</th>
+                            <th>Prioridad</th>
+                            <th>Estado Actual</th>
+                            <th style="text-align: right;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pedidosPendientesOptimizarTbody">
+                        <tr><td colspan="8" style="text-align: center; padding: 16px; color: #64748b;">Cargando pedidos desde PostgreSQL...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- PASO 2: ANALIZANDO RUTAS (Imagen 2) -->
-    <div id="optSubLoading" style="display:none;">
+    <!-- PASO 2: PANTALLA DE PROGRESO Y SOLVER -->
+    <div id="optSubLoading" style="display: none;">
         <div class="content-header" style="margin-bottom: 24px;">
-            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">ANALIZANDO RUTAS</h1>
-            <p style="font-size: 13.5px; color: #475569;">El sistema esta evaluando las mejores alternativas</p>
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">PROCESANDO OPTIMIZACIÓN</h1>
+            <p style="font-size: 13.5px; color: #475569;">Ejecutando algoritmos matemáticos y reglas expertas en Google OR-Tools</p>
         </div>
 
-        <div class="form-opt-card" style="padding: 28px 36px;">
-            <!-- Grafo animado SVG -->
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
-                <svg viewBox="0 0 740 230" style="width: 100%; height: auto; display: block;">
-                    <defs>
-                        <filter id="nodeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.25"/>
-                        </filter>
-                    </defs>
-                    <!-- Conexiones tenues alternativas -->
-                    <path d="M 80 140 Q 160 80 240 70" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
-                    <path d="M 240 70 Q 390 50 540 100" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
-                    <path d="M 540 100 Q 600 120 660 160" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-dasharray="5,5" />
-                    <path d="M 240 70 Q 310 115 380 160" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4,4" />
-                    <path d="M 380 160 Q 460 130 540 100" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4,4" />
+        <div class="card-container" style="padding: 40px 30px; text-align: center;">
+            <div class="loading-icon-spinner" style="font-size: 40px; margin-bottom: 20px; animation: spin 2s linear infinite;">⚙️</div>
+            
+            <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">Google OR-Tools Constraint Programming</h3>
+            <p style="font-size: 13.5px; color: #64748b; max-width: 500px; margin: 0 auto 30px;">
+                Evaluando matriz de costos, restricciones de capacidad vehicular, peso por eje y ventanas de tiempo sobre la red logística...
+            </p>
 
-                    <!-- Ruta Activa Verde (A -> C -> E -> F) -->
-                    <path d="M 80 140 Q 230 180 380 160" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
-                    <path d="M 380 160 Q 450 185 520 205" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
-                    <path d="M 520 205 Q 590 185 660 160" fill="none" stroke="#86efac" stroke-width="3.5" stroke-dasharray="6,4" />
-
-                    <!-- Nodos -->
-                    <!-- A (Azul) -->
-                    <circle cx="80" cy="140" r="18" fill="#2563eb" filter="url(#nodeShadow)" />
-                    <text x="80" y="146" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">A</text>
-
-                    <!-- B (Gris) -->
-                    <circle cx="240" cy="70" r="18" fill="#94a3b8" filter="url(#nodeShadow)" />
-                    <text x="240" y="76" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">B</text>
-
-                    <!-- C (Verde) -->
-                    <circle cx="380" cy="160" r="18" fill="#16a34a" filter="url(#nodeShadow)" />
-                    <text x="380" y="166" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">C</text>
-
-                    <!-- D (Gris) -->
-                    <circle cx="540" cy="100" r="18" fill="#94a3b8" filter="url(#nodeShadow)" />
-                    <text x="540" y="106" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">D</text>
-
-                    <!-- E (Morado) -->
-                    <circle cx="520" cy="205" r="18" fill="#9333ea" filter="url(#nodeShadow)" />
-                    <text x="520" y="211" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">E</text>
-
-                    <!-- F (Rojo) -->
-                    <circle cx="660" cy="160" r="18" fill="#ef4444" filter="url(#nodeShadow)" />
-                    <text x="660" y="166" text-anchor="middle" fill="#ffffff" font-weight="700" font-size="14">F</text>
-
-                    <!-- Camión animado -->
-                    <g class="truck-animated">
-                        <rect x="-35" y="-18" width="48" height="24" rx="3" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
-                        <path d="M 13 -6 L 24 -6 L 30 6 L 13 6 Z" fill="#94a3b8" stroke="#475569" stroke-width="1.5" />
-                        <circle cx="-16" cy="8" r="5" fill="#1e293b" />
-                        <circle cx="-16" cy="8" r="2" fill="#e2e8f0" />
-                        <circle cx="18" cy="8" r="5" fill="#1e293b" />
-                        <circle cx="18" cy="8" r="2" fill="#e2e8f0" />
-                        <rect x="15" y="-3" width="7" height="6" fill="#e0f2fe" />
-                    </g>
-                </svg>
+            <!-- Barra de Progreso -->
+            <div style="max-width: 500px; margin: 0 auto 20px; background: #e2e8f0; border-radius: 8px; height: 12px; overflow: hidden;">
+                <div id="optProgressBar" style="width: 0%; height: 100%; background: #0047ff; transition: width 0.3s ease;"></div>
             </div>
+            <div id="optProgressLabel" style="font-size: 13px; font-weight: 700; color: #0047ff; margin-bottom: 30px;">0%</div>
 
-            <!-- Sección de progreso -->
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 14px; font-weight: 700; color: #1e293b;">Evaluando alternativas</span>
-                    <span id="optProgressLabel" style="font-size: 13.5px; font-weight: 700; color: #2563eb;">75%</span>
+            <div style="display: flex; justify-content: center; gap: 24px; font-size: 12.5px; color: #64748b;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span id="iconReglasExpertas" style="color: #2563eb;">🔄</span>
+                    <span id="textReglasExpertas">Reglas Expertas Siderúrgicas</span>
                 </div>
-
-                <div class="progress-container">
-                    <div id="optProgressBar" class="progress-bar-fill" style="width: 75%;"></div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="color: #16a34a;">☑</span>
+                    <span>Validación de Carga Máxima</span>
                 </div>
-
-                <div style="margin-top: 14px;">
-                    <div class="checklist-item">
-                        <span style="color:#16a34a; font-size:16px;">☑</span>
-                        <span>Calculando distancias</span>
-                    </div>
-                    <div class="checklist-item">
-                        <span style="color:#16a34a; font-size:16px;">☑</span>
-                        <span>Evaluando tiempos</span>
-                    </div>
-                    <div class="checklist-item">
-                        <span style="color:#16a34a; font-size:16px;">☑</span>
-                        <span>Calculando costos</span>
-                    </div>
-                    <div class="checklist-item" id="itemReglasExpertas">
-                        <span id="iconReglasExpertas" class="spinner-rule" style="color:#2563eb; font-size:16px;">🔄</span>
-                        <span id="textReglasExpertas" style="color: #2563eb; font-weight: 600;">Aplicando reglas expertas</span>
-                    </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="color: #16a34a;">☑</span>
+                    <span>Trazabilidad de Nodos</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- PASO 3: RUTA ÓPTIMA ENCONTRADA (Imagen 3) -->
-    <div id="optSubResult" style="display:none;">
-        <div class="content-header" style="margin-bottom: 24px;">
-            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RUTA OPTIMA ENCONTRADA</h1>
-            <p style="font-size: 13.5px; color: #475569;">El sistema ha encontrado la mejor alternativa</p>
+    <!-- PASO 3: RESULTADO DE LA RUTA ÓPTIMA -->
+    <div id="optSubResult" style="display: none;">
+        <div class="content-header" style="margin-bottom: 20px;">
+            <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">RUTA ÓPTIMA ENCONTRADA</h1>
+            <p style="font-size: 13.5px; color: #475569;">El sistema experto ha calculado la solución más eficiente para el despacho</p>
         </div>
 
-        <!-- Fila Superior de 2 Tarjetas -->
+        <!-- Banner de Pedido Vinculado en Resultados -->
+        <div id="resultPedidoLinkedBanner" style="display: none; background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">✅</span>
+                <div>
+                    <div id="resultPedidoLinkedTitle" style="font-size: 13.5px; font-weight: 800; color: #065f46;">Pedido Vinculado y Marcado como OPTIMIZADO en PostgreSQL</div>
+                    <div style="font-size: 11.5px; color: #047857;">La ruta calculada por Google OR-Tools ha quedado vinculada y lista para despacho vehicular.</div>
+                </div>
+            </div>
+        </div>
+
         <div class="result-top-grid">
             
-            <!-- Tarjeta Izquierda: Ruta Recomendada -->
+            <!-- Tarjeta Izquierda: Ruta recomendada -->
             <div class="result-card">
-                <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada</h3>
-                <div style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">
-                    A &nbsp;→&nbsp; C &nbsp;→&nbsp; E &nbsp;→&nbsp; F
-                </div>
+                <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 8px;">Ruta recomendada (Google OR-Tools)</h3>
+                <div id="optResultTrayecto" style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: 2px; margin-bottom: 20px;">A &nbsp; &nbsp; C &nbsp; &nbsp; E &nbsp; &nbsp; F</div>
 
-                <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div id="optResultNodesList" style="display: flex; flex-direction: column; gap: 4px;">
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#2563eb;">A</span>
-                        <span style="font-weight: 600;">Almacén Principal</span>
+                        <span style="font-weight: 600;">Almacén Principal Callao</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#16a34a;">C</span>
-                        <span style="font-weight: 600;">Zona de Carga</span>
+                        <span style="font-weight: 600;">Zona de Carga Lurín</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#9333ea;">E</span>
-                        <span style="font-weight: 600;">Centro de Distribución</span>
+                        <span style="font-weight: 600;">Centro Distribución Sur Chorrillos</span>
                     </div>
                     <div class="step-arrow-down">↓</div>
 
                     <div class="route-step-node">
                         <span class="node-circle-badge" style="background:#ef4444;">F</span>
-                        <span style="font-weight: 600;">Planta de Producción</span>
+                        <span style="font-weight: 600;">Planta Siderúrgica Pisco</span>
                     </div>
                 </div>
             </div>
@@ -260,24 +267,24 @@
             <!-- Tarjeta Derecha: Resumen de la ruta -->
             <div class="result-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                    <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta</h3>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 18px;">Resumen de la ruta óptima</h3>
                     
                     <div class="metric-row">
                         <span style="font-size: 18px;">🕒</span>
                         <span style="font-weight: 700; text-transform: uppercase; font-size: 13px;">TIEMPO ESTIMADO</span>
-                        <span style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span>
+                        <span id="optResultTiempo" style="font-weight: 800; color: #1e293b; font-size: 15px; margin-left: auto;">32 min</span>
                     </div>
 
                     <div class="metric-row">
                         <span style="font-size: 18px;">🗺️</span>
                         <span style="font-weight: 500; font-size: 13.5px;">Distancia total</span>
-                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span>
+                        <span id="optResultDistancia" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">18.5 km</span>
                     </div>
 
                     <div class="metric-row">
                         <span style="font-size: 18px; color:#16a34a; font-weight:800;">$</span>
                         <span style="font-weight: 500; font-size: 13.5px;">Costo estimado</span>
-                        <span style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span>
+                        <span id="optResultCosto" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-left: auto;">S/ 85.00</span>
                     </div>
                 </div>
 
@@ -285,55 +292,55 @@
                     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"></polygon>
                     </svg>
-                    RECOMENDADA
+                    RECOMENDADA (OR-TOOLS)
                 </div>
             </div>
 
+        </div>
+
+        <!-- MAPA INTERACTIVO DE LA RUTA CALCULADA CON LEAFLET.JS -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:18px; margin-bottom: 24px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color:#0f172a; margin:0;">Trazado de Ruta en Mapa (Leaflet.js)</h3>
+                    <span style="font-size: 12px; color:#64748b;">Itinerario geoespacial de paradas y waypoints calculados por Google OR-Tools en Perú</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="mapRouteBadge" class="server-status-pill online" style="font-size:11.5px;">● Trazado en Vivo</span>
+                </div>
+            </div>
+            <div id="mapaRutaOptimizada" style="height: 380px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; z-index: 1;"></div>
         </div>
 
         <!-- Tarjeta Inferior: ¿Por qué esta ruta? -->
         <div class="why-card">
             <div>
                 <h2 style="font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 6px;">¿Por qué esta ruta?</h2>
-                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el sistema experto porque:</p>
+                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px;">Esta ruta ha sido seleccionada por el motor de optimización matemática porque:</p>
 
-                <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div id="optResultMotivos" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Presenta el menor tiempo de traslado</span>
+                        <span>Ruta globalmente óptima calculada por Google OR-Tools</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Tiene un costo aceptable dentro del presupuesto</span>
+                        <span>Presenta el menor tiempo y costo ponderado de traslado</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
                         <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Evita zonas con trafico y mantenimiento</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #1e293b;">
-                        <span style="color: #16a34a; font-weight: 800;">✓</span>
-                        <span>Cumple con la prioridad seleccionada</span>
+                        <span>Cumple estrictamente con la capacidad máxima del camión</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráfico decorativo de destello y botones -->
+            <!-- Botones de Acción -->
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-                <svg width="70" height="70" viewBox="0 0 100 100" fill="none" stroke="#64748b" stroke-width="3">
-                    <line x1="50" y1="10" x2="50" y2="25"></line>
-                    <line x1="50" y1="75" x2="50" y2="90"></line>
-                    <line x1="10" y1="50" x2="25" y2="50"></line>
-                    <line x1="75" y1="50" x2="90" y2="50"></line>
-                    <line x1="22" y1="22" x2="32" y2="32"></line>
-                    <line x1="68" y1="68" x2="78" y2="78"></line>
-                    <line x1="22" y1="78" x2="32" y2="68"></line>
-                    <line x1="68" y1="32" x2="78" y2="22"></line>
-                </svg>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
-                    <button type="button" onclick="resetOptimizationWizard()" style="padding: 8px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">↺ Nueva</button>
+                    <button type="button" onclick="resetOptimizationWizard()" style="padding: 8px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">↺ Nueva Optimización</button>
                     <button type="button" onclick="showView('reportes')" style="padding: 8px 14px; background: #0047ff; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer;">Ver Reportes</button>
-                    <button type="button" id="btnAsignarRuta" onclick="openAssignRouteModal()" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
-                        <span>🚚</span> Asignar a Transportista
+                    <button type="button" id="btnAsignarRuta" onclick="asignarPedidoOptimizadoActual()" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(22,163,74,0.3);">
+                        <span>🚚</span> Asignar Conductor a Pedido
                     </button>
                 </div>
             </div>
