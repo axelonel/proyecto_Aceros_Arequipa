@@ -7,7 +7,7 @@
         </div>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <!-- Selector para supervisores/admins para auditar o probar vista de cualquier conductor -->
-            <div id="conductorSelectorWrapper" style="display: flex; align-items: center; gap: 6px; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <div id="conductorSelectorWrapper" class="only-supervisor-admin" style="display: flex; align-items: center; gap: 6px; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
                 <span style="font-size: 12px; font-weight: 700; color: #475569;">👤 Conductor:</span>
                 <select id="simularConductorSelect" onchange="cambiarSimulacionConductor(this.value)" style="border: none; background: transparent; font-weight: 700; font-size: 12.5px; color: #1e3a8a; cursor: pointer; outline: none;">
                     <option value="TODOS">Todos los Conductores</option>
@@ -16,7 +16,7 @@
                 </select>
             </div>
             <!-- Botón para crear nueva asignación funcional (Punto 7) -->
-            <button class="btn-primary" style="background: #1e3a8a; display: flex; align-items: center; gap: 6px;" onclick="openAssignRouteModal()">
+            <button id="btnAsignarConduccionMisRutas" class="btn-primary only-supervisor-admin" style="background: #1e3a8a; display: flex; align-items: center; gap: 6px;" onclick="openAssignRouteModal()">
                 <span>📋</span> + Asignar Conducción a Pedido
             </button>
         </div>

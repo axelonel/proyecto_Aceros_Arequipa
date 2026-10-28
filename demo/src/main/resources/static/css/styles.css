@@ -1754,3 +1754,10 @@ body.dashboard-body {
         align-items: flex-start;
     }
 }
+
+
+/* Restricciones RBAC para vista Transportista */
+body.role-transportista .only-supervisor-admin,
+body.role-conductor .only-supervisor-admin {
+    display: none !important;
+}

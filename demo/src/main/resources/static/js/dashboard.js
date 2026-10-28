@@ -179,6 +179,12 @@ function getCurrentUser() {
  */
 function applyRolePermissions() {
     const user = getCurrentUser();
+    const isTransportista = (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA');
+    if (isTransportista) {
+        document.body.classList.add('role-transportista', 'role-conductor');
+    } else {
+        document.body.classList.remove('role-transportista', 'role-conductor');
+    }
 
     // Actualizar indicador en sidebar
     const badgeIcon = document.getElementById('userBadgeIcon');
@@ -714,6 +720,54 @@ async function showView(viewName) {
 /**
  * Acciones posteriores al renderizado de cada vista
  */
+
+/**
+ * Restricciones visuales de rol para Mis Rutas
+ */
+function applyMisRutasRoleRestrictions() {
+    const user = getCurrentUser();
+    const isTransportista = (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA');
+    const selWrapper = document.getElementById('conductorSelectorWrapper');
+    const btnAsig = document.getElementById('btnAsignarConduccionMisRutas');
+    if (isTransportista) {
+        if (selWrapper) selWrapper.style.display = 'none';
+        if (btnAsig) btnAsig.style.display = 'none';
+        const titleEl = document.getElementById('rutasHeaderTitle');
+        if (titleEl) titleEl.textContent = 'MIS RUTAS ASIGNADAS';
+        const subTitleEl = document.getElementById('rutasHeaderSubtitle');
+        if (subTitleEl) subTitleEl.textContent = 'Hoja de ruta diaria y registro de entregas asignadas a tu unidad vehicular';
+        const nameEl = document.getElementById('driverCardName');
+        if (nameEl && user.nombres) nameEl.textContent = user.nombres;
+    } else {
+        if (selWrapper) selWrapper.style.display = '';
+        if (btnAsig) btnAsig.style.display = '';
+    }
+}
+
+/**
+ * Restricciones visuales de rol para Rutas
+ */
+function applyRutasRoleRestrictions() {
+    const user = getCurrentUser();
+    const isTransportista = (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA');
+    const btnNew = document.getElementById('btnRegistrarNuevaRuta');
+    const btnAsig = document.getElementById('btnAsignarConductorRutas');
+    const secFlujo = document.getElementById('seccionFlujoEstadosPedidos');
+    const secRutasDb = document.getElementById('seccionRutasRegistradasDb');
+
+    if (isTransportista) {
+        if (btnNew) btnNew.style.display = 'none';
+        if (btnAsig) btnAsig.style.display = 'none';
+        if (secFlujo) secFlujo.style.display = 'none';
+        if (secRutasDb) secRutasDb.style.display = 'none';
+    } else {
+        if (btnNew) btnNew.style.display = '';
+        if (btnAsig) btnAsig.style.display = '';
+        if (secFlujo) secFlujo.style.display = '';
+        if (secRutasDb) secRutasDb.style.display = '';
+    }
+}
+
 function onViewLoaded(viewName) {
     // Cerrar sidebar móvil si está abierto al navegar
     const sidebar = document.querySelector('.sidebar');
@@ -729,10 +783,12 @@ function onViewLoaded(viewName) {
         loadRutasData();
         loadAsignacionesData();
         setTimeout(initLogisticsMap, 150);
+        applyRutasRoleRestrictions();
     } else if (viewName === 'inicio') {
         loadDashboardInicioMetrics();
     } else if (viewName === 'mis-rutas') {
         loadAsignacionesFromDatabase();
+        applyMisRutasRoleRestrictions();
     } else if (viewName === 'reportes') {
         loadReportesData();
     } else if (viewName === 'historial') {
@@ -914,6 +970,7 @@ async function loadAsignacionesFromDatabase() {
     }
     renderMisRutas(currentDispatchFilter);
     renderMisPedidosEnRuta();
+    applyMisRutasRoleRestrictions();
 }
 
 function renderMisPedidosEnRuta() {
@@ -1038,6 +1095,7 @@ async function updateDispatchStatus(dispatchId, newStatus) {
     alert(msg);
     renderMisRutas(currentDispatchFilter);
     renderMisPedidosEnRuta();
+    applyMisRutasRoleRestrictions();
 }
 
 /* ==========================================================================
@@ -1045,6 +1103,11 @@ async function updateDispatchStatus(dispatchId, newStatus) {
    ========================================================================== */
 
 async function openAssignRouteModal() {
+    const user = getCurrentUser();
+    if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
+        alert('Acceso restringido: Los transportistas no tienen permisos para asignar conductores.');
+        return;
+    }
     const selectPedido    = document.getElementById('assignPedidoSelect');
     const selectConductor = document.getElementById('assignConductorSelect');
     const selectVehiculo  = document.getElementById('assignVehiculoSelect');
@@ -2840,6 +2903,11 @@ async function loadRutasData() {
 }
 
 function openNewRutaModal() {
+    const user = getCurrentUser();
+    if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
+        alert('Acceso restringido: Solo supervisores o administradores pueden registrar rutas.');
+        return;
+    }
     const hiddenId = document.getElementById('rutaId');
     if (hiddenId) hiddenId.value = '';
     const form = document.getElementById('rutaForm');
@@ -3364,6 +3432,9 @@ async function loadAsignacionesData() {
             return;
         }
 
+        const currentUserAsig = getCurrentUser();
+        const isTransportistaAsig = (currentUserAsig.rol === 'CONDUCTOR' || currentUserAsig.rol === 'TRANSPORTISTA');
+
         tbody.innerHTML = data.map(asig => {
             const id = asig.idAsignacion;
             const conductor = asig.conductorNombre || 'Transportista Asignado';
@@ -3381,16 +3452,18 @@ async function loadAsignacionesData() {
 
             if (estado === 'ACTIVA') {
                 estadoBadge = `<span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bfdbfe;">● Por Iniciar</span>`;
+                const cancelBtnHtml = isTransportistaAsig ? '' : `<button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>`;
                 actionBtns = `
                     <button class="btn-sm" style="background:#d97706; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="iniciarAsignacion(${id})" title="Iniciar Ruta">▶ Iniciar</button>
                     <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Marcar Entregado">✓ Entregar</button>
-                    <button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>
+                    ${cancelBtnHtml}
                 `;
             } else if (estado === 'EN_TRANSITO') {
                 estadoBadge = `<span style="background:#fffbeb; color:#b45309; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #fde68a;">🚚 En Tránsito</span>`;
+                const cancelBtnTransHtml = isTransportistaAsig ? '' : `<button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>`;
                 actionBtns = `
                     <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Confirmar Entrega">✓ Confirmar Entrega</button>
-                    <button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>
+                    ${cancelBtnTransHtml}
                 `;
             } else {
                 estadoBadge = `<span style="background:#f0fdf4; color:#15803d; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bbf7d0;">✔ Completada</span>`;
@@ -3427,6 +3500,7 @@ async function loadAsignacionesData() {
     } catch (err) {
         console.warn('Error al cargar asignaciones de conducción:', err);
     }
+    applyRutasRoleRestrictions();
 }
 
 async function iniciarAsignacion(id) {
@@ -3460,6 +3534,11 @@ async function completarAsignacion(id) {
 }
 
 async function cancelarAsignacion(id) {
+    const user = getCurrentUser();
+    if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
+        alert('Acceso restringido: Los transportistas no pueden cancelar asignaciones.');
+        return;
+    }
     if (!confirm(`¿Deseas cancelar la asignación #${id}? El vehículo y transportista quedarán liberados.`)) return;
     try {
         const resp = await apiFetch(`${API_HOST}/api/asignaciones/${id}`, { method: 'DELETE' });

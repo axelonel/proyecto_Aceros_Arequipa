@@ -8,7 +8,7 @@
             </div>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="openNewRutaModal()">
+            <button id="btnRegistrarNuevaRuta" class="btn-primary only-supervisor-admin" onclick="openNewRutaModal()">
                 + Registrar Nueva Ruta
             </button>
         </div>
@@ -75,7 +75,7 @@
                 <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Asignaciones de Conducción de Flota</h3>
                 <span style="font-size: 12.5px; color:#64748b;">Control interactivo: Transportista + Vehículo de Flota + Pedido Asignado</span>
             </div>
-            <button class="btn-primary" style="background:#1e3a8a; display:flex; align-items:center; gap:6px;" onclick="openAssignRouteModal()">
+            <button id="btnAsignarConductorRutas" class="btn-primary only-supervisor-admin" style="background:#1e3a8a; display:flex; align-items:center; gap:6px;" onclick="openAssignRouteModal()">
                 <span>📋</span> + Asignar Conductor a Pedido
             </button>
         </div>
@@ -100,8 +100,8 @@
         </div>
     </div>
 
-    <!-- SECCIÓN: FLUJO DE ESTADOS DE PEDIDOS EN TIEMPO REAL -->
-    <div style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <!-- SECCIÓN: FLUJO DE ESTADOS DE PEDIDOS EN TIEMPO REAL (Solo Supervisor/Admin) -->
+    <div id="seccionFlujoEstadosPedidos" class="only-supervisor-admin" style="margin-bottom: 28px; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <div>
                 <h3 style="font-size: 16px; font-weight: 800; color:#0f172a; margin:0;">Flujo de Estados de Pedidos en Tiempo Real</h3>
@@ -138,8 +138,8 @@
         </div>
     </div>
 
-    <!-- TABLA DE RUTAS PROGRAMADAS -->
-    <div>
+    <!-- TABLA DE RUTAS PROGRAMADAS (Solo Supervisor/Admin) -->
+    <div id="seccionRutasRegistradasDb" class="only-supervisor-admin">
         <h3 style="font-size: 15px; font-weight: 700; color:#1e293b; margin-bottom: 12px;">Rutas Registradas en Base de Datos</h3>
         <div class="users-table-wrap">
             <table class="users-table">
