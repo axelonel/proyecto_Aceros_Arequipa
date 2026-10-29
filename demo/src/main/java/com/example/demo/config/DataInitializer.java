@@ -50,6 +50,60 @@ public class DataInitializer implements CommandLineRunner {
         inicializarVehiculos();
         inicializarClientes();
         inicializarPedidosYRutas();
+        sincronizarCamposFaltantesUsuarios();
+    }
+
+    private void sincronizarCamposFaltantesUsuarios() {
+        try {
+            List<Usuario> usuarios = usuarioRepository.findAll();
+            Long primerAdmin = usuarios.stream()
+                    .filter(u -> "ADMINISTRADOR".equalsIgnoreCase(u.getRol()))
+                    .map(Usuario::getIdUsuario)
+                    .findFirst().orElse(1L);
+            Long primerSupervisor = usuarios.stream()
+                    .filter(u -> "SUPERVISOR".equalsIgnoreCase(u.getRol()))
+                    .map(Usuario::getIdUsuario)
+                    .findFirst().orElse(primerAdmin);
+
+            LocalDateTime ahora = LocalDateTime.now();
+            boolean hayCambios = false;
+            for (Usuario u : usuarios) {
+                if (u.getFechaCreacion() == null) {
+                    u.setFechaCreacion(ahora.minusDays(5));
+                    hayCambios = true;
+                }
+                if (u.getFechaActualizacion() == null) {
+                    u.setFechaActualizacion(ahora);
+                    hayCambios = true;
+                }
+                if (u.getIdAdminSupervisor() == null) {
+                    if ("CONDUCTOR".equalsIgnoreCase(u.getRol())) {
+                        u.setIdAdminSupervisor(primerSupervisor);
+                    } else if ("SUPERVISOR".equalsIgnoreCase(u.getRol())) {
+                        u.setIdAdminSupervisor(primerAdmin);
+                    } else {
+                        u.setIdAdminSupervisor(primerAdmin);
+                    }
+                    hayCambios = true;
+                }
+                if (u.getTelefono() == null || u.getTelefono().isBlank()) {
+                    u.setTelefono("9" + (int)(10000000 + Math.random() * 89999999));
+                    hayCambios = true;
+                }
+                if (u.getCodEmpleado() == null || u.getCodEmpleado().isBlank()) {
+                    String prefijo = "CONDUCTOR".equalsIgnoreCase(u.getRol()) ? "TRP" :
+                                     ("SUPERVISOR".equalsIgnoreCase(u.getRol()) ? "SUP" : "ADM");
+                    u.setCodEmpleado(String.format("%s-%03d", prefijo, u.getIdUsuario()));
+                    hayCambios = true;
+                }
+            }
+            if (hayCambios) {
+                usuarioRepository.saveAll(usuarios);
+                System.out.println("✅ [DataInitializer] Campos faltantes (fecha_creacion, fecha_actualizacion, id_admin_supervisor) sincronizados y delegados exitosamente.");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ [DataInitializer] No se pudo sincronizar campos faltantes: " + e.getMessage());
+        }
     }
 
     private void inicializarFlotas() {

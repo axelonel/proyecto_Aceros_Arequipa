@@ -59,6 +59,59 @@ public class UsuarioController {
                     .body(Map.of("error", "El código de empleado ya está en uso."));
         }
 
+        // Autocompletar código de empleado si no fue ingresado
+        String codEmpleado = dto.getCodEmpleado();
+        if (codEmpleado == null || codEmpleado.isBlank()) {
+            String rolUpper = dto.getRol() != null ? dto.getRol().toUpperCase() : "CONDUCTOR";
+            String prefijo = "CONDUCTOR".equals(rolUpper) ? "TRP" :
+                             ("SUPERVISOR".equals(rolUpper) ? "SUP" : "ADM");
+            long total = usuarioRepository.count() + 1;
+            codEmpleado = String.format("%s-%03d", prefijo, total);
+            while (usuarioRepository.existsByCodEmpleado(codEmpleado)) {
+                total++;
+                codEmpleado = String.format("%s-%03d", prefijo, total);
+            }
+        }
+
+        // Autocompletar teléfono corporativo si viene vacío
+        String telefono = dto.getTelefono();
+        if (telefono == null || telefono.isBlank()) {
+            telefono = "9" + (int)(10000000 + Math.random() * 89999999);
+        }
+
+        // Delegar id_admin_supervisor si viene explícito o asignar por jerarquía
+        Long idAdminSupervisor = dto.getIdAdminSupervisor();
+        if (idAdminSupervisor == null) {
+            String rolUpper = dto.getRol() != null ? dto.getRol().toUpperCase() : "CONDUCTOR";
+            if ("CONDUCTOR".equals(rolUpper)) {
+                // Delegar al primer supervisor activo o administrador
+                idAdminSupervisor = usuarioRepository.findAll().stream()
+                        .filter(u -> "SUPERVISOR".equalsIgnoreCase(u.getRol()) && Boolean.TRUE.equals(u.getActivo()))
+                        .map(Usuario::getIdUsuario)
+                        .findFirst()
+                        .orElse(1L);
+            } else if ("SUPERVISOR".equals(rolUpper)) {
+                // Supervisores se delegan al Administrador Principal
+                idAdminSupervisor = usuarioRepository.findAll().stream()
+                        .filter(u -> "ADMINISTRADOR".equalsIgnoreCase(u.getRol()) && Boolean.TRUE.equals(u.getActivo()))
+                        .map(Usuario::getIdUsuario)
+                        .findFirst()
+                        .orElse(1L);
+            } else {
+                // Administradores se auto-delegan o ligan a la cuenta raíz ID 1
+                idAdminSupervisor = 1L;
+            }
+        }
+
+        java.time.LocalDateTime fechaCreacion = java.time.LocalDateTime.now();
+        if (dto.getFechaCreacion() != null && !dto.getFechaCreacion().isBlank()) {
+            try {
+                String fc = dto.getFechaCreacion().trim().replace(" ", "T");
+                if (fc.length() == 16) fc += ":00";
+                fechaCreacion = java.time.LocalDateTime.parse(fc);
+            } catch (Exception ignore) {}
+        }
+
         Usuario usuario = Usuario.builder()
                 .nombres(dto.getNombres())
                 .apellidos(dto.getApellidos() != null ? dto.getApellidos() : "")
@@ -66,10 +119,13 @@ public class UsuarioController {
                 .passwordHash(dto.getPassword() != null && !dto.getPassword().isBlank()
                         ? passwordEncoder.encode(dto.getPassword())
                         : passwordEncoder.encode("123456"))
-                .telefono(dto.getTelefono())
-                .codEmpleado(dto.getCodEmpleado())
+                .telefono(telefono)
+                .codEmpleado(codEmpleado)
                 .rol(dto.getRol() != null ? dto.getRol().toUpperCase() : "CONDUCTOR")
+                .idAdminSupervisor(idAdminSupervisor)
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
+                .fechaCreacion(fechaCreacion)
+                .fechaActualizacion(java.time.LocalDateTime.now())
                 .build();
 
         Usuario guardado = usuarioRepository.save(usuario);
@@ -104,14 +160,83 @@ public class UsuarioController {
                 usuario.setRol(dto.getRol().toUpperCase());
             }
             if (dto.getCodEmpleado() != null) usuario.setCodEmpleado(dto.getCodEmpleado());
+            if (dto.getIdAdminSupervisor() != null) usuario.setIdAdminSupervisor(dto.getIdAdminSupervisor());
             if (dto.getActivo() != null) usuario.setActivo(dto.getActivo());
+            if (dto.getFechaCreacion() != null && !dto.getFechaCreacion().isBlank()) {
+                try {
+                    String fc = dto.getFechaCreacion().trim().replace(" ", "T");
+                    if (fc.length() == 16) fc += ":00";
+                    usuario.setFechaCreacion(java.time.LocalDateTime.parse(fc));
+                } catch (Exception ignore) {}
+            }
             if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
                 usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
             }
+            usuario.setFechaActualizacion(java.time.LocalDateTime.now());
 
             Usuario actualizado = usuarioRepository.save(usuario);
             return ResponseEntity.ok(mapToDto(actualizado));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * POST /api/usuarios/sincronizar-faltantes
+     * Rellena automáticamente los campos fecha_creacion, fecha_actualizacion, telefono y delega id_admin_supervisor
+     * para todas las cuentas existentes en la base de datos que se encuentren incompletas o en NULL.
+     */
+    @PostMapping("/sincronizar-faltantes")
+    public ResponseEntity<?> sincronizarFaltantes() {
+        List<Usuario> usuarios = usuarioRepository.findAll();
+        Long primerAdmin = usuarios.stream()
+                .filter(u -> "ADMINISTRADOR".equalsIgnoreCase(u.getRol()))
+                .map(Usuario::getIdUsuario)
+                .findFirst().orElse(1L);
+        Long primerSupervisor = usuarios.stream()
+                .filter(u -> "SUPERVISOR".equalsIgnoreCase(u.getRol()))
+                .map(Usuario::getIdUsuario)
+                .findFirst().orElse(primerAdmin);
+
+        int actualizados = 0;
+        java.time.LocalDateTime ahora = java.time.LocalDateTime.now();
+        for (Usuario u : usuarios) {
+            boolean modificado = false;
+            if (u.getFechaCreacion() == null) {
+                u.setFechaCreacion(ahora.minusDays(7));
+                modificado = true;
+            }
+            if (u.getFechaActualizacion() == null) {
+                u.setFechaActualizacion(ahora);
+                modificado = true;
+            }
+            if (u.getIdAdminSupervisor() == null) {
+                if ("CONDUCTOR".equalsIgnoreCase(u.getRol())) {
+                    u.setIdAdminSupervisor(primerSupervisor);
+                } else if ("SUPERVISOR".equalsIgnoreCase(u.getRol())) {
+                    u.setIdAdminSupervisor(primerAdmin);
+                } else {
+                    u.setIdAdminSupervisor(primerAdmin);
+                }
+                modificado = true;
+            }
+            if (u.getTelefono() == null || u.getTelefono().isBlank()) {
+                u.setTelefono("9" + (int)(10000000 + Math.random() * 89999999));
+                modificado = true;
+            }
+            if (u.getCodEmpleado() == null || u.getCodEmpleado().isBlank()) {
+                String prefijo = "CONDUCTOR".equalsIgnoreCase(u.getRol()) ? "TRP" :
+                                 ("SUPERVISOR".equalsIgnoreCase(u.getRol()) ? "SUP" : "ADM");
+                u.setCodEmpleado(String.format("%s-%03d", prefijo, u.getIdUsuario()));
+                modificado = true;
+            }
+            if (modificado) {
+                usuarioRepository.save(u);
+                actualizados++;
+            }
+        }
+        return ResponseEntity.ok(Map.of(
+                "mensaje", "Campos faltantes rellenados y usuarios delegados correctamente.",
+                "totalUsuariosActualizados", actualizados
+        ));
     }
 
     @DeleteMapping("/{id}")
@@ -129,6 +254,13 @@ public class UsuarioController {
     }
 
     private UsuarioDto mapToDto(Usuario u) {
+        String supervisorNombre = "Sin Delegar (Cuenta Raíz)";
+        if (u.getIdAdminSupervisor() != null) {
+            supervisorNombre = usuarioRepository.findById(u.getIdAdminSupervisor())
+                    .map(s -> s.getNombres() + " " + s.getApellidos() + " [" + s.getRol() + "]")
+                    .orElse("ID #" + u.getIdAdminSupervisor());
+        }
+
         return UsuarioDto.builder()
                 .idUsuario(u.getIdUsuario())
                 .nombres(u.getNombres())
@@ -137,8 +269,11 @@ public class UsuarioController {
                 .telefono(u.getTelefono())
                 .codEmpleado(u.getCodEmpleado())
                 .rol(u.getRol())
+                .idAdminSupervisor(u.getIdAdminSupervisor())
+                .supervisorNombre(supervisorNombre)
                 .activo(u.getActivo())
                 .fechaCreacion(u.getFechaCreacion() != null ? u.getFechaCreacion().toString() : "")
+                .fechaActualizacion(u.getFechaActualizacion() != null ? u.getFechaActualizacion().toString() : "")
                 .build();
     }
 }

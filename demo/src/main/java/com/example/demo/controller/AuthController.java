@@ -43,7 +43,7 @@ public class AuthController {
         }
 
         Usuario usuario = usuarioRepository.findByEmail(email.toLowerCase().trim())
-                .orElse(null);
+                .orElseGet(() -> usuarioRepository.findByCodEmpleado(email.trim()).orElse(null));
 
         if (usuario == null || !Boolean.TRUE.equals(usuario.getActivo())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -74,13 +74,15 @@ public class AuthController {
         String nombre = usuario.getNombres() + " " + usuario.getApellidos();
         String token  = jwtUtil.generarToken(usuario.getEmail(), usuario.getRol(), nombre);
 
-        return ResponseEntity.ok(Map.of(
-                "token",  token,
-                "rol",    usuario.getRol(),
-                "nombre", nombre,
-                "email",  usuario.getEmail(),
-                "id",     usuario.getIdUsuario()
-        ));
+        Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("token", token);
+        resp.put("rol", usuario.getRol());
+        resp.put("nombre", nombre);
+        resp.put("email", usuario.getEmail());
+        resp.put("id", usuario.getIdUsuario());
+        resp.put("codEmpleado", usuario.getCodEmpleado() != null ? usuario.getCodEmpleado() : "");
+
+        return ResponseEntity.ok(resp);
     }
 
     /**

@@ -34,5 +34,7 @@ application.properties
 *.env
 scheduled_push.bat
 scheduled_push.log
+demo/scratch/
+scratch/
 
 

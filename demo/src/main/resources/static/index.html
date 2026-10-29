@@ -200,7 +200,7 @@
                         </h3>
                         
                         <div id="userList">
-                            <div class="user-item">
+                            <div class="user-item" style="cursor:pointer;" onclick="quickFill('admin@acerosarequipa.com', 'admin')" title="Clic para ingresar como Administrador">
                                 <div>
                                     <strong>Admin Principal</strong><br>
                                     <span style="color:#64748b; font-size:11px;">admin@acerosarequipa.com</span>
@@ -208,7 +208,7 @@
                                 <span class="user-badge-role badge-admin">Administrador</span>
                             </div>
 
-                            <div class="user-item">
+                            <div class="user-item" style="cursor:pointer;" onclick="quickFill('rgomez@acerosarequipa.com', 'supervisor')" title="Clic para ingresar como Supervisor">
                                 <div>
                                     <strong>Roberto Gómez</strong><br>
                                     <span style="color:#64748b; font-size:11px;">rgomez@acerosarequipa.com</span>
@@ -216,7 +216,7 @@
                                 <span class="user-badge-role badge-supervisor">Supervisor</span>
                             </div>
 
-                            <div class="user-item">
+                            <div class="user-item" style="cursor:pointer;" onclick="quickFill('mquispe@acerosarequipa.com', 'transportista')" title="Clic para ingresar como Conductor">
                                 <div>
                                     <strong>Manuel Quispe</strong><br>
                                     <span style="color:#64748b; font-size:11px;">mquispe@acerosarequipa.com</span>
@@ -245,15 +245,23 @@
                 title: '📋 Supervisor: Gestión de flota y optimización de rutas',
                 btnText: 'INICIAR SESIÓN (SUPERVISOR)',
                 userPlaceholder: 'Usuario / Correo del Supervisor',
-                defaultUser: 'supervisor@acerosarequipa.com'
+                defaultUser: 'rgomez@acerosarequipa.com'
             },
             transportista: {
                 title: '🚚 Transportista: Consulta de rutas y confirmación de entregas',
                 btnText: 'INICIAR SESIÓN (CONDUCTOR)',
-                userPlaceholder: 'DNI / Código de Transportista',
-                defaultUser: '45892134'
+                userPlaceholder: 'Correo / Código de Transportista',
+                defaultUser: 'mquispe@acerosarequipa.com'
             }
         };
+
+        function quickFill(email, role) {
+            selectRole(role);
+            document.getElementById('username').value = email;
+            document.getElementById('password').value = '123456';
+            document.getElementById('statusMessage').textContent = 'Credenciales listas para ingresar.';
+            document.getElementById('statusMessage').style.color = '#10b981';
+        }
 
         function selectRole(role) {
             currentRole = role;
@@ -307,10 +315,11 @@
                 // Guardar token y datos de sesión
                 sessionStorage.setItem('jwtToken', data.token);
                 sessionStorage.setItem('currentUser', JSON.stringify({
-                    idUsuario: data.id,
-                    nombres:   data.nombre,
-                    email:     data.email,
-                    rol:       data.rol
+                    idUsuario:   data.id,
+                    nombres:     data.nombre,
+                    email:       data.email,
+                    rol:         data.rol,
+                    codEmpleado: data.codEmpleado || ''
                 }));
 
                 status.style.color = '#16a34a';

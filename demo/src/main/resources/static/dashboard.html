@@ -254,6 +254,11 @@
                         </div>
                     </div>
 
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Fecha de Creación (Opcional - Automática si se deja vacía)</label>
+                        <input type="datetime-local" id="formFechaCreacion" style="width: 100%; height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 13px;">
+                    </div>
+
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button type="button" onclick="closeAssignRouteModal()" style="padding: 8px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:4px; cursor:pointer;">Cancelar</button>
                         <button type="submit" class="btn-primary" style="background:#16a34a; border-color:#16a34a;">Confirmar Asignación</button>
@@ -310,9 +315,17 @@
                         </div>
                     </div>
 
-                    <div class="form-field" style="margin-bottom: 16px;">
-                        <label>Código de Empleado</label>
-                        <input type="text" id="formCodEmpleado" placeholder="EMP-2026-01">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                        <div class="form-field">
+                            <label>Código de Empleado (Autogenerable)</label>
+                            <input type="text" id="formCodEmpleado" placeholder="Ej. TRP-004 o dejar vacío">
+                        </div>
+                        <div class="form-field">
+                            <label>Delegar a Supervisor / Admin *</label>
+                            <select id="formAdminSupervisor" style="width: 100%; height: 38px; border: 1.5px solid #2563eb; font-weight: 600; color: #1e3a8a; border-radius: 6px; padding: 4px 8px;">
+                                <option value="">-- Autodelegar al creador --</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">

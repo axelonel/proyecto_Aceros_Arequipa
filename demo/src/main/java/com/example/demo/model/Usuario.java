@@ -44,11 +44,24 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean activo = true;
 
-    @Column(name = "fecha_creacion", insertable = false, updatable = false)
+    @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "fecha_actualizacion", insertable = false, updatable = false)
+    @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.fechaCreacion == null) {
+            this.fechaCreacion = LocalDateTime.now();
+        }
+        this.fechaActualizacion = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.fechaActualizacion = LocalDateTime.now();
+    }
 
     public Usuario() {
     }

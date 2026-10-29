@@ -738,6 +738,8 @@ function applyMisRutasRoleRestrictions() {
         if (subTitleEl) subTitleEl.textContent = 'Hoja de ruta diaria y registro de entregas asignadas a tu unidad vehicular';
         const nameEl = document.getElementById('driverCardName');
         if (nameEl && user.nombres) nameEl.textContent = user.nombres;
+        const dniEl = document.getElementById('driverCardDni');
+        if (dniEl && user.codEmpleado) dniEl.textContent = user.codEmpleado;
     } else {
         if (selWrapper) selWrapper.style.display = '';
         if (btnAsig) btnAsig.style.display = '';
@@ -839,11 +841,57 @@ function renderMisRutas(statusFilter = 'TODAS') {
 
     let list = [...activeDispatches];
 
-    // Si es conductor, mostrar sus rutas o todas las asignadas para prueba
+    // Si es conductor, filtrar de forma ESTRICTA y mostrar ÚNICAMENTE sus propias asignaciones
     if (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA') {
-        const userDispatches = list.filter(d => d.conductorId === user.idUsuario || d.conductorNombre === user.nombres);
-        if (userDispatches.length > 0) {
-            list = userDispatches;
+        const userNom = (user.nombres || '').trim().toLowerCase();
+        const userCod = (user.codEmpleado || '').trim().toLowerCase();
+
+        list = list.filter(d => {
+            const condNom = (d.conductorNombre || '').trim().toLowerCase();
+            const condDni = (d.conductorDni || '').trim().toLowerCase();
+
+            // 1. Coincidencia por DNI / Código de empleado
+            if (userCod && condDni && (userCod === condDni || userCod.includes(condDni) || condDni.includes(userCod))) {
+                return true;
+            }
+            // 2. Coincidencia por Nombre y Apellido
+            if (userNom && condNom) {
+                if (condNom === userNom || condNom.includes(userNom) || userNom.includes(condNom)) {
+                    return true;
+                }
+                const nameParts = userNom.split(/\s+/).filter(p => p.length >= 3);
+                if (nameParts.length > 0 && nameParts.every(part => condNom.includes(part))) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Actualizar métricas KPI exclusivas del conductor conectado
+        const kpiTotal = document.getElementById('kpiDriverTotal');
+        const kpiTrans = document.getElementById('kpiDriverTransito');
+        const kpiEntr = document.getElementById('kpiDriverEntregadas');
+        const kpiCarga = document.getElementById('kpiDriverCarga');
+
+        const countPorIniciar = list.filter(d => d.estado === 'ASIGNADA').length;
+        const countEnTransito = list.filter(d => d.estado === 'EN_TRANSITO').length;
+        const countCompletadas = list.filter(d => d.estado === 'COMPLETADA').length;
+
+        if (kpiTotal) kpiTotal.textContent = list.length;
+        if (kpiTrans) {
+            kpiTrans.textContent = countPorIniciar > 0 ? countPorIniciar : countEnTransito;
+            const transLabel = document.getElementById('kpiDriverTransitoLabel');
+            if (transLabel) {
+                transLabel.textContent = countPorIniciar > 0 ? '📋 Por Iniciar' : '🚚 En Camino';
+            }
+        }
+        if (kpiEntr) kpiEntr.textContent = countCompletadas;
+        if (kpiCarga) {
+            const totalTn = list.reduce((acc, d) => {
+                const match = (d.material || '').match(/(\d+(\.\d+)?)\s*Tn/i);
+                return acc + (match ? parseFloat(match[1]) : 20.0);
+            }, 0);
+            kpiCarga.textContent = totalTn > 0 ? `${totalTn.toFixed(1)} Tn` : '0.0 Tn';
         }
     }
 
@@ -852,10 +900,15 @@ function renderMisRutas(statusFilter = 'TODAS') {
     }
 
     if (list.length === 0) {
+        const esConductor = (user.rol === 'CONDUCTOR' || user.rol === 'TRANSPORTISTA');
         container.innerHTML = `
             <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:8px; padding:36px; text-align:center; color:#64748b;">
-                <p style="font-size:15px; font-weight:600; margin-bottom:4px;">No hay rutas asignadas en este estado.</p>
-                <span style="font-size:12.5px; color:#94a3b8;">Las nuevas rutas serán asignadas por el Supervisor de Flotas.</span>
+                <p style="font-size:15px; font-weight:600; margin-bottom:4px;">
+                    ${esConductor ? 'No tienes rutas asignadas en este momento.' : 'No hay rutas asignadas en este estado.'}
+                </p>
+                <span style="font-size:12.5px; color:#94a3b8;">
+                    ${esConductor ? 'Cuando el Supervisor te asigne una nueva ruta a tu nombre, aparecerá aquí.' : 'Las nuevas rutas serán asignadas por el Supervisor de Flotas.'}
+                </span>
             </div>
         `;
         return;
@@ -932,36 +985,59 @@ function renderMisRutas(statusFilter = 'TODAS') {
 async function loadAsignacionesFromDatabase() {
     try {
         if (window.location.protocol !== 'file:') {
-            const [resAsig, resPed, resCli] = await Promise.all([
+            const [resAsig, resPed, resCli, resTrp] = await Promise.all([
                 apiFetch(API_HOST + '/api/asignaciones'),
                 apiFetch(API_HOST + '/api/pedidos'),
-                apiFetch(API_HOST + '/api/clientes')
+                apiFetch(API_HOST + '/api/clientes'),
+                apiFetch(API_HOST + '/api/transportistas')
             ]);
             if (resPed.ok) memoryPedidos = await resPed.json();
             if (resCli.ok) memoryClientes = await resCli.json();
+            if (resTrp && resTrp.ok) {
+                const trps = await resTrp.json();
+                const simSelect = document.getElementById('simularConductorSelect');
+                if (simSelect && trps.length > 0) {
+                    const currentVal = simSelect.value;
+                    simSelect.innerHTML = `<option value="TODOS">Todos los Conductores</option>` +
+                        trps.map(t => `<option value="${t.nombres} ${t.apellidos}">${t.nombres} ${t.apellidos} (${t.dni})</option>`).join('');
+                    if (currentVal) simSelect.value = currentVal;
+                }
+            }
 
             if (resAsig.ok) {
                 const list = await resAsig.json();
                 if (list && list.length > 0) {
-                    activeDispatches = list.map(a => ({
-                        id: a.idAsignacion,
-                        codigo: 'DSP-' + (1000 + a.idAsignacion),
-                        origen: "Almacén Principal Lima (A)",
-                        destino: "Planta Siderúrgica Pisco (F)",
-                        trayecto: "A → C → E → F",
-                        material: "Carga de Acero Aceros Arequipa",
-                        conductorId: a.idTransportista,
-                        conductorNombre: a.conductorNombre || 'Transportista Asignado',
-                        vehiculo: (a.vehiculoTipo || 'Unidad de Flota') + ' - ' + (a.vehiculoModelo || ''),
-                        placa: a.vehiculoPlaca || 'V-100',
-                        prioridad: 'Alta',
-                        tiempoEst: "32 min",
-                        distancia: "18.5 km",
-                        costo: "S/ 85.00",
-                        estado: a.estado === 'ACTIVA' ? 'EN_TRANSITO' : 'COMPLETADA',
-                        fecha: a.fechaInicio ? new Date(a.fechaInicio).toLocaleDateString() : 'Hoy',
-                        supervisor: "Supervisor de Operaciones"
-                    }));
+                    activeDispatches = list.map(a => {
+                        let est = 'ASIGNADA';
+                        if (a.estado === 'EN_TRANSITO') {
+                            est = 'EN_TRANSITO';
+                        } else if (a.estado === 'FINALIZADA' || a.estado === 'COMPLETADA') {
+                            est = 'COMPLETADA';
+                        } else {
+                            est = 'ASIGNADA'; // Estado inicial para nuevas asignaciones (Por Iniciar)
+                        }
+
+                        return {
+                            id: a.idAsignacion,
+                            codigo: 'DSP-' + (1000 + a.idAsignacion),
+                            origen: "Almacén Principal Lima (A)",
+                            destino: a.pedidoDestino || a.destino || "Planta Siderúrgica Pisco (F)",
+                            trayecto: "A → C → E → F",
+                            material: a.pedidoMaterial || a.materialCarga || "Carga de Acero Aceros Arequipa",
+                            conductorId: a.idTransportista,
+                            conductorNombre: a.conductorNombre || 'Transportista Asignado',
+                            conductorDni: a.conductorDni || '',
+                            vehiculo: (a.vehiculoTipo || 'Unidad de Flota') + ' - ' + (a.vehiculoModelo || ''),
+                            placa: a.vehiculoPlaca || 'V-100',
+                            prioridad: a.pedidoPrioridad || 'Alta',
+                            tiempoEst: "32 min",
+                            distancia: "18.5 km",
+                            costo: "S/ 85.00",
+                            estado: est,
+                            fecha: a.fechaInicio ? new Date(a.fechaInicio).toLocaleDateString() : 'Hoy',
+                            supervisor: "Supervisor de Operaciones"
+                        };
+                    });
                 }
             }
         }
@@ -1051,7 +1127,13 @@ async function updateDispatchStatus(dispatchId, newStatus) {
     item.estado = newStatus;
 
     if (window.location.protocol !== 'file:') {
-        if (newStatus === 'COMPLETADA') {
+        if (newStatus === 'EN_TRANSITO') {
+            try {
+                await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/iniciar`, { method: 'PUT' });
+            } catch (e) {
+                console.warn('Error iniciando asignacion en servidor:', e);
+            }
+        } else if (newStatus === 'COMPLETADA') {
             try {
                 await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
             } catch (e) {
@@ -3039,6 +3121,7 @@ async function loadUsersFromDatabase() {
         }
 
         memoryUsers = users;
+        populateAdminSupervisorSelect(users);
         renderUserRows(users);
 
     } catch (err) {
@@ -3055,22 +3138,49 @@ async function loadUsersFromDatabase() {
     }
 }
 
+function populateAdminSupervisorSelect(users) {
+    const select = document.getElementById('formAdminSupervisor');
+    if (!select) return;
+    const supervisorsAndAdmins = (users || []).filter(u => u.rol === 'ADMINISTRADOR' || u.rol === 'SUPERVISOR');
+    select.innerHTML = '<option value="">-- Autodelegar al creador / Automático --</option>' +
+        supervisorsAndAdmins.map(s => `<option value="${s.idUsuario}">${s.nombres} ${s.apellidos || ''} (${s.rol})</option>`).join('');
+}
+
+async function sincronizarCamposFaltantesBD() {
+    try {
+        const btn = document.activeElement;
+        if (btn) btn.disabled = true;
+        const res = await apiFetch((API_HOST || '') + '/api/usuarios/sincronizar-faltantes', { method: 'POST' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        alert('⚡ ' + (data.mensaje || 'Campos faltantes sincronizados y usuarios delegados correctamente.') + ` (${data.totalUsuariosActualizados || 0} usuarios actualizados)`);
+        await loadUsersFromDatabase();
+    } catch (err) {
+        alert('Error al sincronizar campos faltantes: ' + err.message);
+    } finally {
+        const btn = document.activeElement;
+        if (btn) btn.disabled = false;
+    }
+}
+
 function renderUserRows(users) {
     const tbody = document.getElementById('usersTbody');
     if (!tbody) return;
     tbody.innerHTML = users.map(u => {
         const badgeClass = u.rol === 'ADMINISTRADOR' ? 'badge-admin' : (u.rol === 'SUPERVISOR' ? 'badge-supervisor' : 'badge-conductor');
+        const delegado = u.supervisorNombre || (u.idAdminSupervisor ? 'ID #' + u.idAdminSupervisor : 'Sin Delegar (Principal)');
         return `
             <tr>
                 <td style="font-weight:700; color:#64748b;">#${u.idUsuario}</td>
-                <td><strong>${u.nombres} ${u.apellidos || ''}</strong></td>
-                <td>${u.email}</td>
+                <td><strong>${escapeHtml(u.nombres)} ${escapeHtml(u.apellidos || '')}</strong></td>
+                <td>${escapeHtml(u.email)}</td>
                 <td><span class="user-badge-role ${badgeClass}">${u.rol}</span></td>
-                <td style="color:#64748b;">${u.codEmpleado || u.telefono || '-'}</td>
+                <td style="color:#64748b;"><code>${escapeHtml(u.codEmpleado || '-')}</code> · ${escapeHtml(u.telefono || '-')}</td>
+                <td style="font-size:12px; font-weight:600; color:#1e3a8a;">👤 ${escapeHtml(delegado)}</td>
                 <td><span style="color:#16a34a; font-weight:600;">● Activo</span></td>
                 <td style="text-align:right;">
-                    <button class="btn-action-edit" onclick="openEditUserModal(${u.idUsuario}, '${u.nombres}', '${u.apellidos || ''}', '${u.email}', '${u.rol}', '${u.telefono || ''}', '${u.codEmpleado || ''}')">Editar / Rol</button>
-                    <button class="btn-action-del" onclick="deleteUser(${u.idUsuario}, '${u.nombres}')">Eliminar</button>
+                    <button class="btn-action-edit" onclick="openEditUserModal(${u.idUsuario}, '${escapeHtml(u.nombres)}', '${escapeHtml(u.apellidos || '')}', '${escapeHtml(u.email)}', '${u.rol}', '${escapeHtml(u.telefono || '')}', '${escapeHtml(u.codEmpleado || '')}', ${u.idAdminSupervisor || 'null'}, '${u.fechaCreacion || ''}')">Editar / Rol</button>
+                    <button class="btn-action-del" onclick="deleteUser(${u.idUsuario}, '${escapeHtml(u.nombres)}')">Eliminar</button>
                 </td>
             </tr>
         `;
@@ -3083,15 +3193,23 @@ function openNewUserModal() {
     const formEmail  = document.getElementById('formEmail');
     const userForm   = document.getElementById('userForm');
     const userModal  = document.getElementById('userModal');
+    const formAdminSupervisor = document.getElementById('formAdminSupervisor');
 
     if (modalTitle) modalTitle.textContent = 'Registrar Nueva Cuenta';
     if (formUserId) formUserId.value = '';
     if (formEmail)  formEmail.disabled = false;
     if (userForm)   userForm.reset();
+    const fcEl = document.getElementById('formFechaCreacion');
+    if (fcEl) fcEl.value = '';
+    populateAdminSupervisorSelect(memoryUsers);
+    const cur = getCurrentUser();
+    if (formAdminSupervisor && cur && cur.id) {
+        formAdminSupervisor.value = cur.id;
+    }
     if (userModal)  userModal.classList.add('active');
 }
 
-function openEditUserModal(id, nombres, apellidos, email, rol, telefono, cod) {
+function openEditUserModal(id, nombres, apellidos, email, rol, telefono, cod, idAdminSupervisor, fechaCreacion) {
     const modalTitle = document.getElementById('modalTitle');
     const formUserId = document.getElementById('formUserId');
     const formNombres = document.getElementById('formNombres');
@@ -3100,9 +3218,11 @@ function openEditUserModal(id, nombres, apellidos, email, rol, telefono, cod) {
     const formRol    = document.getElementById('formRol');
     const formTelefono = document.getElementById('formTelefono');
     const formCodEmpleado = document.getElementById('formCodEmpleado');
+    const formAdminSupervisor = document.getElementById('formAdminSupervisor');
+    const formFechaCreacion = document.getElementById('formFechaCreacion');
     const userModal  = document.getElementById('userModal');
 
-    if (modalTitle) modalTitle.textContent = 'Editar Usuario y Reasignar Rol';
+    if (modalTitle) modalTitle.textContent = 'Editar Usuario y Reasignar Rol / Delegación';
     if (formUserId) formUserId.value = id;
     if (formNombres) formNombres.value = nombres;
     if (formApellidos) formApellidos.value = apellidos;
@@ -3110,6 +3230,11 @@ function openEditUserModal(id, nombres, apellidos, email, rol, telefono, cod) {
     if (formRol) formRol.value = rol;
     if (formTelefono) formTelefono.value = telefono;
     if (formCodEmpleado) formCodEmpleado.value = cod;
+    if (formFechaCreacion) {
+        formFechaCreacion.value = (fechaCreacion && fechaCreacion.length >= 16) ? fechaCreacion.substring(0, 16) : '';
+    }
+    populateAdminSupervisorSelect(memoryUsers);
+    if (formAdminSupervisor) formAdminSupervisor.value = idAdminSupervisor || '';
     if (userModal) userModal.classList.add('active');
 }
 
@@ -3131,8 +3256,15 @@ async function saveUser(e) {
     const telefono = document.getElementById('formTelefono').value.trim();
     const codEmpleado = document.getElementById('formCodEmpleado').value.trim();
 
+    const adminSupEl = document.getElementById('formAdminSupervisor');
+    const idAdminSupervisor = (adminSupEl && adminSupEl.value) ? parseInt(adminSupEl.value) : null;
+    const formFechaCreacion = document.getElementById('formFechaCreacion');
+    const fechaCreacion = (formFechaCreacion && formFechaCreacion.value) ? formFechaCreacion.value : '';
+
     const payload = { nombres, apellidos, email, rol, telefono, codEmpleado };
     if (password) payload.password = password;
+    if (idAdminSupervisor) payload.idAdminSupervisor = idAdminSupervisor;
+    if (fechaCreacion) payload.fechaCreacion = fechaCreacion;
 
     if (window.location.protocol === 'file:') {
         if (id) {
@@ -3275,23 +3407,25 @@ function cambiarSimulacionConductor(nombre) {
         }
     };
 
-    const prof = driverProfiles[nombre] || driverProfiles['Manuel Quispe'];
+    let filtered = [...activeDispatches];
+    if (nombre !== 'TODOS') {
+        filtered = filtered.filter(d => (d.conductorNombre || '').toLowerCase().includes(nombre.toLowerCase()));
+    }
+
+    const firstMatch = filtered.find(d => (d.conductorNombre || '').toLowerCase().includes(nombre.toLowerCase())) || filtered[0];
 
     const nameEl = document.getElementById('driverCardName');
     const licEl = document.getElementById('driverCardLicencia');
     const dniEl = document.getElementById('driverCardDni');
     const vehEl = document.getElementById('driverCardVehiculo');
 
-    if (nameEl) nameEl.textContent = (nombre === 'TODOS') ? 'Todos los Transportistas' : prof.nombre;
-    if (licEl) licEl.textContent = prof.licencia;
-    if (dniEl) dniEl.textContent = prof.dni;
+    if (nameEl) nameEl.textContent = (nombre === 'TODOS') ? 'Todos los Transportistas' : nombre;
+    if (licEl) licEl.textContent = (firstMatch && firstMatch.conductorDni) ? `Q${firstMatch.conductorDni} (Cat. A-IIIc)` : 'Lic. Oficial A-IIIc';
+    if (dniEl) dniEl.textContent = (firstMatch && firstMatch.conductorDni) ? firstMatch.conductorDni : (nombre === 'TODOS' ? 'Flota Completa' : '---');
     if (vehEl) {
-        vehEl.innerHTML = `${prof.vehiculo} · <span style="background: #fbbf24; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 12px;">${prof.placa}</span>`;
-    }
-
-    let filtered = [...activeDispatches];
-    if (nombre !== 'TODOS') {
-        filtered = filtered.filter(d => (d.conductorNombre || '').toLowerCase().includes(nombre.toLowerCase()));
+        const vNombre = firstMatch ? firstMatch.vehiculo : 'Unidad de Flota';
+        const vPlaca = firstMatch ? firstMatch.placa : 'V-100';
+        vehEl.innerHTML = `${vNombre} · <span style="background: #fbbf24; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 12px;">${vPlaca}</span>`;
     }
 
     const kpiTotal = document.getElementById('kpiDriverTotal');
@@ -3299,10 +3433,26 @@ function cambiarSimulacionConductor(nombre) {
     const kpiEntr = document.getElementById('kpiDriverEntregadas');
     const kpiCarga = document.getElementById('kpiDriverCarga');
 
+    const countPorIniciar = filtered.filter(d => d.estado === 'ASIGNADA').length;
+    const countEnTransito = filtered.filter(d => d.estado === 'EN_TRANSITO').length;
+    const countCompletadas = filtered.filter(d => d.estado === 'COMPLETADA').length;
+
     if (kpiTotal) kpiTotal.textContent = filtered.length;
-    if (kpiTrans) kpiTrans.textContent = filtered.filter(d => d.estado === 'EN_TRANSITO').length;
-    if (kpiEntr) kpiEntr.textContent = filtered.filter(d => d.estado === 'COMPLETADA').length;
-    if (kpiCarga) kpiCarga.textContent = prof.carga;
+    if (kpiTrans) {
+        kpiTrans.textContent = countPorIniciar > 0 ? countPorIniciar : countEnTransito;
+        const transLabel = document.getElementById('kpiDriverTransitoLabel');
+        if (transLabel) {
+            transLabel.textContent = countPorIniciar > 0 ? '📋 Por Iniciar' : '🚚 En Camino';
+        }
+    }
+    if (kpiEntr) kpiEntr.textContent = countCompletadas;
+    if (kpiCarga) {
+        const totalTn = filtered.reduce((acc, d) => {
+            const match = (d.material || '').match(/(\d+(\.\d+)?)\s*Tn/i);
+            return acc + (match ? parseFloat(match[1]) : 20.0);
+        }, 0);
+        kpiCarga.textContent = totalTn > 0 ? `${totalTn.toFixed(1)} Tn` : '0.0 Tn';
+    }
 
     renderMisRutasCustom(filtered, currentDispatchFilter);
 }
@@ -3435,7 +3585,42 @@ async function loadAsignacionesData() {
         const currentUserAsig = getCurrentUser();
         const isTransportistaAsig = (currentUserAsig.rol === 'CONDUCTOR' || currentUserAsig.rol === 'TRANSPORTISTA');
 
-        tbody.innerHTML = data.map(asig => {
+        let displayList = data;
+        // Si es conductor / transportista, filtrar estrictamente para ver SOLO sus asignaciones personales
+        if (isTransportistaAsig) {
+            const userNom = (currentUserAsig.nombres || '').trim().toLowerCase();
+            const userCod = (currentUserAsig.codEmpleado || '').trim().toLowerCase();
+
+            displayList = data.filter(asig => {
+                const condNom = (asig.conductorNombre || '').trim().toLowerCase();
+                const condDni = (asig.conductorDni || '').trim().toLowerCase();
+
+                // 1. Coincidencia por DNI / Código de empleado
+                if (userCod && condDni && (userCod === condDni || userCod.includes(condDni) || condDni.includes(userCod))) {
+                    return true;
+                }
+                // 2. Coincidencia por Nombre y Apellido
+                if (userNom && condNom) {
+                    if (condNom === userNom || condNom.includes(userNom) || userNom.includes(condNom)) {
+                        return true;
+                    }
+                    const nameParts = userNom.split(/\s+/).filter(p => p.length >= 3);
+                    if (nameParts.length > 0 && nameParts.every(part => condNom.includes(part))) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        if (displayList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:18px; color:#64748b;">
+                ${isTransportistaAsig ? 'No tienes asignaciones de conducción registradas a tu nombre.' : 'No hay asignaciones de conducción activas registradas.'}
+            </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = displayList.map(asig => {
             const id = asig.idAsignacion;
             const conductor = asig.conductorNombre || 'Transportista Asignado';
             const licencia = asig.licencia || 'A-IIIc';
@@ -3579,6 +3764,64 @@ const LOGISTICS_CONNECTIONS = [
     ['E', 'F']
 ];
 
+// Cache en memoria para rutas de OSRM (evita consultas repetidas a la red vial)
+const osrmRouteCache = {};
+
+/**
+ * Consulta la red vial de OpenStreetMap mediante OSRM (Open Source Routing Machine)
+ * para trazar el recorrido real sobre carreteras y calcular el tiempo real de conducción pesada.
+ */
+async function fetchRoadRoute(waypoints) {
+    if (!waypoints || waypoints.length < 2) return null;
+
+    const coordsStr = waypoints.map(w => `${w.lng.toFixed(4)},${w.lat.toFixed(4)}`).join(';');
+    if (osrmRouteCache[coordsStr]) {
+        return osrmRouteCache[coordsStr];
+    }
+
+    try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson&steps=false`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            const r = data.routes[0];
+            // Invertir [lng, lat] de GeoJSON al estándar [lat, lng] de Leaflet
+            const latLngs = r.geometry.coordinates.map(c => [c[1], c[0]]);
+            const distanceKm = parseFloat((r.distance / 1000).toFixed(1));
+
+            // Factor de velocidad para transporte pesado de acero (camión / plataforma cargado a 24-30 Tn)
+            const durationSec = Math.round(r.duration * 1.15);
+            const hours = Math.floor(durationSec / 3600);
+            const minutes = Math.round((durationSec % 3600) / 60);
+            const durationText = hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`;
+
+            const result = {
+                success: true,
+                latLngs,
+                distanceKm,
+                durationMinutes: Math.round(durationSec / 60),
+                durationText,
+                rawDurationSec: durationSec
+            };
+            osrmRouteCache[coordsStr] = result;
+            return result;
+        }
+    } catch (e) {
+        console.warn('OSRM no disponible en este momento, usando trazado de respaldo:', e);
+    }
+
+    // Respaldo en caso de falta de conexión a internet
+    return {
+        success: false,
+        latLngs: waypoints.map(w => [w.lat, w.lng]),
+        distanceKm: null,
+        durationMinutes: null,
+        durationText: null
+    };
+}
+
 function initLogisticsMap() {
     const mapContainer = document.getElementById('mapaRedLogistica');
     if (!mapContainer || typeof L === 'undefined') return;
@@ -3592,20 +3835,32 @@ function initLogisticsMap() {
         logisticsMapInstance = L.map('mapaRedLogistica').setView([-12.5, -76.8], 8);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap | Aceros Arequipa Rutas',
+            attribution: '&copy; OpenStreetMap | Aceros Arequipa Red Vial OSRM',
             maxZoom: 18
         }).addTo(logisticsMapInstance);
 
-        LOGISTICS_CONNECTIONS.forEach(([startKey, endKey]) => {
+        // Trazar cada conexión de la red sobre carreteras reales de forma asíncrona
+        LOGISTICS_CONNECTIONS.forEach(async ([startKey, endKey]) => {
             const start = LOGISTICS_NODES[startKey];
             const end = LOGISTICS_NODES[endKey];
             if (start && end) {
-                L.polyline([[start.lat, start.lng], [end.lat, end.lng]], {
-                    color: '#94a3b8',
-                    weight: 3,
-                    dashArray: '6, 6',
-                    opacity: 0.8
-                }).addTo(logisticsMapInstance);
+                const road = await fetchRoadRoute([start, end]);
+                if (road && road.latLngs && logisticsMapInstance) {
+                    L.polyline(road.latLngs, {
+                        color: '#475569',
+                        weight: 4,
+                        opacity: 0.75,
+                        dashArray: '5, 8',
+                        lineJoin: 'round'
+                    }).addTo(logisticsMapInstance);
+                } else if (logisticsMapInstance) {
+                    L.polyline([[start.lat, start.lng], [end.lat, end.lng]], {
+                        color: '#94a3b8',
+                        weight: 3,
+                        dashArray: '6, 6',
+                        opacity: 0.8
+                    }).addTo(logisticsMapInstance);
+                }
             }
         });
 
@@ -3623,7 +3878,7 @@ function initLogisticsMap() {
                 <div style="padding: 4px; font-family: inherit;">
                     <div style="font-weight: 800; font-size: 14px; color: #1e3a8a;">Nodo ${node.id}: ${node.name}</div>
                     <div style="font-size: 12px; color: #475569; margin-top: 4px;">📍 ${node.address}</div>
-                    <div style="font-size: 11px; font-weight: 700; color: #15803d; margin-top: 6px;">● Centro Operativo Conectado</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #15803d; margin-top: 6px;">● Centro Operativo Conectado por Red Vial</div>
                 </div>
             `);
         });
@@ -3646,7 +3901,7 @@ function recenterLogisticsMap() {
     logisticsMapInstance.invalidateSize();
 }
 
-function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
+async function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
     const mapContainer = document.getElementById('mapaRutaOptimizada');
     if (!mapContainer || typeof L === 'undefined') return;
 
@@ -3659,50 +3914,105 @@ function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
         optimizeMapInstance = L.map('mapaRutaOptimizada').setView([-12.5, -76.8], 8);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap | Aceros Arequipa Solver OR-Tools',
+            attribution: '&copy; OpenStreetMap | Trazado Carretera Real OSRM',
             maxZoom: 18
         }).addTo(optimizeMapInstance);
 
         const nodesInRoute = (trayectoStr.match(/[A-F]/g) || ['A', 'C', 'E', 'F']);
-        const latLngs = [];
+        const waypoints = [];
 
         nodesInRoute.forEach((key, idx) => {
             const node = LOGISTICS_NODES[key];
             if (node) {
-                latLngs.push([node.lat, node.lng]);
+                waypoints.push(node);
 
                 const isStart = idx === 0;
                 const isEnd = idx === nodesInRoute.length - 1;
                 const badgeColor = isStart ? '#2563eb' : (isEnd ? '#16a34a' : '#d97706');
 
-                const iconHtml = `<div style="background:${badgeColor}; color:#fff; border:2px solid #fff; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; box-shadow:0 3px 8px rgba(0,0,0,0.3);">${key}</div>`;
+                const iconHtml = `<div style="background:${badgeColor}; color:#fff; border:2.5px solid #fff; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13.5px; box-shadow:0 3px 8px rgba(0,0,0,0.35);">${key}</div>`;
                 const customIcon = L.divIcon({
                     html: iconHtml,
                     className: '',
-                    iconSize: [34, 34],
-                    iconAnchor: [17, 17]
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
                 });
 
                 const m = L.marker([node.lat, node.lng], { icon: customIcon }).addTo(optimizeMapInstance);
                 m.bindPopup(`
-                    <div style="padding: 4px;">
+                    <div style="padding: 4px; font-family: inherit;">
                         <strong style="color: ${badgeColor}; font-size: 13.5px;">Parada ${idx + 1}: Nodo ${key}</strong>
-                        <div style="font-weight: 700; color: #0f172a; margin-top: 2px;">${node.name}</div>
-                        <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">${node.address}</div>
+                        <div style="font-weight: 700; color: #0f172a; margin-top: 3px;">${node.name}</div>
+                        <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">📍 ${node.address}</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #16a34a; margin-top: 6px;">● Parada Oficial Aceros Arequipa</div>
                     </div>
                 `);
             }
         });
 
-        if (latLngs.length > 1) {
-            L.polyline(latLngs, {
-                color: '#15803d',
-                weight: 5,
-                opacity: 0.9
-            }).addTo(optimizeMapInstance);
+        if (waypoints.length > 1) {
+            const badgeEl = document.getElementById('mapRouteBadge');
+            if (badgeEl) {
+                badgeEl.innerHTML = '● Trazando carretera real...';
+                badgeEl.className = 'server-status-pill';
+                badgeEl.style.background = '#fef3c7';
+                badgeEl.style.color = '#b45309';
+            }
 
-            const bounds = L.latLngBounds(latLngs);
-            optimizeMapInstance.fitBounds(bounds, { padding: [40, 40] });
+            // Consultar la red vial de carreteras reales
+            const roadResult = await fetchRoadRoute(waypoints);
+
+            if (roadResult && roadResult.latLngs && roadResult.latLngs.length > 0) {
+                // 1. Trazado de borde / sombra de autopista
+                L.polyline(roadResult.latLngs, {
+                    color: '#064e3b',
+                    weight: 8,
+                    opacity: 0.55,
+                    lineJoin: 'round'
+                }).addTo(optimizeMapInstance);
+
+                // 2. Trazado de carretera real principal (Verde Aceros Arequipa)
+                const routePoly = L.polyline(roadResult.latLngs, {
+                    color: '#10b981',
+                    weight: 5,
+                    opacity: 0.95,
+                    lineJoin: 'round'
+                }).addTo(optimizeMapInstance);
+
+                routePoly.bindPopup(`
+                    <div style="padding: 4px; font-family: inherit;">
+                        <strong style="color: #065f46; font-size: 13.5px;">🛣️ Recorrido Vial por Carretera Real</strong>
+                        <div style="font-size: 12px; color: #1e293b; margin-top: 4px;">Distancia carretera: <strong>${roadResult.distanceKm || '---'} km</strong></div>
+                        <div style="font-size: 12px; color: #1e293b;">Tiempo real de viaje: <strong>${roadResult.durationText || '---'}</strong></div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Red Vial Nacional · Autopista Panamericana / Evitamiento</div>
+                    </div>
+                `);
+
+                const bounds = L.latLngBounds(roadResult.latLngs);
+                optimizeMapInstance.fitBounds(bounds, { padding: [40, 40] });
+
+                // 3. Sincronizar métricas reales de carretera en la interfaz
+                if (roadResult.success && roadResult.distanceKm) {
+                    const tiempoEl = document.getElementById('optResultTiempo');
+                    if (tiempoEl) tiempoEl.textContent = roadResult.durationText;
+
+                    const distEl = document.getElementById('optResultDistancia');
+                    if (distEl) distEl.textContent = roadResult.distanceKm + ' km';
+
+                    const costoEl = document.getElementById('optResultCosto');
+                    if (costoEl) {
+                        const costoReal = (roadResult.distanceKm * 3.25) + 30.0;
+                        costoEl.textContent = 'S/ ' + costoReal.toFixed(2);
+                    }
+
+                    if (badgeEl) {
+                        badgeEl.innerHTML = `🛣️ Carretera Real (${roadResult.distanceKm} km · ${roadResult.durationText})`;
+                        badgeEl.className = 'server-status-pill online';
+                        badgeEl.style.background = '#dcfce7';
+                        badgeEl.style.color = '#15803d';
+                    }
+                }
+            }
         }
 
         setTimeout(() => {
@@ -3710,7 +4020,7 @@ function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
         }, 200);
 
     } catch (e) {
-        console.warn('Error al renderizar mapa de optimización:', e);
+        console.warn('Error al renderizar mapa de optimización por carretera:', e);
     }
 }
 
@@ -4104,7 +4414,11 @@ async function cargarListaPedidosParaOptimizar() {
     const clienteMap = {};
     (memoryClientes || []).forEach(c => { clienteMap[c.idCliente] = c.nombre; });
 
-    const pedidosPendientes = (memoryPedidos || []).filter(p => p.estadoPedido !== 'ENTREGADO');
+    // Excluir pedidos que ya han sido OPTIMIZADOS, DESPACHADOS, ENTREGADOS o CANCELADOS
+    const pedidosPendientes = (memoryPedidos || []).filter(p => {
+        const est = (p.estadoPedido || '').toUpperCase();
+        return est !== 'OPTIMIZADO' && est !== 'DESPACHADO' && est !== 'ENTREGADO' && est !== 'CANCELADO';
+    });
 
     if (badge) {
         const countReg = pedidosPendientes.filter(p => p.estadoPedido === 'REGISTRADO' || p.estadoPedido === 'EN_PROCESO').length;
@@ -4262,6 +4576,11 @@ function limpiarPedidoSeleccionado() {
 
 async function syncPedidoOptimizado(idPedido) {
     try {
+        const pMem = (memoryPedidos || []).find(x => Number(x.idPedido) === Number(idPedido));
+        if (pMem) {
+            pMem.estadoPedido = 'OPTIMIZADO';
+        }
+
         if (window.location.protocol !== 'file:') {
             await apiFetch(`${API_HOST}/api/pedidos/${idPedido}/estado`, {
                 method: 'PATCH',
@@ -4270,6 +4589,9 @@ async function syncPedidoOptimizado(idPedido) {
             });
             showToastNotification('Pedido Optimizado', `El pedido #PED-${idPedido} fue marcado como OPTIMIZADO en PostgreSQL.`, 'success');
         }
+
+        // Recargar de inmediato la lista de pendientes para remover el pedido optimizado de la tabla y selector
+        await cargarListaPedidosParaOptimizar();
 
         const banner = document.getElementById('resultPedidoLinkedBanner');
         const title = document.getElementById('resultPedidoLinkedTitle');
