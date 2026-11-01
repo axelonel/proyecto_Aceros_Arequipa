@@ -5,6 +5,9 @@ import com.example.demo.dto.OptimizacionResponseDto;
 import com.example.demo.model.*;
 import com.example.demo.repository.*;
 import com.example.demo.service.RutaOptimizationService;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalTime;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -302,6 +305,7 @@ public class LogisticaController {
         for (Pedido p : pedidos) {
             Map<String, Object> map = new HashMap<>();
             map.put("idPedido", p.getIdPedido());
+            map.put("idCliente", p.getIdCliente());
             map.put("tipoMaterial", p.getTipoMaterial());
             map.put("pesoT", p.getPesoT());
             map.put("volumenM3", p.getVolumenM3());
@@ -442,6 +446,24 @@ public class LogisticaController {
                 idPedido = Long.valueOf(body.get("idPedido").toString());
             }
 
+            // RESTRICCIÓN: Un vehículo que ya se encuentra haciendo una ruta o en ruta no puede comenzar una nueva ruta
+            Optional<Vehiculo> vOpt = vehiculoRepository.findById(idVehiculo);
+            if (vOpt.isPresent()) {
+                Vehiculo v = vOpt.get();
+                Optional<AsignacionConduccion> asignacionActiva = asignacionRepository.findAll().stream()
+                    .filter(a -> Objects.equals(a.getIdVehiculo(), idVehiculo) && 
+                        ("EN_TRANSITO".equalsIgnoreCase(a.getEstado()) || "ACTIVA".equalsIgnoreCase(a.getEstado())))
+                    .findFirst();
+
+                if (asignacionActiva.isPresent() || "EN_RUTA".equalsIgnoreCase(v.getEstadoOperativo())) {
+                    String detalle = asignacionActiva.map(a -> " (Despacho #" + a.getIdAsignacion() + " [" + a.getEstado() + "])").orElse("");
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                        "error", "El vehículo con placa " + v.getPlaca() + " ya se encuentra realizando una ruta o asignado en curso" 
+                                + detalle + ". No se puede comenzar ni programar una nueva ruta con este vehículo hasta concluir su entrega actual."
+                    ));
+                }
+            }
+
             AsignacionConduccion asignacion = new AsignacionConduccion(
                 null, idVehiculo, idTransportista, idPedido, LocalDateTime.now(), null, "ACTIVA"
             );
@@ -449,7 +471,7 @@ public class LogisticaController {
             AsignacionConduccion guardada = asignacionRepository.save(asignacion);
 
             // Actualizar estado del vehículo a EN_RUTA
-            vehiculoRepository.findById(idVehiculo).ifPresent(v -> {
+            vOpt.ifPresent(v -> {
                 v.setEstadoOperativo("EN_RUTA");
                 vehiculoRepository.save(v);
             });
@@ -474,6 +496,31 @@ public class LogisticaController {
     @PutMapping("/asignaciones/{id}/iniciar")
     public ResponseEntity<?> iniciarAsignacion(@PathVariable Long id) {
         return asignacionRepository.findById(id).map(a -> {
+            Long idVehiculo = a.getIdVehiculo();
+            if (idVehiculo != null) {
+                // RESTRICCIÓN: Verificar si el vehículo ya se encuentra haciendo una ruta en tránsito
+                Optional<AsignacionConduccion> enTransito = asignacionRepository.findAll().stream()
+                    .filter(otra -> !Objects.equals(otra.getIdAsignacion(), id) 
+                                 && Objects.equals(otra.getIdVehiculo(), idVehiculo) 
+                                 && "EN_TRANSITO".equalsIgnoreCase(otra.getEstado()))
+                    .findFirst();
+
+                if (enTransito.isPresent()) {
+                    String placaVeh = vehiculoRepository.findById(idVehiculo).map(Vehiculo::getPlaca).orElse("ID #" + idVehiculo);
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                        "error", "Restricción de Flota: El vehículo (" + placaVeh 
+                                + ") ya se encuentra actualmente haciendo una ruta (Despacho #" + enTransito.get().getIdAsignacion() 
+                                + " en tránsito). No se puede comenzar una nueva ruta con el mismo vehículo hasta que concluya y entregue su viaje actual."
+                    ));
+                }
+
+                // Actualizar estado del vehículo a EN_RUTA
+                vehiculoRepository.findById(idVehiculo).ifPresent(v -> {
+                    v.setEstadoOperativo("EN_RUTA");
+                    vehiculoRepository.save(v);
+                });
+            }
+
             a.setEstado("EN_TRANSITO");
             asignacionRepository.save(a);
 
@@ -496,11 +543,18 @@ public class LogisticaController {
             a.setFechaFin(LocalDateTime.now());
             asignacionRepository.save(a);
 
-            // Liberar el vehículo
-            vehiculoRepository.findById(a.getIdVehiculo()).ifPresent(v -> {
-                v.setEstadoOperativo("DISPONIBLE");
-                vehiculoRepository.save(v);
-            });
+            // Liberar el vehículo si no tiene otras rutas en tránsito o activas
+            if (a.getIdVehiculo() != null) {
+                boolean tieneOtrasRutas = asignacionRepository.findAll().stream()
+                    .anyMatch(otra -> !Objects.equals(otra.getIdAsignacion(), id) 
+                                   && Objects.equals(otra.getIdVehiculo(), a.getIdVehiculo()) 
+                                   && ("EN_TRANSITO".equalsIgnoreCase(otra.getEstado()) || "ACTIVA".equalsIgnoreCase(otra.getEstado())));
+                
+                vehiculoRepository.findById(a.getIdVehiculo()).ifPresent(v -> {
+                    v.setEstadoOperativo(tieneOtrasRutas ? "EN_RUTA" : "DISPONIBLE");
+                    vehiculoRepository.save(v);
+                });
+            }
 
             // Completar pedido vinculado
             if (a.getIdPedido() != null) {
@@ -523,10 +577,18 @@ public class LogisticaController {
             a.setFechaFin(LocalDateTime.now());
             asignacionRepository.save(a);
 
-            vehiculoRepository.findById(a.getIdVehiculo()).ifPresent(v -> {
-                v.setEstadoOperativo("DISPONIBLE");
-                vehiculoRepository.save(v);
-            });
+            // Liberar el vehículo si no tiene otras rutas en tránsito o activas
+            if (a.getIdVehiculo() != null) {
+                boolean tieneOtrasRutas = asignacionRepository.findAll().stream()
+                    .anyMatch(otra -> !Objects.equals(otra.getIdAsignacion(), id) 
+                                   && Objects.equals(otra.getIdVehiculo(), a.getIdVehiculo()) 
+                                   && ("EN_TRANSITO".equalsIgnoreCase(otra.getEstado()) || "ACTIVA".equalsIgnoreCase(otra.getEstado())));
+                
+                vehiculoRepository.findById(a.getIdVehiculo()).ifPresent(v -> {
+                    v.setEstadoOperativo(tieneOtrasRutas ? "EN_RUTA" : "DISPONIBLE");
+                    vehiculoRepository.save(v);
+                });
+            }
 
             if (a.getIdPedido() != null) {
                 pedidoRepository.findById(a.getIdPedido()).ifPresent(p -> {
@@ -937,36 +999,65 @@ public class LogisticaController {
     }
 
     @GetMapping("/reportes/resumen")
-    public ResponseEntity<Map<String, Object>> obtenerResumenReportes() {
+    public ResponseEntity<Map<String, Object>> obtenerResumenReportes(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) String estado) {
         Map<String, Object> data = new HashMap<>();
+
+        LocalDateTime dtInicio = (fechaInicio != null) ? fechaInicio.atStartOfDay() : null;
+        LocalDateTime dtFin = (fechaFin != null) ? fechaFin.atTime(LocalTime.MAX) : null;
+        String estadoTrim = (estado != null && !estado.isBlank() && !"TODOS".equalsIgnoreCase(estado)) ? estado.trim() : null;
+
+        List<RutaOptimizada> todasOptimizadas = rutaOptimizadaRepository.findAll();
+        boolean conFiltro = (dtInicio != null || dtFin != null || estadoTrim != null);
+
+        if (conFiltro) {
+            todasOptimizadas = todasOptimizadas.stream()
+                .filter(r -> dtInicio == null || (r.getFechaCalculo() != null && !r.getFechaCalculo().isBefore(dtInicio)))
+                .filter(r -> dtFin == null || (r.getFechaCalculo() != null && !r.getFechaCalculo().isAfter(dtFin)))
+                .filter(r -> estadoTrim == null || (r.getEstadoRuta() != null && r.getEstadoRuta().equalsIgnoreCase(estadoTrim)))
+                .toList();
+        }
 
         long totalVehiculos = vehiculoRepository.count();
         long vehiculosDisponibles = vehiculoRepository.findAll().stream()
             .filter(v -> "DISPONIBLE".equalsIgnoreCase(v.getEstadoOperativo())).count();
 
-        long totalPedidos = pedidoRepository.count();
+        long totalPedidos = conFiltro
+            ? todasOptimizadas.stream().map(RutaOptimizada::getIdPedido).filter(Objects::nonNull).distinct().count()
+            : pedidoRepository.count();
+
+        Set<Long> pedidosIdsFiltro = conFiltro
+            ? todasOptimizadas.stream().map(RutaOptimizada::getIdPedido).filter(Objects::nonNull).collect(Collectors.toSet())
+            : null;
+
         double pesoTotalToneladas = pedidoRepository.findAll().stream()
+            .filter(p -> !conFiltro || pedidosIdsFiltro.contains(p.getIdPedido()))
             .mapToDouble(p -> p.getPesoT() != null ? p.getPesoT().doubleValue() : 0.0)
             .sum();
 
-        long totalRutas = rutaRepository.count();
-        List<RutaOptimizada> todasOptimizadas = rutaOptimizadaRepository.findAll();
+        long totalRutas = conFiltro ? todasOptimizadas.size() : rutaRepository.count();
 
         List<RutaOptimizada> optimas = todasOptimizadas.stream()
             .filter(r -> "OPTIMA".equalsIgnoreCase(r.getEstadoRuta()))
             .toList();
 
-        double distanciaTotalKm = optimas.stream()
+        List<RutaOptimizada> baseCalculo = (estadoTrim != null && !"OPTIMA".equalsIgnoreCase(estadoTrim))
+            ? todasOptimizadas
+            : (optimas.isEmpty() ? todasOptimizadas : optimas);
+
+        double distanciaTotalKm = baseCalculo.stream()
             .mapToDouble(r -> r.getDistanciaKm() != null ? r.getDistanciaKm().doubleValue() : 0.0)
             .sum();
 
-        double costoTotalFletes = optimas.stream()
+        double costoTotalFletes = baseCalculo.stream()
             .mapToDouble(r -> r.getCostoOperativo() != null ? r.getCostoOperativo().doubleValue() : 0.0)
             .sum();
 
-        double tiempoPromedioMin = optimas.stream()
+        double tiempoPromedioMin = baseCalculo.stream()
             .mapToDouble(r -> r.getTiempoEstimadoMin() != null ? r.getTiempoEstimadoMin().doubleValue() : 32.0)
-            .average().orElse(32.0);
+            .average().orElse(0.0);
 
         Map<String, Object> metricasAhorro = calcularMetricasAhorro(todasOptimizadas);
         double ahorroEstimado = ((Number) metricasAhorro.get("ahorroEstimadoSoles")).doubleValue();
@@ -990,7 +1081,7 @@ public class LogisticaController {
                 .toList();
 
             if (ultimas.isEmpty()) {
-                ultimas = todasOptimizadas.subList(Math.max(0, todasOptimizadas.size() - 3), todasOptimizadas.size());
+                ultimas = todasOptimizadas.subList(Math.max(0, todasOptimizadas.size() - Math.min(todasOptimizadas.size(), 3)), todasOptimizadas.size());
             }
 
             int num = 1;
@@ -1013,7 +1104,10 @@ public class LogisticaController {
 
         // 4. Distribución por tipo de material
         Map<String, Double> distribucionMaterial = new HashMap<>();
-        for (Pedido p : pedidoRepository.findAll()) {
+        List<Pedido> pedidosParaMaterial = conFiltro && pedidosIdsFiltro != null
+            ? pedidoRepository.findAll().stream().filter(p -> pedidosIdsFiltro.contains(p.getIdPedido())).toList()
+            : pedidoRepository.findAll();
+        for (Pedido p : pedidosParaMaterial) {
             String mat = p.getTipoMaterial();
             if (mat != null) {
                 String key = mat.split("\\(")[0].trim();
@@ -1026,17 +1120,16 @@ public class LogisticaController {
         // 5. Conclusión dinámica generada
         if (!chartSeries.isEmpty()) {
             Map<String, Object> primera = chartSeries.get(0);
-            data.put("conclusion", "La Ruta 1 (" + primera.get("trayecto") + ") es la mejor opción porque ofrece el menor tiempo (" +
+            data.put("conclusion", "La Ruta " + primera.get("numero") + " (" + primera.get("trayecto") + ") es la mejor opción porque ofrece el menor tiempo (" +
                 primera.get("tiempo") + " min) y un costo optimizado (S/ " + primera.get("costo") + "), logrando la mayor eficiencia operativa según el cálculo de Google OR-Tools.");
         } else {
-            data.put("conclusion", "Las rutas optimizadas reducen en promedio un 24% los tiempos de traslado y minimizan el consumo de combustible.");
+            data.put("conclusion", "No se encontraron rutas registradas en el período seleccionado. Puedes ajustar el rango de fechas para visualizar otras optimizaciones.");
         }
 
         return ResponseEntity.ok(data);
     }
-
     @GetMapping("/reportes/metricas")
     public ResponseEntity<Map<String, Object>> obtenerMetricasReportes() {
-        return obtenerResumenReportes();
+        return obtenerResumenReportes(null, null, null);
     }
 }

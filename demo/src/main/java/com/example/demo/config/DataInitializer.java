@@ -3,6 +3,7 @@ package com.example.demo.config;
 import com.example.demo.model.*;
 import com.example.demo.repository.*;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
     private final RutaRepository rutaRepository;
     private final RutaOptimizadaRepository rutaOptimizadaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public DataInitializer(ClienteRepository clienteRepository,
                            FlotaRepository flotaRepository,
@@ -31,7 +33,8 @@ public class DataInitializer implements CommandLineRunner {
                            PedidoRepository pedidoRepository,
                            RutaRepository rutaRepository,
                            RutaOptimizadaRepository rutaOptimizadaRepository,
-                           UsuarioRepository usuarioRepository) {
+                           UsuarioRepository usuarioRepository,
+                           JdbcTemplate jdbcTemplate) {
         this.clienteRepository = clienteRepository;
         this.flotaRepository = flotaRepository;
         this.vehiculoRepository = vehiculoRepository;
@@ -41,6 +44,7 @@ public class DataInitializer implements CommandLineRunner {
         this.rutaRepository = rutaRepository;
         this.rutaOptimizadaRepository = rutaOptimizadaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -51,6 +55,7 @@ public class DataInitializer implements CommandLineRunner {
         inicializarClientes();
         inicializarPedidosYRutas();
         sincronizarCamposFaltantesUsuarios();
+        crearIndicesOptimizacion();
     }
 
     private void sincronizarCamposFaltantesUsuarios() {
@@ -103,6 +108,20 @@ public class DataInitializer implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("⚠️ [DataInitializer] No se pudo sincronizar campos faltantes: " + e.getMessage());
+        }
+    }
+
+    
+    private void crearIndicesOptimizacion() {
+        try {
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_fecha ON rutas_optimizadas(fecha_calculo)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_pedido ON rutas_optimizadas(id_pedido)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_estado ON rutas_optimizadas(estado_ruta)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asignaciones_vehiculo_estado ON asignaciones_conduccion(id_vehiculo, estado)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_pedidos_estado ON pedidos(estado_pedido)");
+            System.out.println("⚡ [DataInitializer] Índices de alto rendimiento verificados y aplicados en PostgreSQL.");
+        } catch (Exception e) {
+            System.err.println("⚠️ [DataInitializer] Advertencia al verificar índices en base de datos: " + e.getMessage());
         }
     }
 

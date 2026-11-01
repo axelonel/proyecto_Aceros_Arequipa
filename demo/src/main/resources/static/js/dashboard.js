@@ -359,10 +359,31 @@ const FALLBACK_VIEWS = {
                 </div>
                 <div class="card-container">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span class="node-circle-badge" style="background:#d97706;">B</span>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Centro Distribución Ate</h4><span style="font-size: 12px; color:#64748b;">Carretera Central Km 5.5, Ate</span></div>
+                    </div>
+                    <p style="font-size: 13px; color:#475569;">Plataforma de enlace y distribución para Lima Este y la Carretera Central.</p>
+                </div>
+                <div class="card-container">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                         <span class="node-circle-badge" style="background:#16a34a;">C</span>
                         <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Zona de Carga y Acopio Lurín</h4><span style="font-size: 12px; color:#64748b;">Antigua Panamericana Sur Km 38</span></div>
                     </div>
                     <p style="font-size: 13px; color:#475569;">Consolidación de carga pesada y distribución sur.</p>
+                </div>
+                <div class="card-container">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span class="node-circle-badge" style="background:#0284c7;">D</span>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Distribuidora Norte Puente Piedra</h4><span style="font-size: 12px; color:#64748b;">Panamericana Norte Km 30, Puente Piedra</span></div>
+                    </div>
+                    <p style="font-size: 13px; color:#475569;">Centro de transferencia para despachos a Lima Norte y provincias del norte.</p>
+                </div>
+                <div class="card-container">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span class="node-circle-badge" style="background:#7c3aed;">E</span>
+                        <div><h4 style="font-size: 15px; font-weight: 700; color:#1e293b;">Centro Distribución Sur Chorrillos</h4><span style="font-size: 12px; color:#64748b;">Av. Defensores del Morro 1250, Chorrillos</span></div>
+                    </div>
+                    <p style="font-size: 13px; color:#475569;">Centro de distribución y atención para Lima Sur y balnearios.</p>
                 </div>
                 <div class="card-container">
                     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
@@ -1129,7 +1150,14 @@ async function updateDispatchStatus(dispatchId, newStatus) {
     if (window.location.protocol !== 'file:') {
         if (newStatus === 'EN_TRANSITO') {
             try {
-                await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/iniciar`, { method: 'PUT' });
+                const resp = await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/iniciar`, { method: 'PUT' });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => null);
+                    const msg = (errData && errData.error) ? errData.error : 'No se pudo iniciar el recorrido.';
+                    showToastNotification('Restricción de Flota', msg, 'danger');
+                    alert(msg);
+                    return;
+                }
             } catch (e) {
                 console.warn('Error iniciando asignacion en servidor:', e);
             }
@@ -1234,14 +1262,36 @@ async function openAssignRouteModal() {
 
             if (resVeh.ok) {
                 const vehs = await resVeh.json();
+                let vehiculosOcupados = new Set();
+                try {
+                    const resAsig = await apiFetch(API_HOST + '/api/asignaciones');
+                    if (resAsig.ok) {
+                        const asigs = await resAsig.json();
+                        asigs.filter(a => a.estado === 'EN_TRANSITO' || a.estado === 'ACTIVA').forEach(a => {
+                            if (a.idVehiculo) vehiculosOcupados.add(Number(a.idVehiculo));
+                        });
+                    }
+                } catch (e) {}
+
                 if (selectVehiculo && vehs.length > 0) {
-                    selectVehiculo.innerHTML = vehs.map(v => `
-                        <option value="${v.idVehiculo}" data-placa="${v.placa}" data-tipo="${v.tipoCamion}">
-                            ${v.tipoCamion} (${v.placa}) · ${v.modelo} [Max: ${v.capacidadMaxTon} Tn]
+                    selectVehiculo.innerHTML = vehs.map(v => {
+                        const estaEnRuta = (v.estadoOperativo || '').toUpperCase() === 'EN_RUTA' || vehiculosOcupados.has(Number(v.idVehiculo));
+                        const labelSuffix = estaEnRuta ? ' [⚠️ En Ruta - No disponible]' : ' [✅ Disponible]';
+                        const disabledAttr = estaEnRuta ? 'disabled style="color:#94a3b8; background:#f8fafc;"' : '';
+                        return `
+                        <option value="${v.idVehiculo}" data-placa="${v.placa}" data-tipo="${v.tipoCamion}" data-en-ruta="${estaEnRuta}" ${disabledAttr}>
+                            ${v.tipoCamion} (${v.placa}) · ${v.modelo} [Max: ${v.capacidadMaxTon} Tn]${labelSuffix}
                         </option>
-                    `).join('');
-                    if (placaInput && vehs[0]) {
-                        placaInput.value = vehs[0].placa;
+                        `;
+                    }).join('');
+
+                    const primerDisponible = vehs.find(v => (v.estadoOperativo || '').toUpperCase() !== 'EN_RUTA' && !vehiculosOcupados.has(Number(v.idVehiculo)));
+                    if (primerDisponible) {
+                        selectVehiculo.value = primerDisponible.idVehiculo;
+                        if (placaInput) placaInput.value = primerDisponible.placa;
+                    } else if (vehs[0]) {
+                        selectVehiculo.value = vehs[0].idVehiculo;
+                        if (placaInput) placaInput.value = vehs[0].placa;
                     }
                 }
             }
@@ -1522,14 +1572,155 @@ function renderOrToolsResults(data) {
     }
 }
 
+
+/**
+ * ==========================================================================
+ * FILTROS POR RANGO TEMPORAL (DÍAS, MESES O AÑOS) - REPORTES
+ * ==========================================================================
+ */
+function onReportePresetChange(preset) {
+    const inicioEl = document.getElementById('reporteFechaInicio');
+    const finEl = document.getElementById('reporteFechaFin');
+    const indicador = document.getElementById('reporteFiltroIndicador');
+    if (!inicioEl || !finEl) return;
+
+    const hoy = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const toIsoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === 'TODOS') {
+        inicioEl.value = '';
+        finEl.value = '';
+        if (indicador) indicador.textContent = 'Período: Histórico Completo';
+    } else if (preset === 'HOY') {
+        const fechaStr = toIsoDate(hoy);
+        inicioEl.value = fechaStr;
+        finEl.value = fechaStr;
+        if (indicador) indicador.textContent = `Período: Hoy (${fechaStr})`;
+    } else if (preset === '7DIAS') {
+        const d7 = new Date(hoy);
+        d7.setDate(hoy.getDate() - 7);
+        inicioEl.value = toIsoDate(d7);
+        finEl.value = toIsoDate(hoy);
+        if (indicador) indicador.textContent = 'Período: Últimos 7 Días';
+    } else if (preset === '30DIAS') {
+        const d30 = new Date(hoy);
+        d30.setDate(hoy.getDate() - 30);
+        inicioEl.value = toIsoDate(d30);
+        finEl.value = toIsoDate(hoy);
+        if (indicador) indicador.textContent = 'Período: Últimos 30 Días';
+    } else if (preset === 'ESTE_MES') {
+        const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+        inicioEl.value = toIsoDate(inicioMes);
+        finEl.value = toIsoDate(finMes);
+        if (indicador) indicador.textContent = `Período: Mes Actual (${hoy.toLocaleString('es-ES', { month: 'long', year: 'numeric' })})`;
+    } else if (preset === 'MES_ANTERIOR') {
+        const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+        const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+        inicioEl.value = toIsoDate(inicioMesAnt);
+        finEl.value = toIsoDate(finMesAnt);
+        if (indicador) indicador.textContent = `Período: Mes Anterior (${inicioMesAnt.toLocaleString('es-ES', { month: 'long', year: 'numeric' })})`;
+    } else if (preset === 'ESTE_ANIO') {
+        inicioEl.value = `${hoy.getFullYear()}-01-01`;
+        finEl.value = `${hoy.getFullYear()}-12-31`;
+        if (indicador) indicador.textContent = `Período: Año ${hoy.getFullYear()}`;
+    } else if (preset === 'ANIO_ANTERIOR') {
+        const anioAnt = hoy.getFullYear() - 1;
+        inicioEl.value = `${anioAnt}-01-01`;
+        finEl.value = `${anioAnt}-12-31`;
+        if (indicador) indicador.textContent = `Período: Año Anterior (${anioAnt})`;
+    } else if (preset === 'CUSTOM') {
+        if (indicador) indicador.textContent = 'Período: Personalizado';
+    }
+}
+
+function onCustomDateInput() {
+    const presetEl = document.getElementById('reporteFiltroPreset');
+    const indicador = document.getElementById('reporteFiltroIndicador');
+    const inicioEl = document.getElementById('reporteFechaInicio');
+    const finEl = document.getElementById('reporteFechaFin');
+    if (presetEl) presetEl.value = 'CUSTOM';
+    if (indicador && inicioEl && finEl) {
+        if (inicioEl.value || finEl.value) {
+            indicador.textContent = `Rango: ${inicioEl.value || 'Inicio'} al ${finEl.value || 'Hoy'}`;
+        } else {
+            indicador.textContent = 'Período: Histórico Completo';
+        }
+    }
+}
+
+function getReporteFilterParams() {
+    const inicioEl = document.getElementById('reporteFechaInicio');
+    const finEl = document.getElementById('reporteFechaFin');
+    const estadoEl = document.getElementById('reporteFiltroEstado');
+
+    const params = new URLSearchParams();
+    if (inicioEl && inicioEl.value) {
+        params.append('fechaInicio', inicioEl.value);
+    }
+    if (finEl && finEl.value) {
+        params.append('fechaFin', finEl.value);
+    }
+    if (estadoEl && estadoEl.value && estadoEl.value !== 'TODOS') {
+        params.append('estado', estadoEl.value);
+    }
+    return params.toString() ? ('?' + params.toString()) : '';
+}
+
+function getReporteFilterDescription() {
+    const inicioEl = document.getElementById('reporteFechaInicio');
+    const finEl = document.getElementById('reporteFechaFin');
+    const estadoEl = document.getElementById('reporteFiltroEstado');
+    const presetEl = document.getElementById('reporteFiltroPreset');
+
+    let desc = 'Período: Histórico Completo';
+    if (inicioEl && finEl && (inicioEl.value || finEl.value)) {
+        desc = `Rango: ${inicioEl.value || 'Inicio'} al ${finEl.value || 'Hoy'}`;
+    } else if (presetEl && presetEl.options[presetEl.selectedIndex]) {
+        desc = `Período: ${presetEl.options[presetEl.selectedIndex].text}`;
+    }
+    if (estadoEl && estadoEl.value && estadoEl.value !== 'TODOS') {
+        desc += ` | Estado: ${estadoEl.value}`;
+    }
+    return desc;
+}
+
+async function aplicarFiltroReportes() {
+    const query = getReporteFilterParams();
+    showToastNotification('Filtro Aplicado', 'Consultando métricas para el período seleccionado...', 'info');
+    await loadReportesData(query);
+    const pdfFiltro = document.getElementById('pdfFiltroPeriodo');
+    if (pdfFiltro) pdfFiltro.textContent = getReporteFilterDescription();
+}
+
+async function limpiarFiltrosReportes() {
+    const presetEl = document.getElementById('reporteFiltroPreset');
+    const inicioEl = document.getElementById('reporteFechaInicio');
+    const finEl = document.getElementById('reporteFechaFin');
+    const estadoEl = document.getElementById('reporteFiltroEstado');
+    const indicador = document.getElementById('reporteFiltroIndicador');
+
+    if (presetEl) presetEl.value = 'TODOS';
+    if (inicioEl) inicioEl.value = '';
+    if (finEl) finEl.value = '';
+    if (estadoEl) estadoEl.value = 'TODOS';
+    if (indicador) indicador.textContent = 'Período: Histórico Completo';
+
+    showToastNotification('Filtros Restablecidos', 'Cargando datos del histórico completo...', 'info');
+    await loadReportesData('');
+    const pdfFiltro = document.getElementById('pdfFiltroPeriodo');
+    if (pdfFiltro) pdfFiltro.textContent = 'Período: Histórico Completo';
+}
+
 /**
  * Carga métricas, tabla y gráfico comparativo en la vista de Reportes desde PostgreSQL
  */
-async function loadReportesData() {
+async function loadReportesData(queryParams = '') {
     const tbody = document.getElementById('reportesTableBody');
 
-    // 1. Si tenemos alternativas recién calculadas con OR-Tools en la sesión
-    if (window.lastOrToolsResult && window.lastOrToolsResult.rutasAlternativas && window.lastOrToolsResult.rutasAlternativas.length > 0) {
+    // 1. Si no hay queryParams y tenemos alternativas recién calculadas con OR-Tools en la sesión
+    if (!queryParams && window.lastOrToolsResult && window.lastOrToolsResult.rutasAlternativas && window.lastOrToolsResult.rutasAlternativas.length > 0) {
         renderReportesTable(window.lastOrToolsResult.rutasAlternativas);
         drawReportBarChart(window.lastOrToolsResult.rutasAlternativas);
     }
@@ -1537,7 +1728,7 @@ async function loadReportesData() {
     // 2. Consultar resumen consolidado desde PostgreSQL
     if (window.location.protocol !== 'file:') {
         try {
-            const resp = await apiFetch(API_HOST + '/api/reportes/resumen');
+            const resp = await apiFetch(API_HOST + '/api/reportes/resumen' + queryParams);
             if (resp.ok) {
                 const data = await resp.json();
 
@@ -1568,10 +1759,15 @@ async function loadReportesData() {
                     concEl.textContent = data.conclusion;
                 }
 
-                // Si no había alternativas en memoria local, renderizar las de PostgreSQL
-                if (!window.lastOrToolsResult && data.comparativaAlternativas && data.comparativaAlternativas.length > 0) {
+                // Renderizar tabla y gráfico con los datos de PostgreSQL
+                if (data.comparativaAlternativas && data.comparativaAlternativas.length > 0) {
                     renderReportesTable(data.comparativaAlternativas);
                     drawReportBarChart(data.comparativaAlternativas);
+                } else {
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 24px; font-weight: 500;">No se encontraron rutas optimizadas en el período seleccionado.</td></tr>';
+                    }
+                    drawReportBarChart([]);
                 }
             }
         } catch (err) {
@@ -1579,7 +1775,6 @@ async function loadReportesData() {
         }
     }
 }
-
 function renderReportesTable(alternativas) {
     const tbody = document.getElementById('reportesTableBody');
     if (!tbody || !alternativas) return;
@@ -1601,7 +1796,7 @@ function renderReportesTable(alternativas) {
                 <td style="font-weight: 600;">${trayecto}</td>
                 <td>${tiempo}</td>
                 <td>${Number(dist).toFixed(1)}</td>
-                <td>${Number(costo).toFixed(2)}</td>
+                <td>S/ ${Number(costo).toFixed(2)}</td>
                 <td style="font-weight: 700;">${puntaje}</td>
                 <td><span class="${badge}">${rec}</span></td>
             </tr>
@@ -3634,12 +3829,24 @@ async function loadAsignacionesData() {
 
             let estadoBadge = '';
             let actionBtns = '';
-
+/*rutas botones iniciar entrega */
             if (estado === 'ACTIVA') {
                 estadoBadge = `<span style="background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bfdbfe;">● Por Iniciar</span>`;
                 const cancelBtnHtml = isTransportistaAsig ? '' : `<button class="btn-sm" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca; padding:4px 8px; border-radius:4px; cursor:pointer;" onclick="cancelarAsignacion(${id})" title="Cancelar Asignación">✕</button>`;
+                
+                // RESTRICCIÓN: Verificar si el vehículo ya está EN_TRANSITO en otra ruta
+                const vehiculoEnRutaActiva = data.find(x => 
+                    x.idAsignacion !== id && 
+                    x.idVehiculo === asig.idVehiculo && 
+                    x.estado === 'EN_TRANSITO'
+                );
+
+                const btnIniciar = vehiculoEnRutaActiva
+                    ? `<button class="btn-sm" style="background:#94a3b8; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:not-allowed; opacity:0.85;" onclick="alert('Restricción de Flota: El vehículo (${asig.vehiculoPlaca || 'asignado'}) ya se encuentra en ruta realizando el despacho #ASG-${vehiculoEnRutaActiva.idAsignacion}. Debe concluir esa entrega antes de comenzar esta ruta.');" title="Vehículo actualmente en ruta en #ASG-${vehiculoEnRutaActiva.idAsignacion}">⛔ En Ruta</button>`
+                    : `<button class="btn-sm" style="background:#d97706; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="iniciarAsignacion(${id})" title="Iniciar Ruta">▶ Iniciar</button>`;
+
                 actionBtns = `
-                    <button class="btn-sm" style="background:#d97706; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="iniciarAsignacion(${id})" title="Iniciar Ruta">▶ Iniciar</button>
+                    ${btnIniciar}
                     <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Marcar Entregado">✓ Entregar</button>
                     ${cancelBtnHtml}
                 `;
@@ -3696,7 +3903,10 @@ async function iniciarAsignacion(id) {
             loadAsignacionesData();
             loadAsignacionesFromDatabase();
         } else {
-            alert('No se pudo iniciar la asignación.');
+            const errData = await resp.json().catch(() => null);
+            const msg = (errData && errData.error) ? errData.error : 'No se pudo iniciar la asignación.';
+            showToastNotification('Restricción de Flota', msg, 'danger');
+            alert(msg);
         }
     } catch (e) {
         console.error(e);
@@ -4028,7 +4238,51 @@ async function renderOptimizedRouteMap(trayectoStr = "A → C → E → F") {
    PUNTO 9: EXPORTAR REPORTES A PDF / EXCEL
    ========================================================================== */
 
-function exportarReportePDF() {
+async function exportarReportePDF() {
+    const btn = document.querySelector('button[onclick="exportarReportePDF()"]');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Generando PDF...';
+        btn.style.opacity = '0.75';
+    }
+    const restoreBtn = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            btn.style.opacity = '1';
+        }
+    };
+    // Intentar descarga nativa en streaming desde el Backend Spring Boot
+    if (window.location.protocol !== 'file:') {
+        try {
+            showToastNotification('Generando PDF', 'Procesando descarga en streaming desde PostgreSQL...', 'info');
+            const query = getReporteFilterParams();
+            const resp = await apiFetch(API_HOST + '/api/reportes/pdf' + query);
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const disposition = resp.headers.get('Content-Disposition') || '';
+                let filename = 'Reporte_Rutas_AcerosArequipa.pdf';
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match && match[1]) filename = match[1];
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToastNotification('PDF Descargado', 'Reporte PDF formal descargado exitosamente.', 'success');
+                restoreBtn();
+                return;
+            }
+        } catch (e) {
+            console.warn('Backend streaming PDF no disponible, usando fallback cliente:', e);
+        }
+    }
+
     const printArea = document.getElementById('reportePrintArea');
     if (!printArea) {
         alert('No se encontró el contenedor de reportes.');
@@ -4040,6 +4294,10 @@ function exportarReportePDF() {
         return;
     }
 
+    const pdfDateEl = document.getElementById('pdfReportDate');
+    if (pdfDateEl) pdfDateEl.textContent = new Date().toLocaleString();
+    const pdfFiltroEl = document.getElementById('pdfFiltroPeriodo');
+    if (pdfFiltroEl) pdfFiltroEl.textContent = getReporteFilterDescription();
     const pdfHeader = printArea.querySelector('.pdf-export-header');
     if (pdfHeader) pdfHeader.style.display = 'block';
 
@@ -4057,14 +4315,60 @@ function exportarReportePDF() {
     html2pdf().set(opt).from(printArea).save().then(() => {
         if (pdfHeader) pdfHeader.style.display = 'none';
         showToastNotification('PDF Descargado', 'El reporte PDF se ha guardado correctamente.', 'success');
+        restoreBtn();
     }).catch(err => {
+        restoreBtn();
         if (pdfHeader) pdfHeader.style.display = 'none';
         console.error('Error al generar PDF:', err);
         alert('Ocurrió un error al generar el PDF: ' + err.message);
     });
 }
 
-function exportarReporteExcel() {
+async function exportarReporteExcel() {
+    const btn = document.querySelector('button[onclick="exportarReporteExcel()"]');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Generando Excel...';
+        btn.style.opacity = '0.75';
+    }
+    const restoreExcelBtn = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            btn.style.opacity = '1';
+        }
+    };
+    // Intentar descarga nativa en streaming SXSSF desde el Backend Spring Boot
+    if (window.location.protocol !== 'file:') {
+        try {
+            showToastNotification('Generando Excel', 'Procesando streaming XLSX de alto rendimiento...', 'info');
+            const query = getReporteFilterParams();
+            const resp = await apiFetch(API_HOST + '/api/reportes/excel' + query);
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const disposition = resp.headers.get('Content-Disposition') || '';
+                let filename = 'Reporte_Rutas_AcerosArequipa.xlsx';
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match && match[1]) filename = match[1];
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToastNotification('Excel Descargado', 'Libro Excel (.xlsx) generado y descargado exitosamente.', 'success');
+                restoreExcelBtn();
+                return;
+            }
+        } catch (e) {
+            console.warn('Backend streaming Excel no disponible, usando fallback cliente:', e);
+        }
+    }
+
     if (typeof XLSX === 'undefined') {
         alert('Librería XLSX no está disponible.');
         return;
@@ -4428,7 +4732,7 @@ async function cargarListaPedidosParaOptimizar() {
     if (select) {
         select.innerHTML = '<option value="">-- Seleccionar un Pedido Registrado --</option>' +
             pedidosPendientes.map(p => {
-                const cliente = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+                const cliente = p.clienteNombre || clienteMap[p.idCliente] || (p.idCliente ? ('Cliente #' + p.idCliente) : 'Cliente General');
                 return `<option value="${p.idPedido}">#PED-${p.idPedido} · ${cliente} - ${p.tipoMaterial} (${p.pesoT} Tn) [${p.estadoPedido}]</option>`;
             }).join('');
     }
@@ -4440,14 +4744,14 @@ async function cargarListaPedidosParaOptimizar() {
         }
 
         tbody.innerHTML = pedidosPendientes.map(p => {
-            const cliente = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+            const cliente = p.clienteNombre || clienteMap[p.idCliente] || (p.idCliente ? ('Cliente #' + p.idCliente) : 'Cliente General');
             const badgeClass = p.prioridad === 'ALTA' ? 'badge-no-optima' : (p.prioridad === 'MEDIA' ? 'badge-alternativa' : 'badge-optima');
             const estadoBadge = p.estadoPedido === 'OPTIMIZADO' 
                 ? '<span style="background:#f3e8ff; color:#6b21a8; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #e9d5ff;">● OPTIMIZADO</span>'
                 : (p.estadoPedido === 'EN_PROCESO'
                     ? '<span style="background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #fde68a;">● EN PROCESO</span>'
                     : '<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; border:1px solid #bae6fd;">● REGISTRADO</span>');
-
+/*optimizar ruta pedido*/
             return `
                 <tr>
                     <td style="font-weight:700; color:#1e293b;">#PED-${p.idPedido}</td>

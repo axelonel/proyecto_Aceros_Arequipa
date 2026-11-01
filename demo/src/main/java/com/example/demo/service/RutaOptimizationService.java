@@ -460,8 +460,16 @@ public class RutaOptimizationService {
             return vehiculoRepository.findById(idVehiculo)
                 .orElseGet(this::obtenerPrimerVehiculoDisponible);
         }
-        // Buscar un vehículo cuya capacidad soporte el peso
         List<Vehiculo> vehiculos = vehiculoRepository.findAll();
+        // 1. Priorizar vehículos DISPONIBLES (que no estén EN_RUTA) con capacidad suficiente
+        for (Vehiculo v : vehiculos) {
+            if ("DISPONIBLE".equalsIgnoreCase(v.getEstadoOperativo()) 
+                && v.getCapacidadMaxTon() != null 
+                && v.getCapacidadMaxTon().doubleValue() >= peso) {
+                return v;
+            }
+        }
+        // 2. Si ninguno disponible cumple, buscar cualquier vehículo con capacidad suficiente
         for (Vehiculo v : vehiculos) {
             if (v.getCapacidadMaxTon() != null && v.getCapacidadMaxTon().doubleValue() >= peso) {
                 return v;

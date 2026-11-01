@@ -51,8 +51,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         .orElse(false);
 
                 if (activo) {
-                    var authority = new SimpleGrantedAuthority("ROLE_" + rol);
-                    var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
+                    String rolNorm = (rol != null) ? rol.toUpperCase() : "CONDUCTOR";
+                    if ("ADMIN".equals(rolNorm)) rolNorm = "ADMINISTRADOR";
+                    List<SimpleGrantedAuthority> authorities = "ADMINISTRADOR".equals(rolNorm)
+                        ? List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"), new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        : List.of(new SimpleGrantedAuthority("ROLE_" + rolNorm));
+                    var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             }

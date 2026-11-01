@@ -3,6 +3,7 @@ package com.example.demo.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,12 +13,18 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // Clave secreta de al menos 256 bits (32 caracteres)
-    private static final String SECRET = "AcerosArequipa_SistemaRutas_2026_ClaveSecretaJWT!";
-    private static final long EXPIRATION_MS = 8 * 60 * 60 * 1000; // 8 horas
+    private final String secret;
+    private final long expirationMs;
+
+    public JwtUtil(
+            @Value("${jwt.secret:AcerosArequipa_SistemaRutas_2026_ClaveSecretaJWT!}") String secret,
+            @Value("${jwt.expiration-hours:8}") long expirationHours) {
+        this.secret = secret;
+        this.expirationMs = expirationHours * 60 * 60 * 1000;
+    }
 
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     /** Genera un token JWT con email, rol y nombre del usuario */
@@ -27,7 +34,7 @@ public class JwtUtil {
                 .claim("rol", rol)
                 .claim("nombre", nombre)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getKey())
                 .compact();
     }

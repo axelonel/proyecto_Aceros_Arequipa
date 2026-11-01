@@ -1,6 +1,6 @@
 <div id="viewReportes">
-    <!-- ENCABEZADO CON BOTONES DE EXPORTACIÓN (PUNTO 9) -->
-    <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
+    <!-- ENCABEZADO CON BOTONES DE EXPORTACIÓN -->
+    <div class="content-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
         <div>
             <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & REPORTES EJECUTIVOS</h1>
             <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y comparación de rutas calculadas con Google OR-Tools</p>
@@ -15,7 +15,71 @@
         </div>
     </div>
 
-    <!-- ÁREA DE IMPRESIÓN Y EXPORTACIÓN PDF FORMATEADA -->
+    <!-- PANEL DE FILTROS POR RANGO (DÍAS, MESES O AÑOS) -->
+    <div class="card" style="margin-bottom: 24px; padding: 18px 22px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">📅</span>
+                <span style="font-size: 14px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.3px;">Filtro de Rango Temporal para Reportes</span>
+            </div>
+            <span id="reporteFiltroIndicador" style="font-size: 12.5px; font-weight: 600; color: #0047ff; background: #eff6ff; padding: 4px 10px; border-radius: 20px; border: 1px solid #dbeafe;">
+                Período: Histórico Completo
+            </span>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
+            <!-- Selector Rápido de Período -->
+            <div style="flex: 1.2; min-width: 190px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 5px;">Rango / Período Rápido</label>
+                <select id="reporteFiltroPreset" class="form-control" style="width: 100%; height: 38px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 500; background-color: #fff;" onchange="onReportePresetChange(this.value)">
+                    <option value="TODOS" selected>Histórico Completo (Todos los años)</option>
+                    <option value="HOY">Hoy (Día actual)</option>
+                    <option value="7DIAS">Últimos 7 Días</option>
+                    <option value="30DIAS">Últimos 30 Días</option>
+                    <option value="ESTE_MES">Este Mes</option>
+                    <option value="MES_ANTERIOR">Mes Anterior</option>
+                    <option value="ESTE_ANIO">Este Año (2026)</option>
+                    <option value="ANIO_ANTERIOR">Año Anterior (2025)</option>
+                    <option value="CUSTOM">Personalizado (Elegir Fechas / Años)</option>
+                </select>
+            </div>
+
+            <!-- Fecha Inicio -->
+            <div style="flex: 1; min-width: 145px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 5px;">Desde (Fecha Inicio)</label>
+                <input type="date" id="reporteFechaInicio" class="form-control" style="width: 100%; height: 38px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" onchange="onCustomDateInput()">
+            </div>
+
+            <!-- Fecha Fin -->
+            <div style="flex: 1; min-width: 145px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 5px;">Hasta (Fecha Fin)</label>
+                <input type="date" id="reporteFechaFin" class="form-control" style="width: 100%; height: 38px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;" onchange="onCustomDateInput()">
+            </div>
+
+            <!-- Filtro Estado de Ruta -->
+            <div style="flex: 1; min-width: 145px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 5px;">Estado de Ruta</label>
+                <select id="reporteFiltroEstado" class="form-control" style="width: 100%; height: 38px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 500; background-color: #fff;">
+                    <option value="TODOS" selected>Todos los estados</option>
+                    <option value="OPTIMA">Óptima (OR-Tools)</option>
+                    <option value="ALTERNATIVA">Alternativa</option>
+                    <option value="NO RECOMENDADA">No recomendada</option>
+                </select>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-primary" style="background: #0047ff; height: 38px; padding: 0 16px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,71,255,0.2);" onclick="aplicarFiltroReportes()">
+                    <span>🔍</span> Aplicar Filtro
+                </button>
+                <button type="button" class="btn-secondary" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; height: 38px; padding: 0 14px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer;" onclick="limpiarFiltrosReportes()">
+                    <span>↺</span> Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÁREA DE IMPRESIÓN Y EXPORTACIÓN FORMATEADA -->
     <div id="reportePrintArea">
         <!-- Banner corporativo visible en exportación PDF -->
         <div class="pdf-export-header" style="display: none; background: #0f172a; color: #fff; padding: 18px 24px; border-radius: 8px; margin-bottom: 20px;">
@@ -26,7 +90,8 @@
                 </div>
                 <div style="text-align: right; font-size: 11.5px; color: #cbd5e1;">
                     <div>Fecha de Emisión: <strong id="pdfReportDate">--</strong></div>
-                    <div>Base de Datos: <strong>Supabase Cloud (PostgreSQL)</strong></div>
+                    <div>Base de Datos: <strong>PostgreSQL (Producción)</strong></div>
+                    <div id="pdfFiltroPeriodo" style="color: #38bdf8; font-weight: 600; margin-top: 2px;">Período: Histórico Completo</div>
                 </div>
             </div>
         </div>
@@ -36,25 +101,25 @@
             <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                 <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Toneladas Movilizadas</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
-                    <span id="kpiReporteToneladas" style="font-size: 24px; font-weight: 800; color: #0f172a;">96.0 Tn</span>
+                    <span id="kpiReporteToneladas" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- Tn</span>
                     <span style="font-size: 12px; color: #16a34a; font-weight: 600;">📦 Registrado</span>
                 </div>
-                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Volumen siderúrgico total</div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Volumen siderúrgico en el período</div>
             </div>
 
             <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                 <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Rutas Optimizadas</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
-                    <span id="kpiReporteRutas" style="font-size: 24px; font-weight: 800; color: #2563eb;">12</span>
-                    <span style="font-size: 12px; color: #2563eb; font-weight: 600;">🛣️ Google OR-Tools</span>
+                    <span id="kpiReporteRutas" style="font-size: 24px; font-weight: 800; color: #2563eb;">--</span>
+                    <span style="font-size: 12px; color: #2563eb; font-weight: 600;">🗺️ Google OR-Tools</span>
                 </div>
-                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Corredores activos calculados</div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Corredores activos en el período</div>
             </div>
 
             <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                 <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Tiempo Promedio</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
-                    <span id="kpiReporteTiempo" style="font-size: 24px; font-weight: 800; color: #0f172a;">32 min</span>
+                    <span id="kpiReporteTiempo" style="font-size: 24px; font-weight: 800; color: #0f172a;">-- min</span>
                     <span style="font-size: 12px; color: #16a34a; font-weight: 600;">⚡ -24% tiempo</span>
                 </div>
                 <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Por ciclo de entrega urbana</div>
@@ -63,7 +128,7 @@
             <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
                 <div style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Ahorro Logístico Est.</div>
                 <div style="display: flex; align-items: baseline; gap: 8px;">
-                    <span id="kpiReporteAhorro" style="font-size: 24px; font-weight: 800; color: #16a34a;">S/ 510.00</span>
+                    <span id="kpiReporteAhorro" style="font-size: 24px; font-weight: 800; color: #16a34a;">S/ --</span>
                     <span style="font-size: 12px; color: #16a34a; font-weight: 600;">💰 Fletes</span>
                 </div>
                 <div style="font-size: 11.5px; color: #94a3b8; margin-top: 4px;">Comparado con rutas no óptimas</div>
@@ -74,7 +139,7 @@
         <div style="background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
             <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <h3 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Comparación de Alternativas de Ruta</h3>
-                <span style="font-size: 12px; color: #64748b;">Datos sincronizados en tiempo real con Supabase PostgreSQL</span>
+                <span style="font-size: 12px; color: #64748b;">Datos sincronizados en tiempo real con PostgreSQL</span>
             </div>
             <div class="users-table-wrap">
                 <table class="report-table" style="margin-bottom: 0;">
@@ -91,31 +156,9 @@
                     </thead>
                     <tbody id="reportesTableBody">
                         <tr>
-                            <td style="font-weight: 700;">1</td>
-                            <td style="font-weight: 600;">A → C → E → F</td>
-                            <td>32</td>
-                            <td>18.5</td>
-                            <td>S/ 85.00</td>
-                            <td style="font-weight: 700;">96%</td>
-                            <td><span class="badge-optima">Óptima (OR-Tools)</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: 700;">2</td>
-                            <td style="font-weight: 600;">A → B → D → F</td>
-                            <td>41</td>
-                            <td>22.2</td>
-                            <td>S/ 97.75</td>
-                            <td style="font-weight: 700;">84%</td>
-                            <td><span class="badge-alternativa">Alternativa</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: 700;">3</td>
-                            <td style="font-weight: 600;">A → D → E → F</td>
-                            <td>53</td>
-                            <td>28.7</td>
-                            <td>S/ 125.80</td>
-                            <td style="font-weight: 700;">68%</td>
-                            <td><span class="badge-descartada">No recomendada</span></td>
+                            <td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
+                                Cargando alternativas del período seleccionado...
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -149,7 +192,7 @@
             <div class="conclusion-sticky-card">
                 <h2 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 14px;">Conclusión del Sistema Experto</h2>
                 <p id="reporteConclusionTexto" style="font-size: 14.5px; line-height: 1.65; color: #1e293b; font-weight: 500;">
-                    La ruta 1 es la mejor opción porque ofrece el menor tiempo con un costo aceptable logrando el mejor equilibrio según los criterios seleccionados por el algoritmo de optimización Google OR-Tools.
+                    Calculando análisis para las rutas del período seleccionado...
                 </p>
                 <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.1); font-size: 12px; color: #64748b;">
                     Certificado de optimización logística emitido para Aceros Arequipa S.A.

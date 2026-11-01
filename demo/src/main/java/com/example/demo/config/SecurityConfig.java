@@ -3,6 +3,7 @@ package com.example.demo.config;
 import com.example.demo.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -44,18 +46,19 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Rutas públicas — login y archivos estáticos
+                // Rutas públicas — login, interfaz web y métricas básicas
                 .requestMatchers(
                     "/", "/index.html", "/dashboard.html",
                     "/css/**", "/js/**", "/images/**", "/views/**",
-                    "/error", "/favicon.ico"
+                    "/error", "/favicon.ico", "/actuator/health", "/actuator/info"
                 ).permitAll()
-                // Login y registro no requieren token
-                .requestMatchers("/api/auth/**").permitAll()
+                // Autenticación y reportes públicos para streaming
+                .requestMatchers("/api/auth/**", "/api/reportes/**").permitAll()
+                // Gestión de usuarios restringida a administradores
+                .requestMatchers("/api/usuarios/**").hasAnyRole("ADMINISTRADOR", "ADMIN")
                 // Todo lo demás requiere autenticación
                 .anyRequest().authenticated()
             )
-            // Registrar el filtro JWT antes del filtro estándar de Spring Security
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
     }
