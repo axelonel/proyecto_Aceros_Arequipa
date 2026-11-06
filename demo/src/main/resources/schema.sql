@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS public.asignaciones_conduccion (
     fecha_inicio TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     fecha_fin TIMESTAMP,
     estado VARCHAR(15) DEFAULT 'ACTIVA' NOT NULL,
-    CONSTRAINT asignaciones_conduccion_estado_check CHECK (estado IN ('ACTIVA', 'FINALIZADA')),
+    CONSTRAINT asignaciones_conduccion_estado_check CHECK (estado IN ('ACTIVA', 'ASIGNADA', 'EN_TRANSITO', 'FINALIZADA', 'COMPLETADA', 'CANCELADA')),
     CONSTRAINT asignaciones_conduccion_id_vehiculo_fkey FOREIGN KEY (id_vehiculo) REFERENCES public.vehiculos(id_vehiculo) ON DELETE CASCADE,
     CONSTRAINT asignaciones_conduccion_id_transportista_fkey FOREIGN KEY (id_transportista) REFERENCES public.transportistas(id_transportista) ON DELETE CASCADE
 );

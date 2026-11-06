@@ -75,7 +75,7 @@ let activeDispatches = [
         codigo: "DSP-1092",
         origen: "Almacén Principal Lima (A)",
         destino: "Planta Siderúrgica Pisco (F)",
-        trayecto: "A → C → E → F",
+        trayecto: "A → F",
         material: "Bobinas de acero (24 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
@@ -94,7 +94,7 @@ let activeDispatches = [
         codigo: "DSP-1093",
         origen: "Zona de Carga Lurín (C)",
         destino: "Centro Distribución Arequipa (E)",
-        trayecto: "C → E → F",
+        trayecto: "C → E",
         material: "Barras de construcción (20 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
@@ -113,7 +113,7 @@ let activeDispatches = [
         codigo: "DSP-1090",
         origen: "Almacén Principal Lima (A)",
         destino: "Distribuidora Norte Chiclayo (D)",
-        trayecto: "A → B → D",
+        trayecto: "A → D",
         material: "Alambrón industrial (18 Tn)",
         conductorId: 3,
         conductorNombre: "Manuel Quispe",
@@ -1038,12 +1038,21 @@ async function loadAsignacionesFromDatabase() {
                             est = 'ASIGNADA'; // Estado inicial para nuevas asignaciones (Por Iniciar)
                         }
 
+                        let trayectoDirecto = a.trayecto;
+                        if (!trayectoDirecto) {
+                            const origMatch = (a.origen || '').match(/\(([A-F])\)/);
+                            const destMatch = (a.destino || a.pedidoDestino || '').match(/\(([A-F])\)/);
+                            const oCode = origMatch ? origMatch[1] : 'A';
+                            const dCode = destMatch ? destMatch[1] : 'F';
+                            trayectoDirecto = `${oCode} → ${dCode}`;
+                        }
+
                         return {
                             id: a.idAsignacion,
                             codigo: 'DSP-' + (1000 + a.idAsignacion),
-                            origen: "Almacén Principal Lima (A)",
+                            origen: a.origen || "Almacén Principal Lima (A)",
                             destino: a.pedidoDestino || a.destino || "Planta Siderúrgica Pisco (F)",
-                            trayecto: "A → C → E → F",
+                            trayecto: trayectoDirecto,
                             material: a.pedidoMaterial || a.materialCarga || "Carga de Acero Aceros Arequipa",
                             conductorId: a.idTransportista,
                             conductorNombre: a.conductorNombre || 'Transportista Asignado',
@@ -1153,7 +1162,7 @@ async function updateDispatchStatus(dispatchId, newStatus) {
                 const resp = await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/iniciar`, { method: 'PUT' });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => null);
-                    const msg = (errData && errData.error) ? errData.error : 'No se pudo iniciar el recorrido.';
+                    const msg = (errData && (errData.message || errData.error)) ? (errData.message || errData.error) : 'No se pudo iniciar el recorrido.';
                     showToastNotification('Restricción de Flota', msg, 'danger');
                     alert(msg);
                     return;
@@ -1360,7 +1369,7 @@ async function confirmAssignRoute(e) {
         codigo: newCodigo,
         origen: "Almacén Principal Lima (A)",
         destino: "Planta Siderúrgica Pisco (F)",
-        trayecto: "A → C → E → F",
+        trayecto: "A → F",
         material: material,
         conductorId: conductorId,
         conductorNombre: conductorNombre,
@@ -3904,7 +3913,7 @@ async function iniciarAsignacion(id) {
             loadAsignacionesFromDatabase();
         } else {
             const errData = await resp.json().catch(() => null);
-            const msg = (errData && errData.error) ? errData.error : 'No se pudo iniciar la asignación.';
+            const msg = (errData && (errData.message || errData.error)) ? (errData.message || errData.error) : 'No se pudo iniciar la asignación.';
             showToastNotification('Restricción de Flota', msg, 'danger');
             alert(msg);
         }
@@ -4396,7 +4405,7 @@ async function exportarReporteExcel() {
                     r.codigo || ('#OPT-' + (idx + 1)),
                     r.origen || 'Lima',
                     r.destino || 'Pisco',
-                    r.trayecto || 'A → C → E → F',
+                    r.trayecto || 'A → F',
                     r.material || 'Acero',
                     r.transportistaNombre || 'Manuel Quispe',
                     r.vehiculoPlaca || 'AYZ-892',

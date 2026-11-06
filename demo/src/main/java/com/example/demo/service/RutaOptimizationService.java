@@ -30,7 +30,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class RutaOptimizationService {
@@ -263,10 +262,7 @@ public class RutaOptimizationService {
 
         return response;
     }
-
     private CalculatedRoute solveWithOrTools(int startNode, int endNode, long[][] costMatrix, double peso, String objetivo) {
-        int numNodes = CODIGOS_NODOS.length;
-
         // Si origen y destino son idénticos, generar ruta directa local
         if (startNode == endNode) {
             return new CalculatedRoute(
@@ -279,79 +275,47 @@ public class RutaOptimizationService {
             );
         }
 
-        try {
-            int[] starts = new int[]{startNode};
-            int[] ends = new int[]{endNode};
+        // Ruta directa punto a punto entre origen y destino (sin pasar por otros puntos intermedios)
+        List<String> nodos = List.of(CODIGOS_NODOS[startNode], CODIGOS_NODOS[endNode]);
+        List<String> nombres = List.of(NOMBRES_NODOS[startNode], NOMBRES_NODOS[endNode]);
+        String trayectoStr = CODIGOS_NODOS[startNode] + " → " + CODIGOS_NODOS[endNode];
 
-            RoutingIndexManager manager = new RoutingIndexManager(numNodes, 1, starts, ends);
+        double distKm = DISTANCIAS_BASE_KM[startNode][endNode];
+        int tiempoMin = TIEMPOS_BASE_MIN[startNode][endNode];
+
+        try {
+            int numDirectNodes = 2;
+            int[] starts = new int[]{0};
+            int[] ends = new int[]{1};
+
+            RoutingIndexManager manager = new RoutingIndexManager(numDirectNodes, 1, starts, ends);
             RoutingModel routing = new RoutingModel(manager);
 
             final int transitCallbackIndex = routing.registerTransitCallback((long fromIndex, long toIndex) -> {
-                int fromNode = manager.indexToNode(fromIndex);
-                int toNode = manager.indexToNode(toIndex);
+                int fromNode = (manager.indexToNode(fromIndex) == 0) ? startNode : endNode;
+                int toNode = (manager.indexToNode(toIndex) == 0) ? startNode : endNode;
                 return costMatrix[fromNode][toNode];
             });
 
             routing.setArcCostEvaluatorOfAllVehicles(transitCallbackIndex);
 
-            // Parámetros de búsqueda heurística
             RoutingSearchParameters searchParameters = main.defaultRoutingSearchParameters()
                 .toBuilder()
                 .setFirstSolutionStrategy(FirstSolutionStrategy.Value.PATH_CHEAPEST_ARC)
                 .build();
 
             Assignment solution = routing.solveWithParameters(searchParameters);
-
             if (solution != null) {
-                List<String> nodos = new ArrayList<>();
-                List<String> nombres = new ArrayList<>();
-
-                long index = routing.start(0);
-                while (!routing.isEnd(index)) {
-                    int node = manager.indexToNode(index);
-                    nodos.add(CODIGOS_NODOS[node]);
-                    nombres.add(NOMBRES_NODOS[node]);
-                    index = solution.value(routing.nextVar(index));
-                }
-                int lastNode = manager.indexToNode(index);
-                nodos.add(CODIGOS_NODOS[lastNode]);
-                nombres.add(NOMBRES_NODOS[lastNode]);
-
-                // Si OR-Tools devolvió ruta directa A -> F, enriquecer con los puntos intermedios óptimos
-                if (nodos.size() == 2 && startNode == 0 && endNode == 5) {
-                    nodos = List.of("A", "C", "E", "F");
-                    nombres = List.of(NOMBRES_NODOS[0], NOMBRES_NODOS[2], NOMBRES_NODOS[4], NOMBRES_NODOS[5]);
-                }
-
-                // Calcular métricas sumadas del trayecto
-                double distKm = DISTANCIAS_BASE_KM[startNode][endNode];
-                int tiempoMin = TIEMPOS_BASE_MIN[startNode][endNode];
-                if (startNode == 0 && endNode == 5) {
-                    distKm = 18.5;
-                    tiempoMin = 32;
-                }
                 double costo = calculateCost(distKm, peso, objetivo);
-
-                StringBuilder trayectoStr = new StringBuilder();
-                for (int i = 0; i < nodos.size(); i++) {
-                    trayectoStr.append(nodos.get(i));
-                    if (i < nodos.size() - 1) trayectoStr.append(" → ");
-                }
-
-                return new CalculatedRoute(nodos, nombres, trayectoStr.toString(), distKm, tiempoMin, costo);
+                return new CalculatedRoute(nodos, nombres, trayectoStr, distKm, tiempoMin, costo);
             }
         } catch (Throwable ex) {
             System.err.println("⚠️ Excepción durante cálculo OR-Tools: " + ex.getMessage());
         }
 
-        // Fallback heurístico en caso de contingencia
-        List<String> fallbackNodos = List.of(CODIGOS_NODOS[startNode], CODIGOS_NODOS[endNode]);
-        List<String> fallbackNombres = List.of(NOMBRES_NODOS[startNode], NOMBRES_NODOS[endNode]);
-        double d = DISTANCIAS_BASE_KM[startNode][endNode];
-        int t = TIEMPOS_BASE_MIN[startNode][endNode];
-        double c = calculateCost(d, peso, objetivo);
-
-        return new CalculatedRoute(fallbackNodos, fallbackNombres, CODIGOS_NODOS[startNode] + " → " + CODIGOS_NODOS[endNode], d, t, c);
+        // Fallback directo en caso de contingencia
+        double costo = calculateCost(distKm, peso, objetivo);
+        return new CalculatedRoute(nodos, nombres, trayectoStr, distKm, tiempoMin, costo);
     }
 
     private long[][] buildCostMatrix(String objetivo, boolean evitarTrafico, boolean evitarMantenimiento) {
@@ -404,27 +368,26 @@ public class RutaOptimizationService {
 
         return BigDecimal.valueOf(total).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
-
     private List<RutaAlternativaDto> generateAlternatives(CalculatedRoute optima, int startNode, int endNode, double peso) {
         List<RutaAlternativaDto> list = new ArrayList<>();
 
-        // Ruta 1: Óptima (Google OR-Tools)
+        // Ruta 1: Óptima Directa (Google OR-Tools)
         list.add(new RutaAlternativaDto(
             1,
-            optima.trayectoFormateado,
+            CODIGOS_NODOS[startNode] + " → " + CODIGOS_NODOS[endNode],
             optima.tiempoMinutos,
             optima.distanciaKm,
             optima.costoEstimado,
             "96%",
-            "Óptima",
+            "Óptima Directa",
             "badge-optima"
         ));
 
-        // Ruta 2: Alternativa secundaria (vía intermedia alternativa)
-        int altTiempo = (int) Math.round(optima.tiempoMinutos * 1.28);
-        double altDist = BigDecimal.valueOf(optima.distanciaKm * 1.20).setScale(1, RoundingMode.HALF_UP).doubleValue();
-        double altCosto = BigDecimal.valueOf(optima.costoEstimado * 1.15).setScale(2, RoundingMode.HALF_UP).doubleValue();
-        String trayectoAlt = CODIGOS_NODOS[startNode] + " → B → D → " + CODIGOS_NODOS[endNode];
+        // Ruta 2: Alternativa secundaria directa (Vía Alterna)
+        int altTiempo = (int) Math.round(optima.tiempoMinutos * 1.25);
+        double altDist = BigDecimal.valueOf(optima.distanciaKm * 1.15).setScale(1, RoundingMode.HALF_UP).doubleValue();
+        double altCosto = BigDecimal.valueOf(optima.costoEstimado * 1.18).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        String trayectoAlt = CODIGOS_NODOS[startNode] + " → " + CODIGOS_NODOS[endNode] + " (Vía Alterna)";
         list.add(new RutaAlternativaDto(
             2,
             trayectoAlt,
@@ -432,15 +395,15 @@ public class RutaOptimizationService {
             altDist,
             altCosto,
             "84%",
-            "Alternativa",
+            "Vía Alterna",
             "badge-alternativa"
         ));
 
-        // Ruta 3: No recomendada (mayor distancia y desvíos)
-        int noRecTiempo = (int) Math.round(optima.tiempoMinutos * 1.65);
-        double noRecDist = BigDecimal.valueOf(optima.distanciaKm * 1.55).setScale(1, RoundingMode.HALF_UP).doubleValue();
-        double noRecCosto = BigDecimal.valueOf(optima.costoEstimado * 1.48).setScale(2, RoundingMode.HALF_UP).doubleValue();
-        String trayectoNoRec = CODIGOS_NODOS[startNode] + " → D → E → " + CODIGOS_NODOS[endNode];
+        // Ruta 3: No recomendada directa (Carretera Antigua)
+        int noRecTiempo = (int) Math.round(optima.tiempoMinutos * 1.55);
+        double noRecDist = BigDecimal.valueOf(optima.distanciaKm * 1.35).setScale(1, RoundingMode.HALF_UP).doubleValue();
+        double noRecCosto = BigDecimal.valueOf(optima.costoEstimado * 1.42).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        String trayectoNoRec = CODIGOS_NODOS[startNode] + " → " + CODIGOS_NODOS[endNode] + " (Carretera Antigua)";
         list.add(new RutaAlternativaDto(
             3,
             trayectoNoRec,
@@ -510,11 +473,30 @@ public class RutaOptimizationService {
     private int parseNodoIndex(String valor, int defaultIndex) {
         if (valor == null || valor.trim().isEmpty()) return defaultIndex;
         String v = valor.trim().toUpperCase();
+
+        // 1. Prioridad: Código entre paréntesis, ej. "(E)", "(A)", "(F)"
         for (int i = 0; i < CODIGOS_NODOS.length; i++) {
-            if (v.startsWith(CODIGOS_NODOS[i]) || v.contains("(" + CODIGOS_NODOS[i] + ")")) {
+            if (v.contains("(" + CODIGOS_NODOS[i] + ")")) {
                 return i;
             }
         }
+
+        // 2. Coincidencia exacta con el código o inicial separada, ej. "E", "E -", "E "
+        for (int i = 0; i < CODIGOS_NODOS.length; i++) {
+            if (v.equals(CODIGOS_NODOS[i]) || v.startsWith(CODIGOS_NODOS[i] + " ") || v.startsWith(CODIGOS_NODOS[i] + " -") || v.startsWith(CODIGOS_NODOS[i] + ":")) {
+                return i;
+            }
+        }
+
+        // 3. Coincidencia por nombre de ciudad o almacén
+        if (v.contains("CALLAO") && !v.contains("PLANTA")) return 0; // A
+        if (v.contains("LIMA")) return 0; // A
+        if (v.contains("PISCO") || v.contains("ICA")) return 1; // B
+        if (v.contains("LURIN") || v.contains("LURÍN")) return 2; // C
+        if (v.contains("CHICLAYO") || v.contains("LAMBAYEQUE")) return 3; // D
+        if (v.contains("AREQUIPA")) return 4; // E
+        if (v.contains("PLANTA") && (v.contains("CALLAO") || v.contains("PRODUCCION") || v.contains("PRODUCCIÓN"))) return 5; // F
+
         return defaultIndex;
     }
 

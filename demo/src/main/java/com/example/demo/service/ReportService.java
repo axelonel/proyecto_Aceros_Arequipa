@@ -220,7 +220,6 @@ public class ReportService {
             workbook.write(outputStream);
 
         } finally {
-            workbook.dispose();
             workbook.close();
         }
     }

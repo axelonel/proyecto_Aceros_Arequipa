@@ -32,7 +32,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    @SuppressWarnings("null")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
             .cors(cors -> cors.configurationSource(request -> {

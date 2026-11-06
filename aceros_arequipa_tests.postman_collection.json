@@ -1,0 +1,302 @@
+{
+	"info": {
+		"_postman_id": "a9d8c3e2-4567-4e89-9a12-87f54c3e2101",
+		"name": "Aceros Arequipa - Suite de Pruebas QA",
+		"description": "Colección completa de pruebas de QA para la API REST del Sistema de Ruteo de Aceros Arequipa",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "1. Health Check (Actuator)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/actuator/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["actuator", "health"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code es 200', function () { pm.response.to.have.status(200); });",
+							"pm.test('El sistema está UP', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql('UP');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Iniciar Sesión (Admin)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@acerosarequipa.com\",\n    \"password\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "auth", "login"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Login exitoso con 200', function () { pm.response.to.have.status(200); });",
+							"pm.test('Token JWT generado', function () {",
+							"    var data = pm.response.json();",
+							"    pm.expect(data.token).to.not.be.empty;",
+							"    pm.collectionVariables.set('token', data.token);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Listar Flota de Vehículos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/vehiculos",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "vehiculos"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Vehículos cargados con 200', function () { pm.response.to.have.status(200); });",
+							"pm.test('Retorna un arreglo de vehículos', function () {",
+							"    var list = pm.response.json();",
+							"    pm.expect(list).to.be.an('array');",
+							"    pm.expect(list.length).to.be.above(0);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Listar Transportistas",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/transportistas",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "transportistas"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Transportistas cargados con 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Listar Pedidos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/pedidos",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "pedidos"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Pedidos cargados con 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Optimizar Ruta con Google OR-Tools",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"origen\": \"A\",\n    \"destino\": \"F\",\n    \"material\": \"Bobinas de acero (24 Tn)\",\n    \"peso\": 24.0,\n    \"objetivo\": \"EQUILIBRIO\",\n    \"prioridad\": \"ALTA\",\n    \"evitarTrafico\": true,\n    \"evitarMantenimiento\": false\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/rutas/optimizar",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "rutas", "optimizar"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Optimización exitosa con 200', function () { pm.response.to.have.status(200); });",
+							"pm.test('Ruta óptima calculada', function () {",
+							"    var data = pm.response.json();",
+							"    pm.expect(data.exito).to.be.true;",
+							"    pm.expect(data.distanciaKm).to.be.above(0);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Iniciar Recorrido de Despacho (#2)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/asignaciones/2/iniciar",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "asignaciones", "2", "iniciar"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Recorrido iniciado sin conflicto con 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Completar Recorrido de Despacho (#2)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/asignaciones/2/completar",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "asignaciones", "2", "completar"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Recorrido completado con 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "9. Resumen de Reportes y KPIs",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/reportes/resumen",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "reportes", "resumen"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Resumen generado con 200', function () { pm.response.to.have.status(200); });",
+							"pm.test('KPIs numéricos presentes', function () {",
+							"    var data = pm.response.json();",
+							"    pm.expect(data.pesoTotalToneladas).to.be.above(0);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		}
+	]
+}

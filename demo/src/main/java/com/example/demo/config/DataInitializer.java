@@ -114,14 +114,23 @@ public class DataInitializer implements CommandLineRunner {
     
     private void crearIndicesOptimizacion() {
         try {
+            // Actualizar restricción de estados en asignaciones_conduccion para permitir ciclo de vida completo
+            jdbcTemplate.execute("ALTER TABLE IF EXISTS asignaciones_conduccion DROP CONSTRAINT IF EXISTS asignaciones_conduccion_estado_check");
+            jdbcTemplate.execute("ALTER TABLE IF EXISTS asignaciones_conduccion ADD CONSTRAINT asignaciones_conduccion_estado_check CHECK (estado IN ('ACTIVA', 'ASIGNADA', 'EN_TRANSITO', 'FINALIZADA', 'COMPLETADA', 'CANCELADA'))");
+
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_fecha ON rutas_optimizadas(fecha_calculo)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_pedido ON rutas_optimizadas(id_pedido)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_rutas_opt_estado ON rutas_optimizadas(estado_ruta)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asignaciones_vehiculo_estado ON asignaciones_conduccion(id_vehiculo, estado)");
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_pedidos_estado ON pedidos(estado_pedido)");
-            System.out.println("⚡ [DataInitializer] Índices de alto rendimiento verificados y aplicados en PostgreSQL.");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(id_cliente)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_pedidos_gestor ON pedidos(id_usuario_gestor)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asignaciones_transportista ON asignaciones_conduccion(id_transportista)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asignaciones_pedido ON asignaciones_conduccion(id_pedido)");
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_vehiculos_conductor ON vehiculos(conductor_id)");
+            System.out.println("⚡ [DataInitializer] Esquema e índices de alto rendimiento verificados y aplicados en PostgreSQL.");
         } catch (Exception e) {
-            System.err.println("⚠️ [DataInitializer] Advertencia al verificar índices en base de datos: " + e.getMessage());
+            System.err.println("⚠️ [DataInitializer] Advertencia al verificar esquema e índices en base de datos: " + e.getMessage());
         }
     }
 
@@ -201,14 +210,14 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             // Pedido 2
-            Pedido p2 = pedidoRepository.save(new Pedido(
+            pedidoRepository.save(new Pedido(
                 null, idCliente2, idSupervisor, "Barras de construcción corrugadas 1/2\" (20 Tn)",
                 new BigDecimal("20.00"), new BigDecimal("26.00"), "Distribuidora Norte Chiclayo (D)",
                 "MEDIA", "MENOR_COSTO", false, false, "REGISTRADO", null, null, null
             ));
 
             // Pedido 3
-            Pedido p3 = pedidoRepository.save(new Pedido(
+            pedidoRepository.save(new Pedido(
                 null, idCliente3, idSupervisor, "Alambrón industrial para trefilería (18 Tn)",
                 new BigDecimal("18.00"), new BigDecimal("22.00"), "Zona Industrial Lurín (C)",
                 "ALTA", "MENOR_TIEMPO", true, true, "REGISTRADO", null, null, null
@@ -234,15 +243,15 @@ public class DataInitializer implements CommandLineRunner {
             rutaOptimizadaRepository.saveAll(List.of(
                 new RutaOptimizada(null, p1.getIdPedido(), idVehiculo1, idTrp1,
                     "Almacén Principal Lima (A)", "Planta Siderúrgica Pisco (F)",
-                    "A → C → E → F", new BigDecimal("18.50"), new BigDecimal("32.00"),
+                    "A → F", new BigDecimal("18.50"), new BigDecimal("32.00"),
                     new BigDecimal("85.00"), "Dijkstra Multicriterio", new BigDecimal("95.50"), "OPTIMA", null),
                 new RutaOptimizada(null, p1.getIdPedido(), idVehiculo1, idTrp1,
                     "Almacén Principal Lima (A)", "Planta Siderúrgica Pisco (F)",
-                    "A → B → C → F", new BigDecimal("24.80"), new BigDecimal("41.00"),
+                    "A → F (Vía Alterna)", new BigDecimal("24.80"), new BigDecimal("41.00"),
                     new BigDecimal("105.00"), "Dijkstra Ponderado", new BigDecimal("82.00"), "ALTERNATIVA", null),
                 new RutaOptimizada(null, p1.getIdPedido(), idVehiculo1, idTrp1,
                     "Almacén Principal Lima (A)", "Planta Siderúrgica Pisco (F)",
-                    "A → B → D → F", new BigDecimal("32.10"), new BigDecimal("55.00"),
+                    "A → F (Carretera Antigua)", new BigDecimal("32.10"), new BigDecimal("55.00"),
                     new BigDecimal("125.00"), "Camino Secundario", new BigDecimal("68.50"), "NO_RECOMENDADA", null)
             ));
 

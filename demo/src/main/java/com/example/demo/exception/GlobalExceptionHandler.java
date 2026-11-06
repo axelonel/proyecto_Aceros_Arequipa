@@ -105,6 +105,8 @@ public class GlobalExceptionHandler {
                 msg = "Conflicto: Ya existe un registro con el mismo identificador o valor único en la base de datos.";
             } else if (cause.contains("violates foreign key constraint") || cause.contains("clave foránea")) {
                 msg = "No se puede completar la operación porque el registro está vinculado con otros elementos del sistema.";
+            } else if (cause.contains("violates check constraint") || cause.contains("restricción «check»") || cause.contains("check constraint")) {
+                msg = "Restricción de validación en base de datos: el valor enviado no cumple las reglas permitidas del sistema.";
             }
         }
 

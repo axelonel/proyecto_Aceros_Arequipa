@@ -427,6 +427,19 @@ public class LogisticaController {
                     clienteRepository.findById(p.getIdCliente()).ifPresent(c -> {
                         map.put("clienteNombre", c.getNombre());
                     });
+
+                    // Vincular ruta directa optimizada asociada si existe
+                    rutaOptimizadaRepository.findAll().stream()
+                        .filter(r -> Objects.equals(r.getIdPedido(), p.getIdPedido()) && "OPTIMA".equalsIgnoreCase(r.getEstadoRuta()))
+                        .findFirst()
+                        .ifPresent(r -> {
+                            map.put("trayecto", r.getSecuenciaParadas());
+                            map.put("origen", r.getOrigen());
+                            map.put("destino", r.getDestino());
+                            map.put("distanciaKm", r.getDistanciaKm());
+                            map.put("tiempoEstimadoMin", r.getTiempoEstimadoMin());
+                            map.put("costoOperativo", r.getCostoOperativo());
+                        });
                 });
             }
 
@@ -496,6 +509,10 @@ public class LogisticaController {
     @PutMapping("/asignaciones/{id}/iniciar")
     public ResponseEntity<?> iniciarAsignacion(@PathVariable Long id) {
         return asignacionRepository.findById(id).map(a -> {
+            if ("EN_TRANSITO".equalsIgnoreCase(a.getEstado())) {
+                return ResponseEntity.ok(Map.of("message", "La asignación ya se encuentra en tránsito.", "asignacion", a));
+            }
+
             Long idVehiculo = a.getIdVehiculo();
             if (idVehiculo != null) {
                 // RESTRICCIÓN: Verificar si el vehículo ya se encuentra haciendo una ruta en tránsito
@@ -507,10 +524,12 @@ public class LogisticaController {
 
                 if (enTransito.isPresent()) {
                     String placaVeh = vehiculoRepository.findById(idVehiculo).map(Vehiculo::getPlaca).orElse("ID #" + idVehiculo);
+                    String errorMsg = "Restricción de Flota: El vehículo (" + placaVeh 
+                            + ") ya se encuentra actualmente haciendo una ruta (Despacho #" + enTransito.get().getIdAsignacion() 
+                            + " en tránsito). No se puede comenzar una nueva ruta con el mismo vehículo hasta que concluya y entregue su viaje actual.";
                     return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                        "error", "Restricción de Flota: El vehículo (" + placaVeh 
-                                + ") ya se encuentra actualmente haciendo una ruta (Despacho #" + enTransito.get().getIdAsignacion() 
-                                + " en tránsito). No se puede comenzar una nueva ruta con el mismo vehículo hasta que concluya y entregue su viaje actual."
+                        "error", errorMsg,
+                        "message", errorMsg
                     ));
                 }
 
@@ -674,7 +693,7 @@ public class LogisticaController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/rutas/optimizar-ortools")
+    @PostMapping({"/rutas/optimizar-ortools", "/rutas/optimizar"})
     public ResponseEntity<?> optimizarConOrTools(@RequestBody OptimizacionRequestDto request) {
         try {
             OptimizacionResponseDto response = rutaOptimizationService.optimizarYPersistir(request);
