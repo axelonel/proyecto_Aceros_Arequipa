@@ -1154,8 +1154,6 @@ async function updateDispatchStatus(dispatchId, newStatus) {
     const item = activeDispatches.find(d => d.id === dispatchId);
     if (!item) return;
 
-    item.estado = newStatus;
-
     if (window.location.protocol !== 'file:') {
         if (newStatus === 'EN_TRANSITO') {
             try {
@@ -1163,20 +1161,33 @@ async function updateDispatchStatus(dispatchId, newStatus) {
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => null);
                     const msg = (errData && (errData.message || errData.error)) ? (errData.message || errData.error) : 'No se pudo iniciar el recorrido.';
-                    showToastNotification('Restricción de Flota', msg, 'danger');
+                    showToastNotification('Restricción Operativa', msg, 'danger');
                     alert(msg);
                     return;
                 }
             } catch (e) {
                 console.warn('Error iniciando asignacion en servidor:', e);
+                alert('Error de conexión al iniciar el recorrido.');
+                return;
             }
         } else if (newStatus === 'COMPLETADA') {
             try {
-                await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
+                const resp = await apiFetch(API_HOST + `/api/asignaciones/${dispatchId}/completar`, { method: 'PUT' });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => null);
+                    const msg = (errData && (errData.message || errData.error)) ? (errData.message || errData.error) : 'No se pudo completar la entrega.';
+                    alert(msg);
+                    return;
+                }
             } catch (e) {
                 console.warn('Error completando asignacion en servidor:', e);
+                alert('Error de conexión al completar la entrega.');
+                return;
             }
         }
+    }
+
+    item.estado = newStatus;
 
         // Sincronizar automáticamente el estado del pedido asociado en el ciclo de vida
         try {

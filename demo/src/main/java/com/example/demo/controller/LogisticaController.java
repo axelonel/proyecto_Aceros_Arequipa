@@ -513,9 +513,32 @@ public class LogisticaController {
                 return ResponseEntity.ok(Map.of("message", "La asignación ya se encuentra en tránsito.", "asignacion", a));
             }
 
+            // RESTRICCIÓN 1: Verificar si el CONDUCTOR ya se encuentra conduciendo otra ruta en tránsito
+            Long idTransportista = a.getIdTransportista();
+            if (idTransportista != null) {
+                Optional<AsignacionConduccion> conductorEnTransito = asignacionRepository.findAll().stream()
+                    .filter(otra -> !Objects.equals(otra.getIdAsignacion(), id) 
+                                 && Objects.equals(otra.getIdTransportista(), idTransportista) 
+                                 && "EN_TRANSITO".equalsIgnoreCase(otra.getEstado()))
+                    .findFirst();
+
+                if (conductorEnTransito.isPresent()) {
+                    String nombreChofer = transportistaRepository.findById(idTransportista)
+                            .map(t -> t.getNombres() + " " + t.getApellidos())
+                            .orElse("Conductor #" + idTransportista);
+                    String errorMsg = "Restricción de Operaciones: El conductor " + nombreChofer 
+                            + " ya se encuentra actualmente en ruta conduciendo el Despacho #" + conductorEnTransito.get().getIdAsignacion() 
+                            + ". Un mismo conductor no puede iniciar dos recorridos simultáneamente hasta confirmar la entrega en destino del primero.";
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                        "error", errorMsg,
+                        "message", errorMsg
+                    ));
+                }
+            }
+
+            // RESTRICCIÓN 2: Verificar si el VEHÍCULO ya se encuentra haciendo una ruta en tránsito
             Long idVehiculo = a.getIdVehiculo();
             if (idVehiculo != null) {
-                // RESTRICCIÓN: Verificar si el vehículo ya se encuentra haciendo una ruta en tránsito
                 Optional<AsignacionConduccion> enTransito = asignacionRepository.findAll().stream()
                     .filter(otra -> !Objects.equals(otra.getIdAsignacion(), id) 
                                  && Objects.equals(otra.getIdVehiculo(), idVehiculo) 
