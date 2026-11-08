@@ -1189,6 +1189,7 @@ async function updateDispatchStatus(dispatchId, newStatus) {
 
     item.estado = newStatus;
 
+    if (window.location.protocol !== 'file:') {
         // Sincronizar automáticamente el estado del pedido asociado en el ciclo de vida
         try {
             if (newStatus === 'EN_TRANSITO') {
