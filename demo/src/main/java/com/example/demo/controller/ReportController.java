@@ -86,4 +86,36 @@ public class ReportController {
             .contentType(MediaType.APPLICATION_PDF)
             .body(stream);
     }
+
+    /**
+     * Descarga de Reporte PowerPoint en Streaming (.pptx)
+     * GET /api/reportes/pptx?fechaInicio=2026-01-01&fechaFin=2026-10-31&estado=OPTIMA
+     */
+    @GetMapping("/pptx")
+    public ResponseEntity<StreamingResponseBody> descargarReportePptx(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) String estado,
+            Authentication auth) {
+
+        String usuario = (auth != null) ? auth.getName() : "Usuario Logística";
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = "Reporte_Rutas_AcerosArequipa_" + timeStamp + ".pptx";
+
+        StreamingResponseBody stream = outputStream -> {
+            try {
+                reportService.escribirReportePptx(outputStream, fechaInicio, fechaFin, estado, usuario);
+            } catch (Exception ex) {
+                throw new RuntimeException("Error en streaming de archivo PowerPoint", ex);
+            }
+        };
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+            .header(HttpHeaders.PRAGMA, "no-cache")
+            .header(HttpHeaders.EXPIRES, "0")
+            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.presentationml.presentation"))
+            .body(stream);
+    }
 }

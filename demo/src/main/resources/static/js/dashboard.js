@@ -542,9 +542,16 @@ const FALLBACK_VIEWS = {
     `,
     'reportes': `
         <div id="viewReportes">
-            <div class="content-header" style="margin-bottom: 24px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & COMPARACIÓN DE RUTAS</h1>
-                <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y alternativas generadas con Google OR-Tools en PostgreSQL</p>
+            <div class="content-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase;">MÉTRICAS & COMPARACIÓN DE RUTAS</h1>
+                    <p style="font-size: 13.5px; color: #475569;">Análisis de eficiencia logística y alternativas generadas con Google OR-Tools en PostgreSQL</p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-primary" style="background: #dc2626;" onclick="exportarReportePDF()"><span>📄</span> Descargar Reporte PDF</button>
+                    <button class="btn-primary" style="background: #16a34a;" onclick="exportarReporteExcel()"><span>📊</span> Exportar a Excel (XLSX)</button>
+                    <button class="btn-primary" style="background: #d97706;" onclick="exportarReportePPTX()"><span>📽️</span> Exportar a PPTX</button>
+                </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
                 <div style="background: #ffffff; border-radius: 8px; padding: 18px 20px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
@@ -4437,6 +4444,91 @@ async function exportarReporteExcel() {
     } catch (err) {
         console.error('Error al exportar a Excel:', err);
         alert('Error al exportar a Excel: ' + err.message);
+    }
+}
+
+async function exportarReportePPTX() {
+    const btn = document.querySelector('button[onclick="exportarReportePPTX()"]');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span> Generando PPTX...';
+        btn.style.opacity = '0.75';
+    }
+    const restorePptBtn = () => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+            btn.style.opacity = '1';
+        }
+    };
+
+    // Intentar descarga nativa desde el Backend Spring Boot (Apache POI XSLF)
+    if (window.location.protocol !== 'file:') {
+        try {
+            showToastNotification('Generando PPTX', 'Construyendo presentación ejecutiva PowerPoint...', 'info');
+            const query = getReporteFilterParams();
+            const resp = await apiFetch(API_HOST + '/api/reportes/pptx' + query);
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const disposition = resp.headers.get('Content-Disposition') || '';
+                let filename = 'Reporte_Rutas_AcerosArequipa.pptx';
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match && match[1]) filename = match[1];
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                showToastNotification('PPTX Descargado', 'Presentación PowerPoint (.pptx) descargada exitosamente.', 'success');
+                restorePptBtn();
+                return;
+            }
+        } catch (e) {
+            console.warn('Backend PPTX no disponible, usando fallback cliente PptxGenJS:', e);
+        }
+    }
+
+    // Fallback cliente con PptxGenJS
+    if (typeof PptxGenJS === 'undefined') {
+        restorePptBtn();
+        alert('Librería PptxGenJS no está disponible.');
+        return;
+    }
+
+    try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9';
+
+        const slide1 = pptx.addSlide();
+        slide1.background = { color: '0F172A' };
+        slide1.addText('CORPORACIÓN ACEROS AREQUIPA S.A.', { x: 0.7, y: 1.5, w: 8.5, fontSize: 28, bold: true, color: 'FFFFFF' });
+        slide1.addText('Reporte Ejecutivo de Optimización y Trazabilidad de Despachos', { x: 0.7, y: 2.2, w: 8.5, fontSize: 18, color: '93C5FD' });
+        slide1.addText('Emitido: ' + new Date().toLocaleString() + ' · ' + getReporteFilterDescription(), { x: 0.7, y: 3.3, w: 8.5, fontSize: 12, color: 'CBD5E1' });
+
+        const slide2 = pptx.addSlide();
+        slide2.addText('RESUMEN DE MÉTRICAS CLAVE', { x: 0.5, y: 0.4, w: 9, fontSize: 20, bold: true, color: '1E3A8A' });
+        const ton = (document.getElementById('kpiReporteToneladas')?.textContent || '--');
+        const rut = (document.getElementById('kpiReporteRutas')?.textContent || '--');
+        const tie = (document.getElementById('kpiReporteTiempo')?.textContent || '--');
+        const aho = (document.getElementById('kpiReporteAhorro')?.textContent || '--');
+        slide2.addTable([
+            ['Toneladas Movilizadas', 'Rutas Optimizadas', 'Tiempo Promedio', 'Ahorro Logístico'],
+            [ton, rut, tie, aho]
+        ], { x: 0.5, y: 1.3, w: 9.0, fontSize: 14, border: { pt: 1, color: 'CBD5E1' }, fill: { color: 'F8FAFC' } });
+
+        const fechaHoy = new Date().toISOString().slice(0, 10);
+        await pptx.writeFile({ fileName: `Reporte_Logistica_Aceros_Arequipa_${fechaHoy}.pptx` });
+        showToastNotification('PPTX Generado', 'La presentación PowerPoint se ha descargado exitosamente.', 'success');
+    } catch (err) {
+        console.error('Error al exportar a PPTX:', err);
+        alert('Error al exportar a PPTX: ' + err.message);
+    } finally {
+        restorePptBtn();
     }
 }
 
