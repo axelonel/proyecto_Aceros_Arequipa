@@ -2,10 +2,13 @@ package com.example.demo;
 
 import com.example.demo.dto.OptimizacionRequestDto;
 import com.example.demo.dto.OptimizacionResponseDto;
+import com.example.demo.service.ReportService;
 import com.example.demo.service.RutaOptimizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,6 +17,9 @@ class DemoApplicationTests {
 
 	@Autowired
 	private RutaOptimizationService rutaOptimizationService;
+
+	@Autowired
+	private ReportService reportService;
 
 	@Test
 	void testGoogleOrToolsServiceExecution() {
@@ -41,5 +47,16 @@ class DemoApplicationTests {
 
 		System.out.println("✅ Test Exitoso: Ruta optimizada con Google OR-Tools: " + response.getRutaOptimaTrayecto());
 		System.out.println("   Distancia: " + response.getDistanciaKm() + " km | Tiempo: " + response.getTiempoMinutos() + " min | Costo: S/ " + response.getCostoSoles());
+	}
+
+	@Test
+	void testPptxReportGeneration() throws Exception {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		reportService.escribirReportePptx(baos, null, null, null, "Test Admin");
+		byte[] bytes = baos.toByteArray();
+		assertNotNull(bytes);
+		assertTrue(bytes.length > 1000, "El PPTX generado debe contener datos binarios válidos");
+		assertEquals('P', (char) bytes[0]);
+		assertEquals('K', (char) bytes[1]);
 	}
 }
