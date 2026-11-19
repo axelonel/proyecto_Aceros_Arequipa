@@ -11,20 +11,20 @@ spring.application.name=demo
 # ===================================================================
 
 # Configuración de base de datos PostgreSQL / Supabase:
-#   Opción Supabase (Nube):
-#     DB_HOST: aws-0-us-east-1.pooler.supabase.com
+#   Opción Supabase (Nube - Región São Paulo sa-east-1):
+#     DB_HOST: aws-1-sa-east-1.pooler.supabase.com
 #     DB_PORT: 5432
 #     DB_NAME: postgres
-#     DB_USERNAME: postgres.jtnhoreyccgyqxqrsqoo
+#     DB_USERNAME: postgres.nfzmmtdvdwjycrthkdxd
 #
 #   Opción PostgreSQL Local:
 #     DB_HOST: localhost
 #     DB_PORT: 5433
 #     DB_NAME: Aceros_Arequipa
 #     DB_USERNAME: postgres
-spring.datasource.url=jdbc:postgresql://${DB_HOST:aws-0-us-east-1.pooler.supabase.com}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require
-spring.datasource.username=${DB_USERNAME:postgres.jtnhoreyccgyqxqrsqoo}
-spring.datasource.password=${DB_PASSWORD:tu_password_aqui}
+spring.datasource.url=jdbc:postgresql://${DB_HOST:aws-1-sa-east-1.pooler.supabase.com}:${DB_PORT:5432}/${DB_NAME:postgres}?sslmode=require
+spring.datasource.username=${DB_USERNAME:postgres.nfzmmtdvdwjycrthkdxd}
+spring.datasource.password=${DB_PASSWORD:Axel29condori!}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # Configuración de JPA / Hibernate

@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.service.JakartaEmailService;
 import com.example.demo.service.ReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -18,9 +19,11 @@ import java.time.format.DateTimeFormatter;
 public class ReportController {
 
     private final ReportService reportService;
+    private final JakartaEmailService emailService;
 
-    public ReportController(ReportService reportService) {
+    public ReportController(ReportService reportService, JakartaEmailService emailService) {
         this.reportService = reportService;
+        this.emailService = emailService;
     }
 
     /**
@@ -35,6 +38,14 @@ public class ReportController {
             Authentication auth) {
 
         String usuario = (auth != null) ? auth.getName() : "Usuario Logística";
+
+        // Notificación asíncrona por correo al Administrador Alex León (no bloquea el stream)
+        String filtros = String.format("Rango: %s a %s | Estado: %s",
+                (fechaInicio != null ? fechaInicio : "Todos"),
+                (fechaFin != null ? fechaFin : "Todos"),
+                (estado != null ? estado : "Todos"));
+        emailService.notificarDescargaReporte(usuario, "Excel (.xlsx)", filtros);
+
         String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String filename = "Reporte_Rutas_AcerosArequipa_" + timeStamp + ".xlsx";
 
@@ -67,6 +78,14 @@ public class ReportController {
             Authentication auth) {
 
         String usuario = (auth != null) ? auth.getName() : "Usuario Logística";
+
+        // Notificación asíncrona por correo al Administrador Alex León (no bloquea el stream)
+        String filtros = String.format("Rango: %s a %s | Estado: %s",
+                (fechaInicio != null ? fechaInicio : "Todos"),
+                (fechaFin != null ? fechaFin : "Todos"),
+                (estado != null ? estado : "Todos"));
+        emailService.notificarDescargaReporte(usuario, "PDF (.pdf)", filtros);
+
         String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String filename = "Reporte_Rutas_AcerosArequipa_" + timeStamp + ".pdf";
 
@@ -99,6 +118,14 @@ public class ReportController {
             Authentication auth) {
 
         String usuario = (auth != null) ? auth.getName() : "Usuario Logística";
+
+        // Notificación asíncrona por correo al Administrador Alex León (no bloquea el stream)
+        String filtros = String.format("Rango: %s a %s | Estado: %s",
+                (fechaInicio != null ? fechaInicio : "Todos"),
+                (fechaFin != null ? fechaFin : "Todos"),
+                (estado != null ? estado : "Todos"));
+        emailService.notificarDescargaReporte(usuario, "PowerPoint (.pptx)", filtros);
+
         String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String filename = "Reporte_Rutas_AcerosArequipa_" + timeStamp + ".pptx";
 

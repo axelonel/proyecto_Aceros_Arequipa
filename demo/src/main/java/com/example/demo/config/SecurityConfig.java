@@ -36,13 +36,39 @@ public class SecurityConfig {
         return http
             .cors(cors -> cors.configurationSource(request -> {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of("*"));
+                config.setAllowedOriginPatterns(List.of(
+                    "http://localhost:[*]",
+                    "http://127.0.0.1:[*]",
+                    "https://*.supabase.co",
+                    "https://*.supabase.in"
+                ));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-                config.setAllowedHeaders(List.of("*"));
+                config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Cache-Control"));
                 config.setAllowCredentials(true);
                 return config;
             }))
             .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers
+                // Anti-MIME-Sniffing (OWASP ZAP: Falta encabezado X-Content-Type-Options)
+                .contentTypeOptions(contentType -> {})
+                // Anti-Clickjacking
+                .frameOptions(frame -> frame.sameOrigin())
+                // HSTS (OWASP ZAP: Strict-Transport-Security Header No Establecido)
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                )
+                // Content Security Policy (OWASP ZAP: Cabecera CSP no configurada)
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; " +
+                        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
+                        "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
+                        "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; " +
+                        "font-src 'self' data:; " +
+                        "connect-src 'self' http://localhost:* ws://localhost:* https://*.supabase.co wss://*.supabase.co; " +
+                        "frame-ancestors 'self';")
+                )
+            )
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Rutas públicas — login, interfaz web y métricas básicas
