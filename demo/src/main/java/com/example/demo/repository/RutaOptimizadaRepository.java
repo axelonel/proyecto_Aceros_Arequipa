@@ -11,6 +11,7 @@ import java.util.List;
 public interface RutaOptimizadaRepository extends JpaRepository<RutaOptimizada, Long> {
     List<RutaOptimizada> findByIdPedido(Long idPedido);
     List<RutaOptimizada> findByEstadoRuta(String estadoRuta);
+    long countByEstadoRuta(String estadoRuta);
     Page<RutaOptimizada> findByOrigenContainingIgnoreCaseOrDestinoContainingIgnoreCaseOrAlgoritmoUtilizadoContainingIgnoreCase(
             String origen, String destino, String algoritmo, Pageable pageable);
 }

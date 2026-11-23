@@ -6,6 +6,9 @@ import com.example.demo.model.*;
 import com.example.demo.repository.*;
 import com.example.demo.service.RutaOptimizationService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalTime;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -389,8 +392,26 @@ public class LogisticaController {
     // 6. ASIGNACIONES DE CONDUCCIÓN FUNCIONALES (PUNTO 7)
     // ==========================================
     @GetMapping("/asignaciones")
-    public ResponseEntity<List<Map<String, Object>>> listarAsignaciones() {
+    public ResponseEntity<List<Map<String, Object>>> listarAsignaciones(Authentication auth) {
         List<AsignacionConduccion> asignaciones = asignacionRepository.findAll();
+
+        // Si el usuario autenticado es CONDUCTOR / TRANSPORTISTA, filtrar estrictamente solo sus asignaciones
+        if (auth != null && auth.getAuthorities() != null &&
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("CONDUCTOR") || a.getAuthority().contains("TRANSPORTISTA"))) {
+            final String username = auth.getName().toLowerCase();
+            asignaciones = asignaciones.stream().filter(a -> {
+                Optional<Transportista> tOpt = transportistaRepository.findById(a.getIdTransportista());
+                if (tOpt.isEmpty()) return false;
+                Transportista t = tOpt.get();
+                String tNom = t.getNombres() != null ? t.getNombres().toLowerCase() : "";
+                String tApe = t.getApellidos() != null ? t.getApellidos().toLowerCase() : "";
+                String tDni = t.getDni() != null ? t.getDni().toLowerCase() : "";
+                return (!tApe.isEmpty() && username.contains(tApe)) ||
+                       (!tNom.isEmpty() && username.contains(tNom)) ||
+                       (!tDni.isEmpty() && username.contains(tDni));
+            }).toList();
+        }
+
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (AsignacionConduccion a : asignaciones) {
@@ -506,6 +527,7 @@ public class LogisticaController {
         }
     }
 
+    @Transactional
     @PutMapping("/asignaciones/{id}/iniciar")
     public ResponseEntity<?> iniciarAsignacion(@PathVariable Long id) {
         return asignacionRepository.findById(id).map(a -> {
@@ -578,6 +600,7 @@ public class LogisticaController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @Transactional
     @PutMapping("/asignaciones/{id}/completar")
     public ResponseEntity<?> completarAsignacion(@PathVariable Long id) {
         return asignacionRepository.findById(id).map(a -> {
@@ -612,6 +635,7 @@ public class LogisticaController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @Transactional
     @DeleteMapping("/asignaciones/{id}")
     public ResponseEntity<?> cancelarAsignacion(@PathVariable Long id) {
         return asignacionRepository.findById(id).map(a -> {
@@ -824,6 +848,8 @@ public class LogisticaController {
         res.put("currentPage", pageResult.getNumber());
         res.put("totalPages", pageResult.getTotalPages());
         res.put("totalElements", pageResult.getTotalElements());
+        res.put("totalOptimas", rutaOptimizadaRepository.countByEstadoRuta("OPTIMA"));
+        res.put("flotaActiva", vehiculoRepository.countByEstadoOperativo("EN_RUTA"));
         res.put("size", pageResult.getSize());
         res.put("hasNext", pageResult.hasNext());
         res.put("hasPrevious", pageResult.hasPrevious());
@@ -1079,11 +1105,11 @@ public class LogisticaController {
             .mapToDouble(p -> p.getPesoT() != null ? p.getPesoT().doubleValue() : 0.0)
             .sum();
 
-        long totalRutas = conFiltro ? todasOptimizadas.size() : rutaRepository.count();
-
         List<RutaOptimizada> optimas = todasOptimizadas.stream()
             .filter(r -> "OPTIMA".equalsIgnoreCase(r.getEstadoRuta()))
             .toList();
+
+        long totalRutas = conFiltro ? todasOptimizadas.size() : optimas.size();
 
         List<RutaOptimizada> baseCalculo = (estadoTrim != null && !"OPTIMA".equalsIgnoreCase(estadoTrim))
             ? todasOptimizadas

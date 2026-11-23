@@ -77,11 +77,15 @@ public class SecurityConfig {
                     "/css/**", "/js/**", "/images/**", "/views/**",
                     "/error", "/favicon.ico", "/actuator/health", "/actuator/info"
                 ).permitAll()
-                // Autenticación y reportes públicos para streaming
-                .requestMatchers("/api/auth/**", "/api/reportes/**").permitAll()
+                // Autenticación pública
+                .requestMatchers("/api/auth/**").permitAll()
                 // Gestión de usuarios restringida a administradores
                 .requestMatchers("/api/usuarios/**").hasAnyRole("ADMINISTRADOR", "ADMIN")
-                // Todo lo demás requiere autenticación
+                // Mutaciones de vehículos, flota, clientes y pedidos solo para Administrador y Supervisor
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/vehiculos/**", "/api/flotas/**", "/api/clientes/**", "/api/transportistas/**").hasAnyRole("ADMINISTRADOR", "ADMIN", "SUPERVISOR")
+                .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/vehiculos/**", "/api/flotas/**", "/api/clientes/**", "/api/transportistas/**").hasAnyRole("ADMINISTRADOR", "ADMIN", "SUPERVISOR")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/vehiculos/**", "/api/flotas/**", "/api/clientes/**", "/api/transportistas/**", "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "ADMIN", "SUPERVISOR")
+                // Todo lo demás requiere autenticación (reportes, optimizaciones, asignaciones, consultas)
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

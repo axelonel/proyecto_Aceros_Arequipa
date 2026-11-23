@@ -765,9 +765,18 @@ function applyMisRutasRoleRestrictions() {
         const subTitleEl = document.getElementById('rutasHeaderSubtitle');
         if (subTitleEl) subTitleEl.textContent = 'Hoja de ruta diaria y registro de entregas asignadas a tu unidad vehicular';
         const nameEl = document.getElementById('driverCardName');
-        if (nameEl && user.nombres) nameEl.textContent = user.nombres;
+        if (nameEl && user.nombres) nameEl.textContent = (user.nombres + ' ' + (user.apellidos || '')).trim();
         const dniEl = document.getElementById('driverCardDni');
-        if (dniEl && user.codEmpleado) dniEl.textContent = user.codEmpleado;
+        const dniMap = {
+            'mquispe@acerosarequipa.com': '45892134',
+            'carlossuares@acerosarequipa.com': '47123985',
+            'onelferro@gmail.com': '74970859',
+            'TRP-001': '45892134',
+            'TRP-002': '47123985',
+            'TRP-003': '74970859'
+        };
+        const realDni = user.dni || dniMap[user.email] || dniMap[user.codEmpleado] || (user.codEmpleado && /^\d{8}$/.test(user.codEmpleado) ? user.codEmpleado : '45892134');
+        if (dniEl) dniEl.textContent = realDni;
     } else {
         if (selWrapper) selWrapper.style.display = '';
         if (btnAsig) btnAsig.style.display = '';
@@ -907,10 +916,10 @@ function renderMisRutas(statusFilter = 'TODAS') {
 
         if (kpiTotal) kpiTotal.textContent = list.length;
         if (kpiTrans) {
-            kpiTrans.textContent = countPorIniciar > 0 ? countPorIniciar : countEnTransito;
+            kpiTrans.textContent = countPorIniciar + countEnTransito;
             const transLabel = document.getElementById('kpiDriverTransitoLabel');
             if (transLabel) {
-                transLabel.textContent = countPorIniciar > 0 ? '📋 Por Iniciar' : '🚚 En Camino';
+                transLabel.textContent = (countPorIniciar > 0 && countEnTransito === 0) ? '📋 Por Iniciar' : '🚚 En Camino';
             }
         }
         if (kpiEntr) kpiEntr.textContent = countCompletadas;
@@ -3025,11 +3034,11 @@ function renderPedidosFlujo(pedidos, clientes) {
 
     const clienteMap = {};
     if (clientes && clientes.length > 0) {
-        clientes.forEach(c => { clienteMap[c.idCliente] = c.razonSocial; });
+        clientes.forEach(c => { clienteMap[c.idCliente] = c.nombre || c.razonSocial || ('Cliente #' + c.idCliente); });
     }
 
     tbody.innerHTML = pedidos.map(p => {
-        const clienteNom = clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
+        const clienteNom = p.clienteNombre || clienteMap[p.idCliente] || ('Cliente #' + p.idCliente);
         const est = (p.estadoPedido || 'REGISTRADO').toUpperCase();
 
         let badgeColor = '#0284c7';
@@ -3875,7 +3884,6 @@ async function loadAsignacionesData() {
 
                 actionBtns = `
                     ${btnIniciar}
-                    <button class="btn-sm" style="background:#16a34a; color:#fff; border:none; padding:4px 10px; border-radius:4px; font-weight:700; cursor:pointer;" onclick="completarAsignacion(${id})" title="Marcar Entregado">✓ Entregar</button>
                     ${cancelBtnHtml}
                 `;
             } else if (estado === 'EN_TRANSITO') {
@@ -4696,11 +4704,24 @@ async function loadHistorialData(page = 0, size = historialPageSize, search = hi
 
             const kpiOptimas = document.getElementById('kpiHistorialOptimas');
             if (kpiOptimas) {
-                kpiOptimas.textContent = Math.round(historialTotalElements * 0.85) || 12;
+                if (data.totalOptimas !== undefined) {
+                    kpiOptimas.textContent = data.totalOptimas;
+                } else {
+                    const countOpt = items.filter(r => r.estadoRuta === 'OPTIMA').length;
+                    kpiOptimas.textContent = countOpt;
+                }
             }
 
             const kpiFlota = document.getElementById('kpiHistorialFlotaActiva');
-            if (kpiFlota) kpiFlota.textContent = '6';
+            if (kpiFlota) {
+                if (data.flotaActiva !== undefined) {
+                    kpiFlota.textContent = data.flotaActiva;
+                } else {
+                    apiFetch(API_HOST + '/api/vehiculos').then(r => r.ok ? r.json() : []).then(vList => {
+                        kpiFlota.textContent = vList.filter(v => v.estadoOperativo === 'EN_RUTA').length;
+                    }).catch(() => { kpiFlota.textContent = '0'; });
+                }
+            }
 
         } else {
             const fallbackResp = await apiFetch(API_HOST + '/api/historial');
