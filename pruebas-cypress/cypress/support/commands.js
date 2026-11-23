@@ -38,3 +38,9 @@ Cypress.Commands.add('apiToken', (rol) => {
   return cy.request('POST', '/api/auth/login', { email: u.email, password: u.password })
     .its('body.token')
 })
+
+// Navega a la vista de Gestión de Clientes y Pedidos
+Cypress.Commands.add('abrirClientes', () => {
+  cy.get('#menuClientes').click()
+  cy.get('#viewClientes', { timeout: 20000 }).should('be.visible')
+})
