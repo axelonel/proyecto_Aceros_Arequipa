@@ -316,6 +316,244 @@ html, body {
     font-weight: 500;
 }
 
+/* Botón Ojo Mostrar / Ocultar Contraseña */
+.btn-toggle-password {
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s, background-color 0.15s;
+    outline: none;
+    flex-shrink: 0;
+}
+
+.btn-toggle-password:hover {
+    color: #0038ff;
+    background-color: #eff6ff;
+}
+
+.btn-toggle-password svg {
+    display: block;
+    pointer-events: none;
+}
+
+/* Enlaces de Ayuda en Formulario de Login */
+.form-help-links {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -4px;
+    margin-bottom: 4px;
+}
+
+.link-forgot-password {
+    background: none;
+    border: none;
+    color: #0284c7;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 4px;
+    text-decoration: none;
+    transition: color 0.15s, text-decoration 0.15s;
+}
+
+.link-forgot-password:hover {
+    color: #0369a1;
+    text-decoration: underline;
+}
+
+/* MODAL DE RECUPERACIÓN DE CONTRASEÑA (TIPO GOOGLE / FACEBOOK) */
+.recovery-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+}
+
+.recovery-modal-overlay.active {
+    display: flex;
+}
+
+.recovery-modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPopIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.recovery-header {
+    background: #153258;
+    color: #ffffff;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.recovery-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.recovery-close-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.recovery-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.recovery-body {
+    padding: 24px;
+}
+
+.recovery-instruction {
+    font-size: 13.5px;
+    color: #475569;
+    line-height: 1.5;
+    margin: 0 0 18px 0;
+}
+
+.recovery-code-input {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    letter-spacing: 8px !important;
+    text-align: center !important;
+    color: #1e3a8a !important;
+    background: #f8fafc !important;
+}
+
+.recovery-code-input::placeholder {
+    font-size: 18px !important;
+    letter-spacing: 4px !important;
+    color: #94a3b8 !important;
+}
+
+.recovery-status-msg {
+    margin-top: 12px;
+    font-size: 13px;
+    min-height: 18px;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: none;
+}
+
+.recovery-status-msg.error {
+    display: block;
+    background: #fef2f2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+.recovery-status-msg.success {
+    display: block;
+    background: #f0fdf4;
+    color: #166534;
+    border-left: 4px solid #22c55e;
+}
+
+.recovery-status-msg.info {
+    display: block;
+    background: #eff6ff;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
+.recovery-badge-email {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 4px 0 14px 0;
+    font-size: 13px;
+}
+
+.btn-recovery-primary {
+    background-color: #0038ff;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 56, 255, 0.2);
+    transition: background-color 0.2s;
+    margin-top: 14px;
+}
+
+.btn-recovery-primary:hover {
+    background-color: #002edb;
+}
+
+.btn-recovery-primary:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.recovery-footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+    font-size: 12px;
+}
+
+.recovery-footer-link {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12.5px;
+    padding: 0;
+}
+
+.recovery-footer-link:hover {
+    color: #0f172a;
+    text-decoration: underline;
+}
+
 /* VISTA DE ADMINISTRADOR COMPLETA EN PANTALLA */
 .admin-modal-overlay {
     position: fixed;

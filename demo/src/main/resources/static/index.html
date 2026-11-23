@@ -124,6 +124,23 @@
                             </svg>
                         </span>
                         <input type="password" id="password" placeholder="Contraseña" required autocomplete="current-password">
+                        <button type="button" class="btn-toggle-password" id="btnTogglePassword" onclick="togglePasswordVisibility('password', this)" title="Mostrar u ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                            <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Enlace de Recuperación de Contraseña -->
+                    <div class="form-help-links">
+                        <button type="button" class="link-forgot-password" id="linkForgotPassword" onclick="openRecoveryModal()">
+                            ¿Olvidaste tu contraseña?
+                        </button>
                     </div>
 
                     <!-- Botón Enviar -->
@@ -228,6 +245,142 @@
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RECUPERACIÓN DE CONTRASEÑA TIPO GOOGLE / FACEBOOK -->
+    <div class="recovery-modal-overlay" id="recoveryModal" onclick="handleRecoveryOverlayClick(event)">
+        <div class="recovery-modal-card">
+            <div class="recovery-header">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    Recuperación de Contraseña
+                </h3>
+                <button type="button" class="recovery-close-btn" onclick="closeRecoveryModal()" title="Cerrar">&times;</button>
+            </div>
+
+            <div class="recovery-body">
+                <!-- PASO 1: Identificación del usuario -->
+                <div id="recoveryStep1">
+                    <p class="recovery-instruction">
+                        Ingresa tu correo institucional o código de empleado para verificar tu identidad. Te enviaremos un código de seguridad de 6 dígitos.
+                    </p>
+
+                    <form onsubmit="handleSendRecoveryCode(event)">
+                        <div class="input-group">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </span>
+                            <input type="text" id="recoveryIdentifier" placeholder="Correo corporativo o código (ej. EMP-01)" required autocomplete="username">
+                        </div>
+
+                        <div class="recovery-status-msg" id="recoveryStatus1"></div>
+
+                        <button type="submit" class="btn-recovery-primary" id="btnSendCode">
+                            Enviar Código de Verificación
+                        </button>
+                    </form>
+                </div>
+
+                <!-- PASO 2: Código de 6 dígitos y nueva contraseña -->
+                <div id="recoveryStep2" style="display:none;">
+                    <p class="recovery-instruction">
+                        Hemos enviado un código de 6 dígitos al correo institucional asociado:
+                    </p>
+                    <div style="text-align:center;">
+                        <span class="recovery-badge-email" id="recoveryEmailDisplay">usuario@acerosarequipa.com</span>
+                    </div>
+
+                    <form onsubmit="handleResetPassword(event)">
+                        <div style="margin-bottom: 14px;">
+                            <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">CÓDIGO DE VERIFICACIÓN (6 DÍGITOS)</label>
+                            <input type="text" id="recoveryCode" class="recovery-code-input" maxlength="6" placeholder="000000" required autocomplete="one-time-code" style="width:100%; box-sizing:border-box; padding:10px 14px; border:2px solid #cbd5e1; border-radius:6px; outline:none;">
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">NUEVA CONTRASEÑA</label>
+                            <div class="input-group">
+                                <span class="input-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </span>
+                                <input type="password" id="newRecoveryPass" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('newRecoveryPass', this)" title="Mostrar u ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 12px;">
+                            <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">CONFIRMAR NUEVA CONTRASEÑA</label>
+                            <div class="input-group">
+                                <span class="input-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </span>
+                                <input type="password" id="confirmRecoveryPass" placeholder="Repite la nueva contraseña" required minlength="6" autocomplete="new-password">
+                                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('confirmRecoveryPass', this)" title="Mostrar u ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="recovery-status-msg" id="recoveryStatus2"></div>
+
+                        <button type="submit" class="btn-recovery-primary" id="btnConfirmReset">
+                            Restablecer y Guardar Contraseña
+                        </button>
+
+                        <div class="recovery-footer-actions">
+                            <button type="button" class="recovery-footer-link" onclick="backToStep1()">
+                                ← Volver al correo
+                            </button>
+                            <button type="button" class="recovery-footer-link" onclick="handleResendCode()">
+                                🔄 Reenviar código
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- PASO 3: Éxito total -->
+                <div id="recoveryStep3" style="display:none; text-align:center; padding: 12px 0;">
+                    <div style="width: 54px; height: 54px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <h4 style="margin: 0 0 8px 0; font-size: 18px; color: #0f172a;">¡Contraseña Actualizada con Éxito!</h4>
+                    <p style="font-size: 13.5px; color: #64748b; line-height: 1.5; margin: 0 0 20px 0;">
+                        Tu nueva credencial de acceso ha sido asegurada con cifrado BCrypt. Ya puedes iniciar sesión con tu nueva contraseña.
+                    </p>
+                    <button type="button" class="btn-recovery-primary" onclick="finishRecoveryAndLogin()">
+                        Iniciar Sesión con Mi Nueva Clave
+                    </button>
                 </div>
             </div>
         </div>
@@ -365,6 +518,226 @@
 
             alert(`✅ Cuenta creada con éxito para ${nombres} con rol de ${rolLabel}.`);
             e.target.reset();
+        }
+
+        /* ==========================================================================
+           FUNCIONALIDAD: OJITO PARA MOSTRAR / OCULTAR CONTRASEÑA
+           ========================================================================== */
+        function togglePasswordVisibility(inputId, btnEl) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+
+            if (btnEl) {
+                const eyeOpen = btnEl.querySelector('.eye-open');
+                const eyeClosed = btnEl.querySelector('.eye-closed');
+                if (eyeOpen && eyeClosed) {
+                    eyeOpen.style.display = isPassword ? 'none' : 'block';
+                    eyeClosed.style.display = isPassword ? 'block' : 'none';
+                }
+                btnEl.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                btnEl.title = isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña';
+            }
+        }
+
+        /* ==========================================================================
+           FUNCIONALIDAD: RECUPERACIÓN DE CONTRASEÑA TIPO GOOGLE / FACEBOOK
+           ========================================================================== */
+        let currentRecoveryEmail = '';
+
+        function openRecoveryModal() {
+            const currentLoginUser = document.getElementById('username').value.trim();
+            const recoveryInput = document.getElementById('recoveryIdentifier');
+            if (currentLoginUser) {
+                recoveryInput.value = currentLoginUser;
+            }
+
+            // Reiniciar a Paso 1
+            document.getElementById('recoveryStep1').style.display = 'block';
+            document.getElementById('recoveryStep2').style.display = 'none';
+            document.getElementById('recoveryStep3').style.display = 'none';
+
+            clearRecoveryStatus('recoveryStatus1');
+            clearRecoveryStatus('recoveryStatus2');
+
+            document.getElementById('recoveryModal').classList.add('active');
+            setTimeout(() => recoveryInput.focus(), 100);
+        }
+
+        function closeRecoveryModal() {
+            document.getElementById('recoveryModal').classList.remove('active');
+        }
+
+        function handleRecoveryOverlayClick(e) {
+            if (e.target && e.target.id === 'recoveryModal') {
+                closeRecoveryModal();
+            }
+        }
+
+        function showRecoveryStatus(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.className = 'recovery-status-msg ' + type;
+            el.textContent = text;
+        }
+
+        function clearRecoveryStatus(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.className = 'recovery-status-msg';
+            el.textContent = '';
+        }
+
+        function backToStep1() {
+            document.getElementById('recoveryStep1').style.display = 'block';
+            document.getElementById('recoveryStep2').style.display = 'none';
+            document.getElementById('recoveryStep3').style.display = 'none';
+            clearRecoveryStatus('recoveryStatus1');
+        }
+
+        async function handleSendRecoveryCode(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('recoveryIdentifier').value.trim();
+            const btn = document.getElementById('btnSendCode');
+
+            if (!identifier) {
+                showRecoveryStatus('recoveryStatus1', 'Ingresa tu correo o código de empleado.', 'error');
+                return;
+            }
+
+            showRecoveryStatus('recoveryStatus1', 'Enviando código de seguridad por correo...', 'info');
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/auth/recuperar-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: identifier })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    showRecoveryStatus('recoveryStatus1', data.error || 'No se pudo enviar el código. Verifica los datos.', 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                currentRecoveryEmail = data.email || identifier;
+                document.getElementById('recoveryEmailDisplay').textContent = currentRecoveryEmail;
+
+                // Pasar al Paso 2
+                document.getElementById('recoveryStep1').style.display = 'none';
+                document.getElementById('recoveryStep2').style.display = 'block';
+                document.getElementById('recoveryStep3').style.display = 'none';
+                document.getElementById('recoveryCode').value = '';
+                document.getElementById('newRecoveryPass').value = '';
+                document.getElementById('confirmRecoveryPass').value = '';
+                showRecoveryStatus('recoveryStatus2', '✔ Código enviado a tu correo. Ingrésalo a continuación (válido por 15 min).', 'success');
+
+                setTimeout(() => document.getElementById('recoveryCode').focus(), 150);
+
+            } catch (err) {
+                showRecoveryStatus('recoveryStatus1', 'Error de conexión con el servidor. Intenta nuevamente.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function handleResendCode() {
+            if (!currentRecoveryEmail) {
+                backToStep1();
+                return;
+            }
+            showRecoveryStatus('recoveryStatus2', 'Reenviando nuevo código de verificación...', 'info');
+
+            try {
+                const resp = await fetch('/api/auth/recuperar-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentRecoveryEmail })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showRecoveryStatus('recoveryStatus2', '✔ Nuevo código enviado con éxito a ' + currentRecoveryEmail, 'success');
+                } else {
+                    showRecoveryStatus('recoveryStatus2', data.error || 'No se pudo reenviar el código.', 'error');
+                }
+            } catch (err) {
+                showRecoveryStatus('recoveryStatus2', 'Error al reenviar. Verifica tu conexión.', 'error');
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const codigo = document.getElementById('recoveryCode').value.trim();
+            const nuevaPassword = document.getElementById('newRecoveryPass').value;
+            const confirmPassword = document.getElementById('confirmRecoveryPass').value;
+            const btn = document.getElementById('btnConfirmReset');
+
+            if (!codigo || codigo.length < 4) {
+                showRecoveryStatus('recoveryStatus2', 'Ingresa el código de verificación completo.', 'error');
+                return;
+            }
+
+            if (nuevaPassword.length < 6) {
+                showRecoveryStatus('recoveryStatus2', 'La nueva contraseña debe tener al menos 6 caracteres.', 'error');
+                return;
+            }
+
+            if (nuevaPassword !== confirmPassword) {
+                showRecoveryStatus('recoveryStatus2', 'Las contraseñas no coinciden. Por favor verifícalas.', 'error');
+                return;
+            }
+
+            showRecoveryStatus('recoveryStatus2', 'Validando código y actualizando credenciales...', 'info');
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/auth/restablecer-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentRecoveryEmail,
+                        codigo: codigo,
+                        nuevaPassword: nuevaPassword
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    showRecoveryStatus('recoveryStatus2', data.error || 'Código incorrecto o expirado.', 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Paso 3: Éxito
+                document.getElementById('recoveryStep1').style.display = 'none';
+                document.getElementById('recoveryStep2').style.display = 'none';
+                document.getElementById('recoveryStep3').style.display = 'block';
+
+            } catch (err) {
+                showRecoveryStatus('recoveryStatus2', 'Error al procesar la solicitud con el servidor.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function finishRecoveryAndLogin() {
+            closeRecoveryModal();
+            if (currentRecoveryEmail) {
+                document.getElementById('username').value = currentRecoveryEmail;
+            }
+            const passInput = document.getElementById('password');
+            passInput.value = '';
+            passInput.focus();
+
+            const status = document.getElementById('statusMessage');
+            status.style.color = '#16a34a';
+            status.textContent = 'Ingresa tu nueva contraseña para acceder.';
         }
     </script>
 </body>
