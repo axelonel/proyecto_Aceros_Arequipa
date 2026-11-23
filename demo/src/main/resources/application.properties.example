@@ -30,3 +30,13 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 # Configuración de JPA / Hibernate
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
+
+# ==========================================================
+# CONFIGURACION DE NOTIFICACIONES POR CORREO (JAKARTA MAIL)
+# ==========================================================
+app.mail.admin-email=axel29condori@gmail.com
+app.mail.admin-nombre=Alex Alvaro Leon Condori
+app.mail.host=smtp.gmail.com
+app.mail.port=465
+app.mail.username=axel29condori@gmail.com
+app.mail.password=shmi bonl yhix gpum

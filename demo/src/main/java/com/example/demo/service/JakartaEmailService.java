@@ -18,22 +18,22 @@ public class JakartaEmailService {
 
     private static final Logger log = LoggerFactory.getLogger(JakartaEmailService.class);
 
-    @Value("${app.mail.host}")
+    @Value("${app.mail.host:smtp.gmail.com}")
     private String smtpHost;
 
-    @Value("${app.mail.port}")
+    @Value("${app.mail.port:465}")
     private String smtpPort;
 
-    @Value("${app.mail.username}")
+    @Value("${app.mail.username:axel29condori@gmail.com}")
     private String remitenteEmail;
 
-    @Value("${app.mail.password}")
+    @Value("${app.mail.password:shmi bonl yhix gpum}")
     private String remitentePassword;
 
-    @Value("${app.mail.admin-email}")
+    @Value("${app.mail.admin-email:axel29condori@gmail.com}")
     private String adminEmail;
 
-    @Value("${app.mail.admin-nombre}")
+    @Value("${app.mail.admin-nombre:Alex Alvaro Leon Condori}")
     private String adminNombre;
 
     /**
@@ -49,10 +49,19 @@ public class JakartaEmailService {
 
             Properties props = new Properties();
             props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
             props.put("mail.smtp.host", smtpHost);
             props.put("mail.smtp.port", smtpPort);
-            props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+
+            if ("465".equals(smtpPort)) {
+                props.put("mail.smtp.ssl.enable", "true");
+                props.put("mail.smtp.socketFactory.port", smtpPort);
+                props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+            } else {
+                props.put("mail.smtp.starttls.enable", "true");
+            }
+            props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+            props.put("mail.smtp.connectiontimeout", "10000");
+            props.put("mail.smtp.timeout", "10000");
 
             Session session = Session.getInstance(props, new Authenticator() {
                 @Override
